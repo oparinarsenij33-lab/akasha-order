@@ -1069,6 +1069,12 @@ function deleteCharAtCursor() {
 }
 
 function renderKeyboard() {
+    // Проверяем не в модальном ли мы окне
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement.classList && activeElement.classList.contains('modal-input')) {
+        return; // Не показываем кастомную клавиатуру для модальных окон
+    }
+    
     if (!customKeyboard) return;
     customKeyboard.innerHTML = '';
     let layout;
@@ -1152,15 +1158,13 @@ function toggleMode() {
 
 window.toggleLanguage = toggleLanguage;
 
-customTextarea.addEventListener('focus', (e) => {
-    e.preventDefault();
-    customTextarea.style.borderColor = 'rgba(100, 255, 218, 0.6)';
-    customTextarea.blur();
-    setTimeout(() => customTextarea.focus(), 100);
+// ===== ИСПРАВЛЕНИЯ ДЛЯ КОПИРОВАНИЯ =====
+customTextarea.addEventListener('copy', (e) => {
+    e.stopPropagation();
 });
 
-customTextarea.addEventListener('blur', () => {
-    customTextarea.style.borderColor = 'rgba(139, 195, 74, 0.4)';
+customTextarea.addEventListener('cut', (e) => {
+    e.stopPropagation();
 });
 
 customTextarea.addEventListener('paste', (e) => {
@@ -1184,6 +1188,11 @@ customTextarea.addEventListener('click', (e) => {
 
 // ===== МОДАЛЬНЫЕ ОКНА =====
 function showCustomModal(title, bodyHTML, buttons) {
+    // Скрываем кастомную клавиатуру
+    if (customKeyboard) {
+        customKeyboard.style.display = 'none';
+    }
+    
     const modal = document.getElementById('custom-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
@@ -1209,6 +1218,10 @@ function showCustomModal(title, bodyHTML, buttons) {
 }
 
 function closeCustomModal() {
+    // Показываем кастомную клавиатуру обратно
+    if (customKeyboard) {
+        customKeyboard.style.display = 'flex';
+    }
     document.getElementById('custom-modal').style.display = 'none';
 }
 
@@ -1218,7 +1231,7 @@ document.addEventListener('click', (e) => {
 });
 
 function showCustomPrompt(title, message, defaultValue, callback) {
-    showCustomModal(title, `<p>${message}</p><input type="text" id="modal-prompt-input" class="modal-input" value="${defaultValue}" autofocus>`, [
+    showCustomModal(title, `<p>${message}</p><input type="text" id="modal-prompt-input" class="modal-input custom-keyboard-ignore" value="${defaultValue}" autofocus>`, [
         { text: 'Отмена', class: 'hw-btn', action: () => callback(null) },
         { text: 'OK', class: 'hw-btn', style: 'background:rgba(100,255,218,0.3); color:#64ffda;', action: () => {
             const input = document.getElementById('modal-prompt-input');
