@@ -1,12 +1,14 @@
-// ===== SUPABASE CONFIG =====
-const SUPABASE_URL = 'https://wvxzkahufgdwzjixzjqy.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_tDBDz8GGl-37MDRYqP2zZw_5663uLyC';
+// ===== FIREBASE =====
+const firebaseConfig = {
+    apiKey: "AIzaSyCwTw-52bQ_MxtdFAT3s9pkEN9rQ2qiMEE",
+    authDomain: "akasha-2b362.firebaseapp.com",
+    projectId: "akasha-2b362",
+    storageBucket: "akasha-2b362.firebasestorage.app",
+    messagingSenderId: "352516960841",
+    appId: "1:352516960841:web:88cdd6b970b14b5ced8598",
+    measurementId: "G-GDYYS12EQH"
+};
 
-// Инициализация Supabase
-const { createClient } = supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
 let knowledgeBase = {};
 let lessonsById = {};
 let assignmentsList = [];
@@ -28,6 +30,7 @@ const usersDatabase = {
 
 let currentUser = null;
 let addLessonState = null;
+let windowDb = null;
 let isInitialized = false;
 
 const accessLevels = {
@@ -206,360 +209,168 @@ function addMessage(text, isUser = false, saveToStorage = true) {
         container.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 100);
 }
-// ===== SUPABASE CRUD ФУНКЦИИ =====
 
-// Загрузка уроков из Supabase
+// ===== FIREBASE CRUD =====
 async function loadLessonsFromFirebase() {
+    if (!windowDb) return;
     try {
-        const { data, error } = await supabaseClient
-            .from('lessons')
-            .select('*');
-        
-        if (error) {
-            console.error('Ошибка загрузки уроков:', error);
-            return;
-        }
-        
-        knowledgeBase = {};
-        lessonsById = {};
-        
-        data.forEach((lesson) => {
-            const id = lesson.id;
-            lessonsById[id] = { id, ...lesson };
-            if (!knowledgeBase[lesson.category]) knowledgeBase[lesson.category] = [];
-            knowledgeBase[lesson.category].push({ id, ...lesson });
+        const snapshot = await windowDb.collection('lessons').get();
+        knowledgeBase = {}; lessonsById = {};
+        snapshot.forEach((doc) => {
+            const data = doc.data(); const id = doc.id;
+            lessonsById[id] = { id, ...data };
+            if (!knowledgeBase[data.category]) knowledgeBase[data.category] = [];
+            knowledgeBase[data.category].push({ id, ...data });
         });
-    } catch (error) {
-        console.error('Ошибка загрузки уроков:', error);
-    }
+    } catch (error) { console.error('Ошибка загрузки уроков:', error); }
 }
 
-// Загрузка домашних заданий
 async function loadAssignments() {
+    if (!windowDb) return;
     try {
-        const { data, error } = await supabaseClient
-            .from('homework_assignments')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
-        if (error) {
-            console.error('Ошибка загрузки заданий:', error);
-            return;
-        }
-        
-        assignmentsList = data || [];
-    } catch (error) {
-        console.error('Ошибка загрузки заданий:', error);
-    }
+        const snapshot = await windowDb.collection('homework_assignments').get();
+        assignmentsList = [];
+        snapshot.forEach((doc) => { assignmentsList.push({ id: doc.id, ...doc.data() }); });
+        assignmentsList.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    } catch (error) {}
 }
 
-// Загрузка ответов на ДЗ
 async function loadSubmissions() {
+    if (!windowDb) return;
     try {
-        const { data, error } = await supabaseClient
-            .from('homework_submissions')
-            .select('*');
-        
-        if (error) {
-            console.error('Ошибка загрузки ответов:', error);
-            return;
-        }
-        
-        submissionsList = data || [];
-    } catch (error) {
-        console.error('Ошибка загрузки ответов:', error);
-    }
+        const snapshot = await windowDb.collection('homework_submissions').get();
+        submissionsList = [];
+        snapshot.forEach((doc) => { submissionsList.push({ id: doc.id, ...doc.data() }); });
+    } catch (error) {}
 }
 
-// Создание задания
 async function createAssignment(title, description) {
+    if (!windowDb) return false;
     try {
-        const { data, error } = await supabaseClient
-            .from('homework_assignments')
-            .insert([{
-                title: title,
-                description: description,
-                created_by: currentUser.name,
-                created_at: new Date().toISOString()
-            }]);
-        
-        if (error) {
-            console.error('Ошибка создания задания:', error);
-            return false;
-        }
-        
+        await windowDb.collection('homework_assignments').add({
+            title: title, description: description,
+            createdBy: currentUser.name, createdAt: new Date()
+        });
         return true;
-    } catch (error) {
-        console.error('Ошибка создания задания:', error);
-        return false;
-    }
+    } catch (error) { console.error('Ошибка создания:', error); return false; }
 }
 
-// Отправка ответа на ДЗ
 async function submitHomeworkToFirebase(assignmentId, content) {
+    if (!windowDb) return false;
     try {
-        const { data, error } = await supabaseClient
-            .from('homework_submissions')
-            .insert([{
-                assignment_id: assignmentId,
-                student_name: currentUser.name,
-                student_rank: currentUser.ранг,
-                content: content,
-                status: 'pending',
-                submitted_at: new Date().toISOString(),
-                master_feedback: null,
-                reviewed_at: null
-            }]);
-        
-        if (error) {
-            console.error('Ошибка отправки ответа:', error);
-            return false;
-        }
-        
+        await windowDb.collection('homework_submissions').add({
+            assignmentId: assignmentId,
+            studentName: currentUser.name,
+            studentRank: currentUser.ранг,
+            content: content,
+            status: 'pending',
+            submittedAt: new Date(),
+            masterFeedback: '',
+            reviewedAt: null
+        });
         return true;
-    } catch (error) {
-        console.error('Ошибка отправки ответа:', error);
-        return false;
-    }
+    } catch (error) { console.error('Ошибка отправки:', error); return false; }
 }
 
-// Обновление статуса ответа
 async function updateSubmissionStatus(submissionId, status, feedback) {
+    if (!windowDb) return false;
     try {
-        const { data, error } = await supabaseClient
-            .from('homework_submissions')
-            .update({
-                status: status,
-                master_feedback: feedback,
-                reviewed_at: new Date().toISOString()
-            })
-            .eq('id', submissionId);
-        
-        if (error) {
-            console.error('Ошибка обновления статуса:', error);
-            return false;
-        }
-        
+        await windowDb.collection('homework_submissions').doc(submissionId).update({
+            status: status, masterFeedback: feedback, reviewedAt: new Date()
+        });
         return true;
-    } catch (error) {
-        console.error('Ошибка обновления статуса:', error);
-        return false;
-    }
+    } catch (error) { console.error('Ошибка обновления:', error); return false; }
 }
 
-// Удаление ответа
 async function deleteMySubmissionFromFirebase(submissionId) {
+    if (!windowDb) return false;
     try {
-        const { error } = await supabaseClient
-            .from('homework_submissions')
-            .delete()
-            .eq('id', submissionId);
-        
-        if (error) {
-            console.error('Ошибка удаления:', error);
-            return false;
-        }
-        
+        await windowDb.collection('homework_submissions').doc(submissionId).delete();
         return true;
-    } catch (error) {
-        console.error('Ошибка удаления:', error);
-        return false;
-    }
+    } catch (error) { console.error('Ошибка удаления:', error); return false; }
 }
 
-// Загрузка комментариев к уроку
 async function loadCommentsForLesson(lessonId) {
-    if (!lessonId) return [];
-    
+    if (!windowDb || !lessonId) return [];
     try {
-        const { data, error } = await supabaseClient
-            .from('comments')
-            .select('*')
-            .eq('lesson_id', lessonId)
-            .order('created_at', { ascending: true });
-        
-        if (error) {
-            console.error('Ошибка загрузки комментариев:', error);
-            return [];
-        }
-        
-        return data || [];
-    } catch (error) {
-        console.error('Ошибка загрузки комментариев:', error);
-        return [];
-    }
+        const snapshot = await windowDb.collection('comments').where('lessonId', '==', lessonId).get();
+        const comments = [];
+        snapshot.forEach((doc) => { comments.push({ id: doc.id, ...doc.data() }); });
+        comments.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+        return comments;
+    } catch (error) { return []; }
 }
 
-// Добавление комментария
 async function addCommentToFirebase(lessonId, text, type) {
-    if (!lessonId) return false;
-    
+    if (!windowDb || !lessonId) return false;
     try {
-        const { data, error } = await supabaseClient
-            .from('comments')
-            .insert([{
-                lesson_id: lessonId,
-                text: text,
-                type: type,
-                author_name: currentUser.name,
-                author_rank: currentUser.ранг,
-                created_at: new Date().toISOString(),
-                updated_at: null
-            }]);
-        
-        if (error) {
-            console.error('Ошибка добавления комментария:', error);
-            return false;
-        }
-        
+        await windowDb.collection('comments').add({
+            lessonId: lessonId, text: text, type: type,
+            authorName: currentUser.name, authorRank: currentUser.ранг, createdAt: new Date()
+        });
         return true;
-    } catch (error) {
-        console.error('Ошибка добавления комментария:', error);
-        return false;
-    }
+    } catch (error) { console.error('Ошибка добавления:', error); return false; }
 }
 
-// Обновление комментария
 async function updateCommentInFirebase(commentId, newText) {
-    if (!commentId) return false;
-    
-    try {
-        const { data, error } = await supabaseClient
-            .from('comments')
-            .update({
-                text: newText,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', commentId);
-        
-        if (error) {
-            console.error('Ошибка обновления комментария:', error);
-            return false;
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Ошибка обновления комментария:', error);
-        return false;
-    }
+    if (!windowDb || !commentId) return false;
+    try { 
+        await windowDb.collection('comments').doc(commentId).update({ text: newText, updatedAt: new Date() }); 
+        return true; 
+    } catch (error) { return false; }
 }
 
-// Удаление комментария
 async function deleteCommentFromFirebase(commentId) {
-    if (!commentId) return false;
-    
-    try {
-        const { error } = await supabaseClient
-            .from('comments')
-            .delete()
-            .eq('id', commentId);
-        
-        if (error) {
-            console.error('Ошибка удаления комментария:', error);
-            return false;
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Ошибка удаления комментария:', error);
-        return false;
-    }
+    if (!windowDb || !commentId) return false;
+    try { 
+        await windowDb.collection('comments').doc(commentId).delete(); 
+        return true; 
+    } catch (error) { return false; }
 }
 
-// Добавление урока
 async function addLessonToFirebase(category, title, content, mediaUrl = '') {
-    try {
-        const { data, error } = await supabaseClient
-            .from('lessons')
-            .insert([{
-                category: category,
-                title: title,
-                content: content,
-                media_url: mediaUrl,
-                created_at: new Date().toISOString(),
-                added_by: currentUser.name
-            }]);
-        
-        if (error) {
-            console.error('Ошибка добавления урока:', error);
-            return false;
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Ошибка добавления урока:', error);
-        return false;
-    }
+    if (!windowDb) return false;
+    try { 
+        await windowDb.collection('lessons').add({ 
+            category, title, content, mediaUrl, createdAt: new Date(), addedBy: currentUser.name 
+        }); 
+        return true; 
+    } catch (error) { return false; }
 }
 
-// Обновление урока
 async function updateLessonInFirebase(lessonId, updates) {
-    if (!lessonId) return false;
-    
-    try {
-        const { data, error } = await supabaseClient
-            .from('lessons')
-            .update(updates)
-            .eq('id', lessonId);
-        
-        if (error) {
-            console.error('Ошибка обновления урока:', error);
-            return false;
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Ошибка обновления урока:', error);
-        return false;
-    }
+    if (!windowDb || !lessonId) return false;
+    try { 
+        await windowDb.collection('lessons').doc(lessonId).update(updates); 
+        return true; 
+    } catch (error) { return false; }
 }
 
-// Удаление урока
 async function deleteLesson(lessonId) {
-    if (!lessonId) return false;
-    
-    try {
-        const { error } = await supabaseClient
-            .from('lessons')
-            .delete()
-            .eq('id', lessonId);
-        
-        if (error) {
-            console.error('Ошибка удаления урока:', error);
-            return false;
-        }
-        
-        delete lessonsById[lessonId];
-        return true;
-    } catch (error) {
-        console.error('Ошибка удаления урока:', error);
-        return false;
-    }
+    if (!windowDb || !lessonId) return false;
+    try { 
+        await windowDb.collection('lessons').doc(lessonId).delete(); 
+        delete lessonsById[lessonId]; 
+        return true; 
+    } catch (error) { return false; }
 }
+
 // ===== ЧАТ С МАСТЕРОМ =====
 async function sendMessageToMaster(text) {
-    if (!currentUser) return false;
+    if (!windowDb || !currentUser) return false;
     const masterName = currentUser.учитель;
     if (!masterName || masterName === 'отсутствует') {
         addMessage('<p>❌ У тебя нет назначенного Мастера!</p>');
         return false;
     }
     try {
-        const { data, error } = await supabaseClient
-            .from('messages')
-            .insert([{
-                from_user: currentUser.name,
-                to_user: masterName,
-                text: text,
-                timestamp: new Date().toISOString(),
-                read: false
-            }]);
-        
-        if (error) {
-            console.error('💥 Ошибка:', error);
-            addMessage(`<p>❌ Ошибка отправки: ${error.message}</p>`);
-            return false;
-        }
+        await windowDb.collection('messages').add({
+            from: currentUser.name,
+            to: masterName,
+            text: text,
+            timestamp: firebase.firestore.Timestamp.fromDate(new Date()),
+            read: false
+        });
         return true;
     } catch (error) {
         console.error('💥 Ошибка:', error);
@@ -569,27 +380,14 @@ async function sendMessageToMaster(text) {
 }
 
 async function loadChatWith(partnerName) {
-    if (!currentUser) return [];
+    if (!windowDb || !currentUser) return [];
     try {
-        const { data: messages1, error: error1 } = await supabaseClient
-            .from('messages')
-            .select('*')
-            .eq('from_user', currentUser.name)
-            .eq('to_user', partnerName);
-        
-        const { data: messages2, error: error2 } = await supabaseClient
-            .from('messages')
-            .select('*')
-            .eq('from_user', partnerName)
-            .eq('to_user', currentUser.name);
-        
-        if (error1 || error2) {
-            console.error('Ошибка загрузки чата:', error1 || error2);
-            return [];
-        }
-        
-        const messages = [...(messages1 || []), ...(messages2 || [])];
-        messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const snap1 = await windowDb.collection('messages').where('from', '==', currentUser.name).where('to', '==', partnerName).get();
+        const snap2 = await windowDb.collection('messages').where('from', '==', partnerName).where('to', '==', currentUser.name).get();
+        const messages = [];
+        snap1.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+        snap2.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+        messages.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
         return messages;
     } catch (error) {
         console.error('Ошибка загрузки чата:', error);
@@ -598,16 +396,15 @@ async function loadChatWith(partnerName) {
 }
 
 async function markAsRead(fromUser) {
-    if (!currentUser) return;
+    if (!windowDb || !currentUser) return;
     try {
-        const { error } = await supabaseClient
-            .from('messages')
-            .update({ read: true })
-            .eq('from_user', fromUser)
-            .eq('to_user', currentUser.name)
-            .eq('read', false);
-        
-        if (error) console.error('Ошибка отметки:', error);
+        const snapshot = await windowDb.collection('messages')
+            .where('from', '==', fromUser)
+            .where('to', '==', currentUser.name)
+            .where('read', '==', false).get();
+        const batch = windowDb.batch();
+        snapshot.forEach(doc => { batch.update(doc.ref, { read: true }); });
+        await batch.commit();
     } catch (error) {
         console.error('Ошибка отметки:', error);
     }
@@ -632,8 +429,8 @@ window.openMasterChat = async function() {
             } else {
                 container.innerHTML = '';
                 messages.forEach(msg => {
-                    const isMine = msg.from_user === currentUser.name;
-                    const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
+                    const isMine = msg.from === currentUser.name;
+                    const time = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
                     const bubble = document.createElement('div');
                     bubble.className = `chat-bubble ${isMine ? 'mine' : 'theirs'}`;
                     bubble.innerHTML = `<div class="bubble-text">${msg.text}</div><div class="bubble-time">${time}</div>`;
@@ -649,31 +446,22 @@ window.openMasterChat = async function() {
 };
 
 async function showMasterDashboard() {
+    if (!windowDb) return;
     try {
-        const { data, error } = await supabaseClient
-            .from('messages')
-            .select('*')
-            .eq('to_user', currentUser.name);
-        
-        if (error) {
-            console.error('Ошибка загрузки панели:', error);
-            addMessage('<p>❌ Ошибка загрузки сообщений.</p>');
-            return;
-        }
-        
+        const snapshot = await windowDb.collection('messages').where('to', '==', currentUser.name).get();
         const studentsMap = new Map();
-        (data || []).forEach(msg => {
-            const studentName = msg.from_user;
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const studentName = data.from;
             if (!studentsMap.has(studentName)) {
                 studentsMap.set(studentName, {
                     name: studentName,
-                    lastMessage: msg.text,
-                    timestamp: msg.timestamp,
-                    unread: msg.read === false
+                    lastMessage: data.text,
+                    timestamp: data.timestamp,
+                    unread: data.read === false
                 });
             }
         });
-        
         const students = Array.from(studentsMap.values());
         let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
         html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">📋 Сообщения от учеников</h3>`;
@@ -681,7 +469,7 @@ async function showMasterDashboard() {
             html += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Пока нет сообщений от учеников.</p>`;
         } else {
             students.forEach(student => {
-                const time = student.timestamp ? new Date(student.timestamp).toLocaleString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
+                const time = student.timestamp ? new Date(student.timestamp.seconds * 1000).toLocaleString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
                 const unreadBadge = student.unread ? '<span style="background:#ff6b6b; color:white; padding:2px 8px; border-radius:10px; font-size:0.8em; margin-left:10px;">NEW</span>' : '';
                 html += `<div style="background:rgba(100,255,218,0.1); border:1px solid rgba(100,255,218,0.3); border-radius:10px; padding:15px; margin:10px 0; cursor:pointer;" onclick="window.openChatWithStudent('${student.name}')">`;
                 html += `<div style="display:flex; justify-content:space-between; align-items:center;">`;
@@ -709,23 +497,19 @@ window.openChatWithStudent = async function(studentName) {
     if (!container) return;
     container.innerHTML = '<p style="color:#6b5f4a; text-align:center;">Загрузка...</p>';
     try {
-        const { data: messages1 } = await supabaseClient
-            .from('messages').select('*')
-            .eq('from_user', currentUser.name).eq('to_user', studentName);
-        const { data: messages2 } = await supabaseClient
-            .from('messages').select('*')
-            .eq('from_user', studentName).eq('to_user', currentUser.name);
-        
-        const messages = [...(messages1 || []), ...(messages2 || [])];
-        messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        
+        const snap1 = await windowDb.collection('messages').where('from', '==', currentUser.name).where('to', '==', studentName).get();
+        const snap2 = await windowDb.collection('messages').where('from', '==', studentName).where('to', '==', currentUser.name).get();
+        const messages = [];
+        snap1.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+        snap2.forEach(doc => messages.push({ id: doc.id, ...doc.data() }));
+        messages.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
         if (messages.length === 0) {
             container.innerHTML = `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Нет переписки с ${studentName}</p>`;
         } else {
             container.innerHTML = '';
             messages.forEach(msg => {
-                const isMine = msg.from_user === currentUser.name;
-                const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
+                const isMine = msg.from === currentUser.name;
+                const time = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
                 const bubble = document.createElement('div');
                 bubble.className = `chat-bubble ${isMine ? 'mine' : 'theirs'}`;
                 bubble.innerHTML = `<div class="bubble-text">${msg.text}</div><div class="bubble-time">${time}</div>`;
@@ -733,17 +517,13 @@ window.openChatWithStudent = async function(studentName) {
             });
             container.scrollTop = container.scrollHeight;
         }
-        
-        // Отмечаем как прочитанное
-        const unreadIds = messages
-            .filter(msg => msg.from_user === studentName && msg.to_user === currentUser.name && msg.read === false)
-            .map(msg => msg.id);
-        
-        if (unreadIds.length > 0) {
-            for (const id of unreadIds) {
-                await supabaseClient.from('messages').update({ read: true }).eq('id', id);
+        const batch = windowDb.batch();
+        messages.forEach(msg => {
+            if (msg.from === studentName && msg.to === currentUser.name && msg.read === false) {
+                batch.update(windowDb.collection('messages').doc(msg.id), { read: true });
             }
-        }
+        });
+        await batch.commit();
         window.currentChatPartner = studentName;
     } catch (error) {
         console.error('Ошибка:', error);
@@ -758,13 +538,13 @@ window.sendMasterChatMessage = async function() {
     if (!text) return;
     if (window.currentChatPartner) {
         try {
-            await supabaseClient.from('messages').insert([{
-                from_user: currentUser.name,
-                to_user: window.currentChatPartner,
+            await windowDb.collection('messages').add({
+                from: currentUser.name,
+                to: window.currentChatPartner,
                 text: text,
-                timestamp: new Date().toISOString(),
+                timestamp: firebase.firestore.Timestamp.fromDate(new Date()),
                 read: false
-            }]);
+            });
             input.value = '';
             await window.openChatWithStudent(window.currentChatPartner);
         } catch (error) {
@@ -781,8 +561,8 @@ window.sendMasterChatMessage = async function() {
             if (container) {
                 container.innerHTML = '';
                 messages.forEach(msg => {
-                    const isMine = msg.from_user === currentUser.name;
-                    const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
+                    const isMine = msg.from === currentUser.name;
+                    const time = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
                     const bubble = document.createElement('div');
                     bubble.className = `chat-bubble ${isMine ? 'mine' : 'theirs'}`;
                     bubble.innerHTML = `<div class="bubble-text">${msg.text}</div><div class="bubble-time">${time}</div>`;
@@ -802,246 +582,7 @@ window.closeMasterChat = function() {
     showMainMenu();
 };
 
-// ===== БЛОКИРОВКА ПОЛЬЗОВАТЕЛЕЙ =====
-async function isUserBlocked(userName) {
-    try {
-        const { data, error } = await supabaseClient
-            .from('blocked_users')
-            .select('*')
-            .eq('id', userName)
-            .single();
-        
-        if (error || !data) return false;
-        return data.blocked === true;
-    } catch (error) { return false; }
-}
-
-async function blockUser(userName, reason) {
-    try {
-        const { error } = await supabaseClient
-            .from('blocked_users')
-            .upsert([{
-                id: userName,
-                blocked: true,
-                reason: reason,
-                blocked_by: currentUser.name,
-                blocked_at: new Date().toISOString(),
-                unblocked_at: null
-            }], { onConflict: 'id' });
-        
-        if (error) {
-            console.error('Ошибка блокировки:', error);
-            return false;
-        }
-        return true;
-    } catch (error) {
-        console.error('Ошибка блокировки:', error);
-        return false;
-    }
-}
-
-async function unblockUser(userName) {
-    try {
-        const { error } = await supabaseClient
-            .from('blocked_users')
-            .update({
-                blocked: false,
-                unblocked_at: new Date().toISOString()
-            })
-            .eq('id', userName);
-        
-        if (error) {
-            console.error('Ошибка разблокировки:', error);
-            return false;
-        }
-        return true;
-    } catch (error) {
-        console.error('Ошибка разблокировки:', error);
-        return false;
-    }
-}
-
-async function getBlockedUsers() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('blocked_users')
-            .select('*')
-            .eq('blocked', true);
-        
-        if (error) return [];
-        return data || [];
-    } catch (error) { return []; }
-}
-
-// ===== ПРОЧИТАННЫЕ УРОКИ =====
-async function markLessonAsRead(lessonId) {
-    if (!currentUser) return false;
-    try {
-        const readId = `${currentUser.name}_${lessonId}`;
-        const { error } = await supabaseClient
-            .from('lesson_reads')
-            .upsert([{
-                id: readId,
-                user_id: currentUser.name,
-                lesson_id: lessonId,
-                read_at: new Date().toISOString(),
-                user_rank: currentUser.ранг
-            }], { onConflict: 'id' });
-        
-        if (error) {
-            console.error('Ошибка отметки:', error);
-            return false;
-        }
-        return true;
-    } catch (error) {
-        console.error('Ошибка отметки:', error);
-        return false;
-    }
-}
-
-async function isLessonRead(lessonId) {
-    if (!currentUser) return false;
-    try {
-        const readId = `${currentUser.name}_${lessonId}`;
-        const { data, error } = await supabaseClient
-            .from('lesson_reads')
-            .select('*')
-            .eq('id', readId)
-            .single();
-        
-        if (error || !data) return false;
-        return true;
-    } catch (error) { return false; }
-}
-
-async function getAllLessonReads() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('lesson_reads')
-            .select('*');
-        
-        if (error) return [];
-        return data || [];
-    } catch (error) { return []; }
-}
-
-// ===== РЕГИСТРАЦИИ ПОЛЬЗОВАТЕЛЕЙ =====
-async function getUserRegistrationDate(userName) {
-    try {
-        const { data, error } = await supabaseClient
-            .from('user_registrations')
-            .select('*')
-            .eq('id', userName)
-            .single();
-        
-        if (error || !data) {
-            // Создаём новую регистрацию
-            await supabaseClient.from('user_registrations').upsert([{
-                id: userName,
-                user_rank: currentUser ? currentUser.ранг : 'unknown',
-                registered_at: new Date().toISOString()
-            }], { onConflict: 'id' });
-            return new Date();
-        }
-        return new Date(data.registered_at);
-    } catch (error) {
-        return new Date();
-    }
-}
-
-async function registerUserIfNeeded() {
-    if (!currentUser) return;
-    try {
-        const { data, error } = await supabaseClient
-            .from('user_registrations')
-            .select('*')
-            .eq('id', currentUser.name)
-            .single();
-        
-        if (error || !data) {
-            await supabaseClient.from('user_registrations').upsert([{
-                id: currentUser.name,
-                user_rank: currentUser.ранг,
-                registered_at: new Date().toISOString()
-            }], { onConflict: 'id' });
-            console.log('✅ Пользователь зарегистрирован:', currentUser.name);
-        }
-    } catch (error) {
-        console.error('Ошибка регистрации:', error);
-    }
-}
-
-// ===== РУЧНЫЕ КОРРЕКТИРОВКИ =====
-async function getUserAdjustments(userName) {
-    try {
-        const { data, error } = await supabaseClient
-            .from('manual_adjustments')
-            .select('*')
-            .eq('id', userName)
-            .single();
-        
-        if (error || !data) return { adjustedLessons: 0, adjustedHomework: 0, reason: '' };
-        return {
-            adjustedLessons: data.adjusted_lessons || 0,
-            adjustedHomework: data.adjusted_homework || 0,
-            reason: data.reason || '',
-            adjustedBy: data.adjusted_by || '',
-            adjustedAt: data.adjusted_at
-        };
-    } catch (error) {
-        return { adjustedLessons: 0, adjustedHomework: 0, reason: '' };
-    }
-}
-
-async function saveManualAdjustment(userName, lessons, homework, reason) {
-    try {
-        const { error } = await supabaseClient
-            .from('manual_adjustments')
-            .upsert([{
-                id: userName,
-                adjusted_lessons: parseInt(lessons) || 0,
-                adjusted_homework: parseInt(homework) || 0,
-                reason: reason,
-                adjusted_by: currentUser.name,
-                adjusted_at: new Date().toISOString()
-            }], { onConflict: 'id' });
-        
-        if (error) {
-            console.error('❌ Ошибка сохранения корректировки:', error);
-            return false;
-        }
-        return true;
-    } catch (error) {
-        console.error('❌ Ошибка сохранения корректировки:', error);
-        return false;
-    }
-}
-
 // ===== УТИЛИТЫ =====
-function calculateGrade(lessonsRead, homeworkDone, totalLessons, totalHomework, adjLessons, adjHomework) {
-    const realScore = lessonsRead + homeworkDone;
-    const adjustedScore = realScore + adjLessons + adjHomework;
-    const maxScore = totalLessons + totalHomework;
-    if (maxScore === 0) return { percent: 0, grade: '—', gradeColor: '#6b5f4a' };
-    const percent = Math.min(100, Math.round((adjustedScore / maxScore) * 100));
-    let grade, gradeColor;
-    if (percent >= 90) { grade = '🏆 Отлично'; gradeColor = '#ffd700'; }
-    else if (percent >= 70) { grade = '✨ Хорошо'; gradeColor = '#4caf50'; }
-    else if (percent >= 50) { grade = '✅ Удовлетворительно'; gradeColor = '#ff9800'; }
-    else { grade = '❌ Плохо'; gradeColor = '#ff6b6b'; }
-    return { percent, grade, gradeColor, realScore, adjustedScore, maxScore };
-}
-
-function formatTimeInAkasha(regDate) {
-    const now = new Date();
-    const diff = now - regDate;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    if (days > 0) return `${days} дн. ${hours} ч.`;
-    if (hours > 0) return `${hours} ч.`;
-    return 'только что';
-}
-
 function parseUserInput(text) {
     const data = { name: '', ранг: '', учитель: '', пароль: '' };
     const parts = text.split(',');
@@ -1077,6 +618,7 @@ function checkAccess(topic) {
 
 function isAdmin() { return ['магистр', 'верховный магистр', 'старейшина'].includes(currentUser.ранг); }
 function isMaster() { return ['мастер', 'магистр', 'верховный магистр', 'старейшина'].includes(currentUser.ранг); }
+
 // ===== ГЛАВНОЕ МЕНЮ =====
 function showMainMenu() {
     const container = document.getElementById('chat-container');
@@ -1086,7 +628,7 @@ function showMainMenu() {
     
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
     html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🔮 Главное меню</h3>`;
-    html += `<button class="menu-btn" onclick="window.showHomeworkBoard()"> Домашние задания</button>`;
+    html += `<button class="menu-btn" onclick="window.showHomeworkBoard()">📝 Домашние задания</button>`;
     html += `<button class="menu-btn chat-btn" onclick="window.openMasterChat()">✉️ Написать Мастеру</button>`;
     html += `<button class="menu-btn" onclick="showTOC()">📚 Оглавление знаний</button>`;
     html += `<button class="menu-btn" onclick="window.showCouncilOfMasters()" style="background:rgba(100,255,218,0.15); border-color:rgba(100,255,218,0.4); color:#64ffda;">🏛️ Совет Мастеров</button>`;
@@ -1104,7 +646,9 @@ function showMainMenu() {
     menuDiv.innerHTML = html;
     container.appendChild(menuDiv);
     
-    setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+    setTimeout(() => { 
+        container.scrollTop = container.scrollHeight;
+    }, 50);
 }
 
 // ===== ДОМАШНИЕ ЗАДАНИЯ =====
@@ -1113,34 +657,30 @@ window.showHomeworkBoard = async function() {
     if (container) container.innerHTML = '';
     await loadAssignments();
     await loadSubmissions();
-    
     let html = `<div class="homework-board">`;
-    html += `<div class="homework-header"> Домашние задания Ордена</div>`;
+    html += `<div class="homework-header">📝 Домашние задания Ордена</div>`;
     if (assignmentsList.length === 0) {
         html += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Заданий пока нет.</p>`;
         html += `<p style="color:#8bc34a; text-align:center; margin-top:20px;">💡 Мастер может создать первое задание!</p>`;
     } else {
         assignmentsList.forEach((hw) => {
             if (!hw.id || !hw.title) return;
-            const hwSubmissions = submissionsList.filter(s => s.assignment_id === hw.id);
+            const hwSubmissions = submissionsList.filter(s => s.assignmentId === hw.id);
             const pendingCount = hwSubmissions.filter(s => s.status === 'pending').length;
-            const mySubmissions = submissionsList.filter(s => s.assignment_id === hw.id && s.student_name === currentUser.name);
-            const myLastSubmission = mySubmissions.length > 0 ? mySubmissions.sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at))[0] : null;
-            
+            const mySubmissions = submissionsList.filter(s => s.assignmentId === hw.id && s.studentName === currentUser.name);
+            const myLastSubmission = mySubmissions.length > 0 ? mySubmissions.sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0))[0] : null;
             html += `<div class="hw-card"><div class="hw-title">${hw.title}</div><div class="hw-desc">${hw.description}</div>`;
-            const dateStr = hw.created_at ? new Date(hw.created_at).toLocaleString('ru-RU') : 'дата неизвестна';
-            html += `<div class="hw-meta">👤 ${hw.created_by || 'неизвестно'} | 📅 ${dateStr}</div>`;
-            
+            const dateStr = hw.createdAt ? new Date(hw.createdAt.seconds * 1000).toLocaleString('ru-RU') : 'дата неизвестна';
+            html += `<div class="hw-meta">👤 ${hw.createdBy || 'неизвестно'} | 📅 ${dateStr}</div>`;
             if (myLastSubmission) {
                 const statusEmoji = myLastSubmission.status === 'approved' ? '✅' : (myLastSubmission.status === 'needs_revision' ? '⚠️' : '⏳');
                 const statusText = myLastSubmission.status === 'approved' ? 'Одобрено' : (myLastSubmission.status === 'needs_revision' ? 'На доработку' : 'На проверке');
                 const statusColor = myLastSubmission.status === 'approved' ? '#4caf50' : (myLastSubmission.status === 'needs_revision' ? '#ff9800' : '#2196f3');
-                
                 html += `<div style="margin:15px 0; padding:12px; background:rgba(${myLastSubmission.status === 'approved' ? '76,175,80' : (myLastSubmission.status === 'needs_revision' ? '255,152,0' : '33,150,243')},0.1); border-radius:8px; border-left:3px solid ${statusColor};">`;
                 html += `<p style="color:${statusColor}; margin:0 0 8px 0; font-weight:bold;">${statusEmoji} Статус: ${statusText}</p>`;
                 html += `<p style="color:var(--text-color); margin:0 0 8px 0; font-size:0.95em;"><strong>Мой ответ:</strong> ${myLastSubmission.content}</p>`;
-                if (myLastSubmission.master_feedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong>💬 Комментарий Мастера:</strong> ${myLastSubmission.master_feedback}</p>`;
-                const submitDate = myLastSubmission.submitted_at ? new Date(myLastSubmission.submitted_at).toLocaleString('ru-RU') : '';
+                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong>💬 Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
+                const submitDate = myLastSubmission.submittedAt ? new Date(myLastSubmission.submittedAt.seconds * 1000).toLocaleString('ru-RU') : '';
                 html += `<p style="color:#6b5f4a; margin:8px 0 0 0; font-size:0.85em; font-style:italic;">📅 Отправлено: ${submitDate}</p>`;
                 if (myLastSubmission.status === 'pending' || myLastSubmission.status === 'needs_revision') {
                     html += `<div style="margin-top:10px;"><button class="hw-btn" onclick="window.deleteMySubmission('${myLastSubmission.id}', '${hw.id}')" style="background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4);">🗑️ Удалить ответ</button></div>`;
@@ -1148,7 +688,7 @@ window.showHomeworkBoard = async function() {
                 html += `</div>`;
             }
             if (isMaster() && hwSubmissions.length > 0) {
-                html += `<div style="margin:10px 0; padding:10px; background:rgba(255,165,0,0.1); border-radius:8px;"><p style="color:#ffa500; margin:0;">📬 Ответов: ${hwSubmissions.length} |  На проверке: ${pendingCount}</p><button class="hw-btn" onclick="window.reviewSubmissions('${hw.id}')" style="margin-top:10px; background:rgba(255,165,0,0.3); color:#ffa500;">🔍 Проверить ответы</button></div>`;
+                html += `<div style="margin:10px 0; padding:10px; background:rgba(255,165,0,0.1); border-radius:8px;"><p style="color:#ffa500; margin:0;">📬 Ответов: ${hwSubmissions.length} | ⏳ На проверке: ${pendingCount}</p><button class="hw-btn" onclick="window.reviewSubmissions('${hw.id}')" style="margin-top:10px; background:rgba(255,165,0,0.3); color:#ffa500;">🔍 Проверить ответы</button></div>`;
             }
             const escapedTitle = hw.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
             html += `<div class="hw-actions"><button class="hw-btn submit" onclick="window.submitHomework('${hw.id}', '${escapedTitle}')">📤 Отправить ответ</button></div></div>`;
@@ -1163,7 +703,7 @@ window.deleteMySubmission = async function(submissionId, assignmentId) {
     showCustomConfirm('Подтверждение', '⚠️ Вы уверены? Это действие нельзя отменить!', async (confirmed) => {
         if (!confirmed) return;
         try {
-            await supabaseClient.from('homework_submissions').delete().eq('id', submissionId);
+            await windowDb.collection('homework_submissions').doc(submissionId).delete();
             addMessage(`<p>✅ Ваш ответ удалён!</p>`);
             window.showHomeworkBoard();
         } catch (error) { addMessage(`<p>❌ Ошибка при удалении ответа.</p>`); }
@@ -1175,18 +715,18 @@ window.reviewSubmissions = function(assignmentId) {
     if (container) container.innerHTML = '';
     const hw = assignmentsList.find(a => a.id === assignmentId);
     if (!hw) return;
-    const hwSubmissions = submissionsList.filter(s => s.assignment_id === assignmentId);
+    const hwSubmissions = submissionsList.filter(s => s.assignmentId === assignmentId);
     let html = `<div class="homework-board"><div class="homework-header">🔍 Проверка ответов: ${hw.title}</div>`;
     if (hwSubmissions.length === 0) html += `<p style="color:#6b5f4a; text-align:center;">Ответов пока нет.</p>`;
     else {
         hwSubmissions.forEach(sub => {
-            const statusEmoji = sub.status === 'approved' ? '✅' : (sub.status === 'needs_revision' ? '⚠️' : '');
+            const statusEmoji = sub.status === 'approved' ? '✅' : (sub.status === 'needs_revision' ? '⚠️' : '⏳');
             const statusText = sub.status === 'approved' ? 'Одобрено' : (sub.status === 'needs_revision' ? 'На доработку' : 'На проверке');
             html += `<div class="hw-card" style="border-left-color: ${sub.status === 'approved' ? '#4caf50' : (sub.status === 'needs_revision' ? '#ff9800' : '#2196f3')};">`;
-            html += `<div class="hw-title">${statusEmoji} ${sub.student_name} <span style="font-size:0.8em; color:#a89b7e;">(${sub.student_rank})</span></div><div class="hw-desc">${sub.content}</div>`;
-            const dateStr = sub.submitted_at ? new Date(sub.submitted_at).toLocaleString('ru-RU') : '';
+            html += `<div class="hw-title">${statusEmoji} ${sub.studentName} <span style="font-size:0.8em; color:#a89b7e;">(${sub.studentRank})</span></div><div class="hw-desc">${sub.content}</div>`;
+            const dateStr = sub.submittedAt ? new Date(sub.submittedAt.seconds * 1000).toLocaleString('ru-RU') : '';
             html += `<div class="hw-meta">📅 ${dateStr} | Статус: ${statusText}</div>`;
-            if (sub.master_feedback) html += `<div style="margin:10px 0; padding:10px; background:rgba(100,255,218,0.1); border-radius:8px;"><p style="color:#64ffda; margin:0;"><strong>💬 Комментарий Мастера:</strong> ${sub.master_feedback}</p></div>`;
+            if (sub.masterFeedback) html += `<div style="margin:10px 0; padding:10px; background:rgba(100,255,218,0.1); border-radius:8px;"><p style="color:#64ffda; margin:0;"><strong>💬 Комментарий Мастера:</strong> ${sub.masterFeedback}</p></div>`;
             html += `<div class="hw-actions"><button class="hw-btn" onclick="window.gradeSubmission('${sub.id}', '${hw.id}', 'approved')" style="background:rgba(76,175,80,0.3); color:#4caf50;">✅ Одобрить</button><button class="hw-btn" onclick="window.gradeSubmission('${sub.id}', '${hw.id}', 'needs_revision')" style="background:rgba(255,152,0,0.3); color:#ff9800;">⚠️ На доработку</button><button class="hw-btn" onclick="window.addFeedback('${sub.id}', '${hw.id}')" style="background:rgba(100,255,218,0.2); color:#64ffda;">💬 Комментарий</button></div></div>`;
         });
     }
@@ -1207,7 +747,7 @@ window.addFeedback = async function(submissionId, assignmentId) {
     showCustomPrompt('Комментарий Мастера', 'Введите комментарий Мастера:', '', async (feedback) => {
         if (!feedback) return;
         const sub = submissionsList.find(s => s.id === submissionId);
-        const currentFeedback = sub.master_feedback || '';
+        const currentFeedback = sub.masterFeedback || '';
         const newFeedback = currentFeedback ? currentFeedback + '\n\n' + feedback : feedback;
         const success = await updateSubmissionStatus(submissionId, sub.status, newFeedback);
         if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); window.reviewSubmissions(assignmentId); }
@@ -1248,7 +788,7 @@ function showTOC() {
     addMessage(tocHTML);
 }
 
-// ===== УРОКИ И КОММЕНТАРИИ =====
+// ===== УРОКИ =====
 async function showLessonContentWithReadButton(lessonId) {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
@@ -1259,12 +799,12 @@ async function showLessonContentWithReadButton(lessonId) {
     let html = `<h3 style="color:#64ffda; font-family:'Playfair Display',serif;">📖 ${lesson.title}</h3>`;
     html += `<p style="color:#a89b7e; font-size:0.9em; margin-bottom:15px;">Категория: <em>${lesson.category}</em></p>`;
     html += `<div style="line-height:1.9;">${lesson.content}</div>`;
-    if (lesson.media_url) {
+    if (lesson.mediaUrl) {
         html += `<div style="margin-top:20px;">`;
-        if (lesson.media_url.includes('youtube.com') || lesson.media_url.includes('rutube.ru')) html += `<iframe width="100%" height="315" src="${lesson.media_url}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe>`;
-        else if (lesson.media_url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) html += `<img src="${lesson.media_url}" style="max-width:100%; border-radius:10px; margin-top:10px;">`;
-        else if (lesson.media_url.match(/\.(mp4|webm|ogg)$/i)) html += `<video controls style="max-width:100%; margin-top:10px; border-radius:10px;"><source src="${lesson.media_url}"></video>`;
-        else html += `<a href="${lesson.media_url}" target="_blank" rel="noopener noreferrer" style="color:#64ffda; text-decoration:underline;">🔗 Открыть медиа</a>`;
+        if (lesson.mediaUrl.includes('youtube.com') || lesson.mediaUrl.includes('rutube.ru')) html += `<iframe width="100%" height="315" src="${lesson.mediaUrl}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe>`;
+        else if (lesson.mediaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) html += `<img src="${lesson.mediaUrl}" style="max-width:100%; border-radius:10px; margin-top:10px;">`;
+        else if (lesson.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) html += `<video controls style="max-width:100%; margin-top:10px; border-radius:10px;"><source src="${lesson.mediaUrl}"></video>`;
+        else html += `<a href="${lesson.mediaUrl}" target="_blank" rel="noopener noreferrer" style="color:#64ffda; text-decoration:underline;">🔗 Открыть медиа</a>`;
         html += `</div>`;
     }
     if (isRead) {
@@ -1273,20 +813,20 @@ async function showLessonContentWithReadButton(lessonId) {
         html += `<button class="read-btn" onclick="window.markLessonRead('${lessonId}')">📖 Отметить как прочитанное</button>`;
     }
     const isAdminUser = isAdmin();
-    if (isAdminUser) html += `<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;"><button class="edit-btn" onclick="window.editLesson('${lesson.id}')">✏️ Редактировать</button><button class="delete-btn" onclick="window.confirmDeleteLesson('${lesson.id}')">️ Удалить</button></div>`;
+    if (isAdminUser) html += `<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;"><button class="edit-btn" onclick="window.editLesson('${lesson.id}')">✏️ Редактировать</button><button class="delete-btn" onclick="window.confirmDeleteLesson('${lesson.id}')">🗑️ Удалить</button></div>`;
     html += `<div class="comments-section"><div class="comments-header">💬 Комментарии</div>`;
     const comments = await loadCommentsForLesson(lessonId);
     if (comments.length === 0) html += `<p style="color:#6b5f4a; font-style:italic;">Комментариев пока нет. Будь первым!</p>`;
     else {
         comments.forEach(comment => {
             const isMasterComment = comment.type === 'task';
-            const isAuthor = comment.author_name === currentUser.name;
+            const isAuthor = comment.authorName === currentUser.name;
             const canDelete = isAuthor || isAdminUser;
             const canEdit = isAuthor;
-            html += `<div class="comment-item ${isMasterComment ? 'master-comment' : ''}"><div class="comment-author ${isMasterComment ? 'master' : ''}">${comment.author_name}<span class="comment-type-badge ${isMasterComment ? 'badge-task' : 'badge-question'}">${isMasterComment ? '📝 Задание' : '💬 Комментарий'}</span></div><div class="comment-text">${comment.text}</div><div class="comment-meta">${comment.created_at ? new Date(comment.created_at).toLocaleString('ru-RU') : ''}</div>`;
+            html += `<div class="comment-item ${isMasterComment ? 'master-comment' : ''}"><div class="comment-author ${isMasterComment ? 'master' : ''}">${comment.authorName}<span class="comment-type-badge ${isMasterComment ? 'badge-task' : 'badge-question'}">${isMasterComment ? '📝 Задание' : '💬 Комментарий'}</span></div><div class="comment-text">${comment.text}</div><div class="comment-meta">${comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString('ru-RU') : ''}</div>`;
             if (canEdit || canDelete) {
                 html += `<div class="comment-actions">`;
-                if (canEdit) html += `<button class="comment-edit-btn" onclick="window.editComment('${comment.id}', '${lesson.id}')">️ Изменить</button>`;
+                if (canEdit) html += `<button class="comment-edit-btn" onclick="window.editComment('${comment.id}', '${lesson.id}')">✏️ Изменить</button>`;
                 if (canDelete) html += `<button class="comment-delete-btn" onclick="window.deleteComment('${comment.id}', '${lesson.id}')">🗑️ Удалить</button>`;
                 html += `</div>`;
             }
@@ -1335,7 +875,7 @@ window.deleteComment = async function(commentId, lessonId) {
 window.editLesson = function(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) return;
-    addMessage(`<div style="background:rgba(100,255,218,0.1); border:1px solid rgba(100,255,218,0.3); border-radius:10px; padding:15px; margin:10px 0;"><p style="color:#64ffda; font-weight:bold; margin-bottom:10px;">✏️ РЕДАКТИРОВАНИЕ УРОКА</p><p><strong>Название:</strong> ${lesson.title}</p><p><strong>Текст:</strong> ${lesson.content.substring(0, 100)}${lesson.content.length > 100 ? '...' : ''}</p><p><strong>Медиа:</strong> ${lesson.media_url || 'нет'}</p></div><p>Что изменить? Напиши:</p><p>• <em>"название"</em>, <em>"текст"</em>, <em>"медиа"</em>, <em>"всё"</em> или <em>"отмена"</em></p>`);
+    addMessage(`<div style="background:rgba(100,255,218,0.1); border:1px solid rgba(100,255,218,0.3); border-radius:10px; padding:15px; margin:10px 0;"><p style="color:#64ffda; font-weight:bold; margin-bottom:10px;">✏️ РЕДАКТИРОВАНИЕ УРОКА</p><p><strong>Название:</strong> ${lesson.title}</p><p><strong>Текст:</strong> ${lesson.content.substring(0, 100)}${lesson.content.length > 100 ? '...' : ''}</p><p><strong>Медиа:</strong> ${lesson.mediaUrl || 'нет'}</p></div><p>Что изменить? Напиши:</p><p>• <em>"название"</em>, <em>"текст"</em>, <em>"медиа"</em>, <em>"всё"</em> или <em>"отмена"</em></p>`);
     addLessonState = { step: 'edit_choose', lessonId: lessonId, currentData: lesson };
 };
 
@@ -1347,318 +887,150 @@ window.confirmDeleteLesson = async function(lessonId) {
 };
 
 function startAddLesson() {
-    addMessage('<p> <strong>Добавление урока</strong></p><p>Для какого ранга?<br><em>адепт, юнлинг, падаван, рыцарь, мастер, магистр</em></p>');
+    addMessage('<p>📝 <strong>Добавление урока</strong></p><p>Для какого ранга?<br><em>адепт, юнлинг, падаван, рыцарь, мастер, магистр</em></p>');
     addLessonState = { step: 'category' };
 }
 
-// ===== СОВЕТ МАСТЕРОВ И ЧЛЕНЫ ОРДЕНА =====
-window.showCouncilOfMasters = async function() {
-    const container = document.getElementById('chat-container');
-    if (container) container.innerHTML = '';
-    const blockedUsers = await getBlockedUsers();
-    const blockedNames = blockedUsers.map(u => u.id);
-    
-    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 class="council-title">🏛️ Совет Мастеров</h3>`;
-    html += `<p class="council-subtitle">Руководство Ордена Вольных Джедаев</p>`;
-    
-    const supremeMaster = Object.values(usersDatabase).find(u => u.ранг === 'верховный магистр' && u.specialTitle);
-    if (supremeMaster) {
-        const isBlocked = blockedNames.includes(supremeMaster.fullName);
-        html += `<div class="council-supreme">`;
-        html += `<div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">`;
-        html += `<div style="font-size:2em;">🔮</div>`;
-        html += `<div style="flex:1;">`;
-        html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${supremeMaster.fullName}</div>`;
-        html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${supremeMaster.specialTitle}</div>`;
-        html += `</div>`;
-        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">`;
-        html += isBlocked ? '🚫 Заблок.' : '✅ Активен';
-        html += `</div>`;
-        html += `</div>`;
-        if (supremeMaster.description) {
-            html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${supremeMaster.description}</div>`;
-        }
-        html += `</div>`;
+// ===== FIND ANSWER =====
+function findAnswer(question) {
+    const q = question.toLowerCase().trim();
+    if (addLessonState && addLessonState.step === 'create_hw_title') {
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание отменено.</p>'; }
+        addLessonState.hwTitle = question; addLessonState.step = 'create_hw_desc'; return '<p>Введите <strong>описание задания</strong> (или <em>"отмена"</em>):</p>';
     }
-    
-    html += `<h4 class="council-master-header"> Мастера</h4>`;
-    
-    const masters = Object.values(usersDatabase).filter(u => u.ранг === 'мастер' && u.specialTitle);
-    masters.forEach(master => {
-        const isBlocked = blockedNames.includes(master.fullName);
-        html += `<div class="council-master-card">`;
-        html += `<div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">`;
-        html += `<div style="font-size:2em;">🔮</div>`;
-        html += `<div style="flex:1;">`;
-        html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${master.fullName}</div>`;
-        html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${master.specialTitle}</div>`;
-        html += `</div>`;
-        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">`;
-        html += isBlocked ? '🚫 Заблок.' : '✅ Активен';
-        html += `</div>`;
-        html += `</div>`;
-        if (master.description) {
-            html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${master.description}</div>`;
+    if (addLessonState && addLessonState.step === 'create_hw_desc') {
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание отменено.</p>'; }
+        createAssignment(addLessonState.hwTitle, question).then(success => { if (success) { addMessage(`<p>✅ Задание "<strong>${addLessonState.hwTitle}</strong>" создано!</p>`); window.showHomeworkBoard(); } else { addMessage('<p>❌ Ошибка создания.</p>'); } });
+        addLessonState = null; return '';
+    }
+    if (addLessonState && addLessonState.step === 'submit_hw_text') {
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Отмена.</p>'; }
+        const savedHwId = addLessonState.hwId; const savedHwTitle = addLessonState.hwTitle; addLessonState = null;
+        submitHomeworkToFirebase(savedHwId, question).then(success => { if (success) { addMessage(`<p>✅ Ваш ответ на задание "<strong>${savedHwTitle}</strong>" отправлен Мастеру на проверку!</p>`); showMainMenu(); } else { addMessage('<p>❌ Ошибка отправки.</p>'); } });
+        return '';
+    }
+    if (addLessonState && addLessonState.step === 'ask_comment_type') {
+        if (q === 'отмена') { addLessonState = null; return ''; }
+        if (q === 'задание' || q === 'task') { addLessonState.type = 'task'; addLessonState.step = 'add_comment_text'; return '<p>Напиши текст задания (или <em>"отмена"</em>):</p>'; }
+        if (q === 'комментарий' || q === 'comment') { addLessonState.type = 'question'; addLessonState.step = 'add_comment_text'; return '<p>Напиши комментарий (или <em>"отмена"</em>):</p>'; }
+        return '<p>Напиши <em>"задание"</em> или <em>"комментарий"</em>:</p>';
+    }
+    if (addLessonState && addLessonState.step === 'add_comment_text') {
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; }
+        addCommentToFirebase(addLessonState.lessonId, question, addLessonState.type).then(success => { if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); setTimeout(() => { showLessonContent(addLessonState.lessonId); }, 500); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+        addLessonState = null; return '';
+    }
+    if (addLessonState && addLessonState.step === 'edit_comment') {
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; }
+        updateCommentInFirebase(addLessonState.commentId, question).then(success => { if (success) { addMessage(`<p>✅ Обновлён!</p>`); showLessonContent(addLessonState.lessonId); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+        addLessonState = null; return '';
+    }
+    if (addLessonState && addLessonState.step && addLessonState.step.startsWith('edit_')) {
+        const lessonId = addLessonState.lessonId; const lesson = addLessonState.currentData;
+        if (addLessonState.step === 'edit_choose') {
+            if (q === 'отмена') { addLessonState = null; return ''; }
+            if (q === 'название') { addLessonState.step = 'edit_title'; return `<p>Новое название (или <em>"пропустить"</em>):</p>`; }
+            if (q === 'текст') { addLessonState.step = 'edit_content'; return `<p>Новый текст (или <em>"пропустить"</em>):</p>`; }
+            if (q === 'медиа') { addLessonState.step = 'edit_media'; return `<p>Новая ссылка (или <em>"пропустить"</em>, <em>"нет"</em>):</p>`; }
+            if (q === 'всё') { addLessonState.step = 'edit_title'; addLessonState.editAll = true; return `<p>Новое название (или <em>"пропустить"</em>):</p>`; }
+            return '<p>Напиши: <em>название</em>, <em>текст</em>, <em>медиа</em>, <em>"всё"</em> или <em>"отмена"</em>.</p>';
         }
-        html += `</div>`;
-    });
-    
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:20px; padding:12px;">🔙 Вернуться в меню</button>`;
-    html += `</div>`;
-    addMessage(html);
-};
-
-window.showMembersList = async function() {
-    const container = document.getElementById('chat-container');
-    if (container) container.innerHTML = '';
-    const blockedUsers = await getBlockedUsers();
-    const blockedNames = blockedUsers.map(u => u.id);
-    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Члены Ордена</h3>`;
-    html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px; font-style:italic;">От Адепта до Старейшины</p>`;
-    const ranks = ['старейшина', 'верховный магистр', 'магистр', 'мастер', 'рыцарь', 'старший падаван', 'падаван', 'юнлинг', 'адепт'];
-    for (const rank of ranks) {
-        const members = Object.values(usersDatabase).filter(u => u.ранг === rank);
-        if (members.length > 0) {
-            html += `<div style="margin:20px 0;">`;
-            html += `<h4 style="color:var(--accent-color); font-family:'Playfair Display',serif; font-size:1.3em; margin-bottom:10px; border-bottom:2px solid var(--border-color); padding-bottom:8px;">${rank}</h4>`;
-            for (const member of members) {
-                const isBlocked = blockedNames.includes(member.fullName);
-                const teacherName = member.учитель && member.учитель !== 'отсутствует' ? member.учитель : 'нет';
-                const regDate = await getUserRegistrationDate(member.fullName);
-                const timeInAkasha = formatTimeInAkasha(regDate);
-                html += `<div class="member-card">`;
-                html += `<div style="flex:1;">`;
-                html += `<div class="member-name">${member.fullName}</div>`;
-                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙‍♂️ Учитель: ${teacherName}</div>`;
-                html += `<div style="color:var(--text-secondary); font-size:0.85em; margin-top:2px;">⏱️ В Акаше: ${timeInAkasha}</div>`;
-                html += `</div>`;
-                html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">`;
-                html += isBlocked ? '🚫 Заблок.' : '✅ Активен';
-                html += `</div>`;
-                html += `</div>`;
-            }
-            html += `</div>`;
+        if (addLessonState.step === 'edit_title') {
+            if (q !== 'пропустить') addLessonState.newTitle = question; else addLessonState.newTitle = lesson.title;
+            if (addLessonState.editAll) { addLessonState.step = 'edit_content'; return `<p>Новый текст (или <em>"пропустить"</em>):</p>`; }
+            updateLessonInFirebase(lessonId, { title: addLessonState.newTitle }).then(s => { if (s) { addMessage(`<p>✅ Название изменено!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+            addLessonState = null; return '';
+        }
+        if (addLessonState.step === 'edit_content') {
+            if (q !== 'пропустить') addLessonState.newContent = question; else addLessonState.newContent = lesson.content;
+            if (addLessonState.editAll) { addLessonState.step = 'edit_media'; return `<p>Новая ссылка (или <em>"пропустить"</em>, <em>"нет"</em>):</p>`; }
+            updateLessonInFirebase(lessonId, { content: addLessonState.newContent }).then(s => { if (s) { addMessage(`<p>✅ Текст обновлён!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+            addLessonState = null; return '';
+        }
+        if (addLessonState.step === 'edit_media') {
+            let newMedia = q === 'пропустить' ? lesson.mediaUrl : (q === 'нет' ? '' : question);
+            const updates = {};
+            if (addLessonState.newTitle !== undefined) updates.title = addLessonState.newTitle;
+            if (addLessonState.newContent !== undefined) updates.content = addLessonState.newContent;
+            updates.mediaUrl = newMedia;
+            updateLessonInFirebase(lessonId, updates).then(s => { if (s) { addMessage(`<p>✅ Урок обновлён!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+            addLessonState = null; return '';
         }
     }
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button>`;
-    html += `</div>`;
-    addMessage(html);
-};
-
-// ===== ТАБЛИЦА УСПЕВАЕМОСТИ =====
-window.showProgressTable = async function() {
-    const container = document.getElementById('chat-container');
-    if (container) container.innerHTML = '';
-    const reads = await getAllLessonReads();
-    const isMasterUser = isMaster();
-    const totalLessons = Object.keys(lessonsById).length;
-    const totalHomework = assignmentsList.length;
-    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">📊 Таблица успеваемости Ордена</h3>`;
-    html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px; font-style:italic;">Всего уроков: ${totalLessons} | Всего ДЗ: ${totalHomework}</p>`;
-    html += `<div style="overflow-x:auto;"><table class="progress-table">`;
-    html += `<tr><th>Ученик</th><th>Ранг</th><th>Учитель</th><th>Время в Акаше</th><th>Уроки</th><th>ДЗ</th><th>Оценка</th></tr>`;
-    for (const user of Object.values(usersDatabase)) {
-        if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
-        const userReads = reads.filter(r => r.user_id === user.fullName);
-        const userSubmissions = submissionsList.filter(s => s.student_name === user.fullName);
-        const approvedHomework = userSubmissions.filter(s => s.status === 'approved').length;
-        const submittedHomework = userSubmissions.length;
-        const regDate = await getUserRegistrationDate(user.fullName);
-        const timeInAkasha = formatTimeInAkasha(regDate);
-        const adjustments = await getUserAdjustments(user.fullName);
-        const gradeData = calculateGrade(userReads.length, approvedHomework, totalLessons, totalHomework, adjustments.adjustedLessons || 0, adjustments.adjustedHomework || 0);
-        const teacherName = user.учитель && user.учитель !== 'отсутствует' ? user.учитель : '—';
-        html += `<tr>`;
-        html += `<td style="font-weight:600;">${user.fullName}</td>`;
-        html += `<td>${user.ранг}</td>`;
-        html += `<td style="font-size:0.9em;">${teacherName}</td>`;
-        html += `<td style="font-size:0.9em;">${timeInAkasha}</td>`;
-        html += `<td>${userReads.length}/${totalLessons}</td>`;
-        html += `<td>${submittedHomework} сдано<br><small style="color:#a89b7e;">(${approvedHomework} одобрено)</small></td>`;
-        html += `<td style="color:${gradeData.gradeColor}; font-weight:700; text-align:center;">${gradeData.grade}<br><small>${gradeData.percent}%</small></td>`;
-        html += `</tr>`;
-    }
-    html += `</table></div>`;
-    if (isMasterUser) {
-        html += `<div class="admin-panel">`;
-        html += `<h3>✏️ Ручная корректировка результатов</h3>`;
-        html += `<p style="color:var(--text-secondary); margin:10px 0;">Мастер может добавить баллы ученикам, которые не успели перенести свои результаты в Акашу. Это сделает таблицу честной.</p>`;
-        html += `<button class="hw-btn" onclick="window.showAdjustmentPanel()" style="background:rgba(100,255,218,0.2); color:#64ffda; width:100%; margin-top:10px;">⚙️ Открыть панель корректировки</button>`;
-        html += `</div>`;
-        html += `<button class="hw-btn" onclick="window.showDetailedProgress()" style="width:100%; margin-top:10px; background:rgba(100,255,218,0.2); color:#64ffda;">🔒 Показать детали (какие материалы сданы)</button>`;
-    }
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button>`;
-    html += `</div>`;
-    addMessage(html);
-};
-
-window.showAdjustmentPanel = async function() {
-    const container = document.getElementById('chat-container');
-    if (container) container.innerHTML = '';
-    if (!isMaster()) { addMessage('<p>❌ Доступ запрещён.</p>'); return; }
-    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Ручная корректировка</h3>`;
-    html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px;">Выбери ученика и добавь баллы за пройденные материалы вне Акаши</p>`;
-    for (const user of Object.values(usersDatabase)) {
-        if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
-        const adjustments = await getUserAdjustments(user.fullName);
-        const hasAdjustment = (adjustments.adjustedLessons || 0) > 0 || (adjustments.adjustedHomework || 0) > 0;
-        html += `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin:10px 0; border-left:3px solid ${hasAdjustment ? '#64ffda' : 'var(--border-color)'};">`;
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">`;
-        html += `<div><div style="color:var(--text-color); font-weight:600;">${user.fullName}</div><div style="color:var(--text-secondary); font-size:0.9em;">${user.ранг}</div></div>`;
-        if (hasAdjustment) html += `<div style="color:#64ffda; font-size:0.85em;">+${adjustments.adjustedLessons} уроков, +${adjustments.adjustedHomework} ДЗ</div>`;
-        html += `</div>`;
-        html += `<button class="hw-btn" onclick="window.openAdjustmentForm('${user.fullName}')" style="width:100%; background:rgba(100,255,218,0.2); color:#64ffda; padding:8px; font-size:0.95em;">✏️ ${hasAdjustment ? 'Изменить' : 'Добавить'} корректировку</button>`;
-        html += `</div>`;
-    }
-    html += `<button class="hw-btn" onclick="window.showProgressTable()" style="width:100%; margin-top:15px; padding:12px;">🔙 Назад к таблице</button>`;
-    html += `</div>`;
-    addMessage(html);
-};
-
-window.openAdjustmentForm = async function(userName) {
-    const adjustments = await getUserAdjustments(userName);
-    const currentLessons = adjustments.adjustedLessons || 0;
-    const currentHomework = adjustments.adjustedHomework || 0;
-    const currentReason = adjustments.reason || '';
-    
-    showCustomPrompt('Корректировка', `Дополнительных уроков для ${userName} (сейчас: ${currentLessons}):`, currentLessons, (lessons) => {
-        if (lessons === null) return;
-        showCustomPrompt('Корректировка', `Дополнительных ДЗ для ${userName} (сейчас: ${currentHomework}):`, currentHomework, (homework) => {
-            if (homework === null) return;
-            showCustomPrompt('Корректировка', `Причина корректировки (например: "Сдано в ВК до создания Акаши"):`, currentReason, async (reason) => {
-                if (reason === null) return;
-                const success = await saveManualAdjustment(userName, lessons, homework, reason);
-                if (success) {
-                    addMessage(`<p>✅ Корректировка для ${userName} сохранена!</p>`);
-                    window.showAdjustmentPanel();
-                } else {
-                    addMessage('<p>❌ Ошибка сохранения.</p>');
-                }
-            });
-        });
-    });
-};
-
-window.showDetailedProgress = async function() {
-    const container = document.getElementById('chat-container');
-    if (container) container.innerHTML = '';
-    if (!isMaster()) { addMessage('<p>❌ Доступ запрещён. Только для Мастеров.</p>'); return; }
-    const reads = await getAllLessonReads();
-    const totalLessons = Object.keys(lessonsById).length;
-    const totalHomework = assignmentsList.length;
-    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🔒 Детальная успеваемость</h3>`;
-    for (const user of Object.values(usersDatabase)) {
-        if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
-        const userReads = reads.filter(r => r.user_id === user.fullName);
-        const userSubmissions = submissionsList.filter(s => s.student_name === user.fullName);
-        const adjustments = await getUserAdjustments(user.fullName);
-        const gradeData = calculateGrade(userReads.length, userSubmissions.filter(s => s.status === 'approved').length, totalLessons, totalHomework, adjustments.adjustedLessons || 0, adjustments.adjustedHomework || 0);
-        html += `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin:15px 0; border-left:3px solid ${gradeData.gradeColor};">`;
-        html += `<h4 style="color:${gradeData.gradeColor}; margin-bottom:10px;">${user.fullName} — ${gradeData.grade} (${gradeData.percent}%)</h4>`;
-        html += `<p style="color:#8bc34a; margin:10px 0 5px 0; font-weight:600;">📖 Прочитанные уроки (${userReads.length}/${totalLessons}):</p>`;
-        if (userReads.length > 0) {
-            html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
-            userReads.forEach(read => {
-                const lesson = lessonsById[read.lesson_id];
-                if (lesson) {
-                    const readDate = read.read_at ? new Date(read.read_at).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '';
-                    html += `<li>${lesson.title} <span style="color:#6b5f4a; font-size:0.85em;">— ${readDate}</span></li>`;
-                }
-            });
-            html += `</ul>`;
-        } else { html += `<p style="color:#6b5f4a; font-style:italic; margin:5px 0;">Нет прочитанных уроков</p>`; }
-        html += `<p style="color:#ffa500; margin:10px 0 5px 0; font-weight:600;">📝 Сданные ДЗ (${userSubmissions.length} всего, ${userSubmissions.filter(s => s.status === 'approved').length} одобрено):</p>`;
-        if (userSubmissions.length > 0) {
-            html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
-            userSubmissions.forEach(sub => {
-                const assignment = assignmentsList.find(a => a.id === sub.assignment_id);
-                const statusEmoji = sub.status === 'approved' ? '✅' : (sub.status === 'needs_revision' ? '⚠️' : '');
-                const title = assignment ? assignment.title : 'Неизвестное задание';
-                html += `<li>${statusEmoji} ${title}</li>`;
-            });
-            html += `</ul>`;
-        } else { html += `<p style="color:#6b5f4a; font-style:italic; margin:5px 0;">Нет сданных ДЗ</p>`; }
-        if ((adjustments.adjustedLessons || 0) > 0 || (adjustments.adjustedHomework || 0) > 0) {
-            html += `<div style="background:rgba(100,255,218,0.1); border-radius:8px; padding:10px; margin-top:10px;">`;
-            html += `<p style="color:#64ffda; margin:0; font-weight:600;">✏️ Ручная корректировка:</p>`;
-            html += `<p style="color:var(--text-color); margin:5px 0 0 0; font-size:0.9em;">+${adjustments.adjustedLessons} уроков, +${adjustments.adjustedHomework} ДЗ</p>`;
-            if (adjustments.reason) html += `<p style="color:var(--text-secondary); margin:5px 0 0 0; font-size:0.85em; font-style:italic;">Причина: ${adjustments.reason}</p>`;
-            if (adjustments.adjustedBy) html += `<p style="color:#6b5f4a; margin:5px 0 0 0; font-size:0.8em;">Внёс: ${adjustments.adjustedBy}</p>`;
-            html += `</div>`;
+    if (addLessonState && currentUser && isAdmin()) {
+        if (addLessonState.step === 'confirm_delete') {
+            if (q === 'да, удалить' || q === 'да' || q === 'удалить') { deleteLesson(addLessonState.lessonId).then(s => { if (s) { addMessage(`<p>✅ Урок удалён!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } }); }
+            else { addMessage('<p>❌ Отменено.</p>'); }
+            addLessonState = null; return '';
         }
-        html += `</div>`;
+        if (addLessonState.step === 'category') {
+            const categories = ['адепт', 'юнлинг', 'падаван', 'рыцарь', 'мастер', 'магистр'];
+            if (categories.includes(q)) { addLessonState.category = q; addLessonState.step = 'title'; return '<p>Название урока:</p>'; }
+            else { return '<p>Выбери ранг.</p>'; }
+        }
+        if (addLessonState.step === 'title') { addLessonState.title = question; addLessonState.step = 'content'; return '<p>Текст урока:</p>'; }
+        if (addLessonState.step === 'content') { addLessonState.content = question; addLessonState.step = 'media'; return '<p>Ссылка на медиа (или <em>нет</em>):</p>'; }
+        if (addLessonState.step === 'media') {
+            const mediaUrl = q === 'нет' ? '' : question;
+            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+            addLessonState = null; return '';
+        }
     }
-    html += `<button class="hw-btn" onclick="window.showProgressTable()" style="width:100%; margin-top:15px; padding:12px;">🔙 Назад к таблице</button>`;
-    html += `</div>`;
-    addMessage(html);
-};
-
-// ===== АДМИН ПАНЕЛЬ =====
-window.showAdminPanel = async function() {
-    const container = document.getElementById('chat-container');
-    if (container) container.innerHTML = '';
-    if (!isAdmin()) { 
-        addMessage('<p>❌ Доступ запрещён. Только для Магистров.</p>'); 
-        return; 
+    if (!currentUser) {
+        if (q.includes('имя') || q.includes('зовут') || q.includes('ранг') || q.includes('пароль') || q.includes('учитель')) {
+            const userData = parseUserInput(question);
+            if (userData.name && userData.ранг && userData.пароль) {
+                let foundUser = null;
+                for (let key in usersDatabase) { const user = usersDatabase[key]; if (user.fullName.toLowerCase() === userData.name) { foundUser = user; break; } }
+                if (!foundUser) foundUser = usersDatabase[userData.name];
+                if (foundUser && foundUser.ранг === userData.ранг && foundUser.пароль === userData.пароль) {
+                    currentUser = { name: foundUser.fullName, ранг: foundUser.ранг, учитель: userData.учитель || foundUser.учитель };
+                    saveUserToStorage(); 
+                    updateLogoutButton(); 
+                    loadLessonsFromFirebase(); 
+                    loadAssignments(); 
+                    loadSubmissions();
+                    registerUserIfNeeded();
+                    addMessage(getRankGreeting(currentUser));
+                    showMainMenu();
+                    return '';
+                } else { return '<p>Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; }
+            } else { return '<p>Назови Имя, Ранг, Учителя и Пароль.</p>'; }
+        }
+        return '<p>Назови своё Имя, Ранг, Учителя и Пароль.</p>';
     }
-    
-    const blockedUsers = await getBlockedUsers();
-    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Админ-панель</h3>`;
-    html += `<div class="admin-panel"><h3>👥 Управление всеми пользователями (включая Мастеров)</h3>`;
-    
-    Object.values(usersDatabase).forEach(user => {
-        const isBlocked = blockedUsers.find(b => b.id === user.fullName);
-        const userRank = user.ранг;
-        const rankColor = userRank.includes('магистр') || userRank.includes('мастер') ? '#ffd700' : 'var(--accent-color)';
-        
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--border-color); background:rgba(0,0,0,0.2); border-radius:8px; margin:8px 0;">`;
-        html += `<div>`;
-        html += `<div style="color:var(--text-color); font-weight:600; font-size:1.1em;">${user.fullName}</div>`;
-        html += `<div style="color:${rankColor}; font-size:0.9em;">${user.ранг}</div>`;
-        html += `</div>`;
-        html += `<div>`;
-        if (isBlocked) {
-            html += `<button class="unblock-btn" onclick="window.unblockUser('${user.fullName}')">✅ Разблокировать</button>`;
-        } else {
-            html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')">🚫 Заблокировать</button>`;
-        }
-        html += `</div></div>`;
-    });
-    html += `</div>`;
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button>`;
-    html += `</div>`;
-    addMessage(html);
-};
+    if (q.includes('выйти') || q.includes('logout')) { handleLogout(); return ''; }
+    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p>🧹 Очищено.</p>'); return ''; }
+    if (q.includes('оглавлен') || q.includes('меню')) { showMainMenu(); return ''; }
+    let knowledge = '';
+    if (q.includes('ганн')) knowledge = checkAccess('ганн') ? (knowledgeBase['ганн'] ? knowledgeBase['ганн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
+    else if (q.includes('берг')) knowledge = checkAccess('берг') ? (knowledgeBase['берг'] ? knowledgeBase['берг'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
+    else if (q.includes('катарн')) knowledge = checkAccess('катарн') ? (knowledgeBase['катарн'] ? knowledgeBase['катарн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
+    else if (q.includes('крайт')) knowledge = checkAccess('крайт') ? (knowledgeBase['крайт'] ? knowledgeBase['крайт'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
+    else knowledge = '<p>Спроси о Кланах или напиши "оглавление".</p>';
+    return knowledge;
+}
 
-window.blockUser = async function(userName) {
-    showCustomPrompt('Блокировка', `Причина блокировки ${userName}:`, '', async (reason) => {
-        if (!reason) return;
-        const success = await blockUser(userName, reason);
-        if (success) { 
-            addMessage(`<p>✅ Пользователь ${userName} заблокирован.</p>`); 
-            window.showAdminPanel(); 
-        }
-        else { addMessage('<p>❌ Ошибка блокировки.</p>'); }
-    });
-};
+async function handleSend() {
+    const text = customTextarea.value.trim();
+    if (!text) return;
+    addMessage(text, true);
+    customTextarea.value = '';
+    const answer = await findAnswer(text);
+    if (answer) addMessage(answer);
+}
 
-window.unblockUser = async function(userName) {
-    showCustomConfirm('Разблокировка', `Разблокировать пользователя ${userName}?`, async (confirmed) => {
-        if (!confirmed) return;
-        const success = await unblockUser(userName);
-        if (success) { 
-            addMessage(`<p>✅ Пользователь ${userName} разблокирован.</p>`); 
-            window.showAdminPanel(); 
-        }
-        else { addMessage('<p>❌ Ошибка разблокировки.</p>'); }
-    });
-};
+function handleLogout() {
+    currentUser = null; saveUserToStorage(); updateLogoutButton();
+    chatContainer.innerHTML = '';
+    addMessage('<p>👋 До встречи.</p>');
+}
+
+function updateLogoutButton() {
+    const btn = document.querySelector('.logout-btn');
+    if (btn) btn.style.display = currentUser ? 'block' : 'none';
+}
+
 // ===== КЛАВИАТУРА =====
 const layouts = {
     ru: [['й','ц','у','к','е','н','г','ш','щ','з','х','ъ'], ['ф','ы','в','а','п','р','о','л','д','ж','э'], ['shift','я','ч','с','м','и','т','ь','б','ю','backspace'], ['123', ',', 'enter', 'space']],
@@ -1737,7 +1109,7 @@ function renderKeyboard() {
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'backspace') {
                 keyDiv.classList.add('special');
-                keyDiv.textContent = '';
+                keyDiv.textContent = '⌫';
                 keyDiv.addEventListener('touchstart', (e) => { e.preventDefault(); keyDiv.classList.add('pressed'); deleteCharAtCursor(); }, { passive: false });
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'space') {
@@ -1872,175 +1244,479 @@ function showCustomAlert(title, message) {
     ]);
 }
 
-// ===== ГЛАВНАЯ ЛОГИКА АКАШИ (findAnswer) =====
-async function findAnswer(question) {
-    const q = question.toLowerCase().trim();
+// ===== НОВЫЕ ФУНКЦИИ =====
+async function isUserBlocked(userName) {
+    if (!windowDb) return false;
+    try {
+        const doc = await windowDb.collection('blocked_users').doc(userName).get();
+        return doc.exists && doc.data().blocked === true;
+    } catch (error) { return false; }
+}
+
+async function blockUser(userName, reason) {
+    if (!windowDb) return false;
+    try {
+        await windowDb.collection('blocked_users').doc(userName).set({
+            blocked: true,
+            reason: reason,
+            blockedBy: currentUser.name,
+            blockedAt: firebase.firestore.Timestamp.fromDate(new Date())
+        }, { merge: true });
+        return true;
+    } catch (error) { console.error('Ошибка блокировки:', error); return false; }
+}
+
+async function unblockUser(userName) {
+    if (!windowDb) return false;
+    try {
+        await windowDb.collection('blocked_users').doc(userName).update({
+            blocked: false,
+            unblockedAt: firebase.firestore.Timestamp.fromDate(new Date())
+        });
+        return true;
+    } catch (error) { console.error('Ошибка разблокировки:', error); return false; }
+}
+
+async function markLessonAsRead(lessonId) {
+    if (!windowDb || !currentUser) return false;
+    try {
+        await windowDb.collection('lesson_reads').doc(`${currentUser.name}_${lessonId}`).set({
+            userId: currentUser.name,
+            lessonId: lessonId,
+            readAt: firebase.firestore.Timestamp.fromDate(new Date()),
+            userRank: currentUser.ранг
+        }, { merge: true });
+        return true;
+    } catch (error) { console.error('Ошибка отметки:', error); return false; }
+}
+
+async function isLessonRead(lessonId) {
+    if (!windowDb || !currentUser) return false;
+    try {
+        const doc = await windowDb.collection('lesson_reads').doc(`${currentUser.name}_${lessonId}`).get();
+        return doc.exists;
+    } catch (error) { return false; }
+}
+
+async function getAllLessonReads() {
+    if (!windowDb) return [];
+    try {
+        const snapshot = await windowDb.collection('lesson_reads').get();
+        const reads = [];
+        snapshot.forEach(doc => reads.push({ id: doc.id, ...doc.data() }));
+        return reads;
+    } catch (error) { return []; }
+}
+
+async function getBlockedUsers() {
+    if (!windowDb) return [];
+    try {
+        const snapshot = await windowDb.collection('blocked_users').where('blocked', '==', true).get();
+        const blocked = [];
+        snapshot.forEach(doc => blocked.push({ id: doc.id, ...doc.data() }));
+        return blocked;
+    } catch (error) { return []; }
+}
+
+async function getUserRegistrationDate(userName) {
+    if (!windowDb) return new Date();
+    try {
+        const doc = await windowDb.collection('user_registrations').doc(userName).get();
+        if (doc.exists && doc.data().registeredAt) {
+            return doc.data().registeredAt.toDate();
+        } else {
+            await windowDb.collection('user_registrations').doc(userName).set({
+                userName: userName,
+                registeredAt: firebase.firestore.Timestamp.fromDate(new Date())
+            });
+            return new Date();
+        }
+    } catch (error) { 
+        console.error('Ошибка получения даты регистрации:', error);
+        return new Date(); 
+    }
+}
+
+async function getUserAdjustments(userName) {
+    if (!windowDb) return { adjustedLessons: 0, adjustedHomework: 0, reason: '' };
+    try {
+        const doc = await windowDb.collection('manual_adjustments').doc(userName).get();
+        if (doc.exists) return doc.data();
+        return { adjustedLessons: 0, adjustedHomework: 0, reason: '' };
+    } catch (error) { return { adjustedLessons: 0, adjustedHomework: 0, reason: '' }; }
+}
+
+async function saveManualAdjustment(userName, lessons, homework, reason) {
+    if (!windowDb) {
+        console.error('❌ Firestore не доступен');
+        return false;
+    }
+    try {
+        console.log('💾 Сохранение корректировки:', { userName, lessons, homework, reason });
+        await windowDb.collection('manual_adjustments').doc(userName).set({
+            userName: userName,
+            adjustedLessons: parseInt(lessons) || 0,
+            adjustedHomework: parseInt(homework) || 0,
+            reason: reason,
+            adjustedBy: currentUser.name,
+            adjustedAt: firebase.firestore.Timestamp.fromDate(new Date())
+        }, { merge: true });
+        console.log('✅ Корректировка сохранена!');
+        return true;
+    } catch (error) { 
+        console.error('❌ Ошибка сохранения корректировки:', error); 
+        return false; 
+    }
+}
+
+function calculateGrade(lessonsRead, homeworkDone, totalLessons, totalHomework, adjLessons, adjHomework) {
+    const realScore = lessonsRead + homeworkDone;
+    const adjustedScore = realScore + adjLessons + adjHomework;
+    const maxScore = totalLessons + totalHomework;
+    if (maxScore === 0) return { percent: 0, grade: '—', gradeColor: '#6b5f4a' };
+    const percent = Math.min(100, Math.round((adjustedScore / maxScore) * 100));
+    let grade, gradeColor;
+    if (percent >= 90) { grade = '🏆 Отлично'; gradeColor = '#ffd700'; }
+    else if (percent >= 70) { grade = '✨ Хорошо'; gradeColor = '#4caf50'; }
+    else if (percent >= 50) { grade = '✅ Удовлетворительно'; gradeColor = '#ff9800'; }
+    else { grade = '❌ Плохо'; gradeColor = '#ff6b6b'; }
+    return { percent, grade, gradeColor, realScore, adjustedScore, maxScore };
+}
+
+function formatTimeInAkasha(regDate) {
+    const now = new Date();
+    const diff = now - regDate;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days} дн. ${hours} ч.`;
+    if (hours > 0) return `${hours} ч.`;
+    return 'только что';
+}
+
+async function registerUserIfNeeded() {
+    if (!currentUser || !windowDb) return;
+    try {
+        const doc = await windowDb.collection('user_registrations').doc(currentUser.name).get();
+        if (!doc.exists) {
+            await windowDb.collection('user_registrations').doc(currentUser.name).set({
+                userName: currentUser.name,
+                userRank: currentUser.ранг,
+                registeredAt: firebase.firestore.Timestamp.fromDate(new Date())
+            });
+            console.log('✅ Пользователь зарегистрирован:', currentUser.name);
+        }
+    } catch (error) { console.error('Ошибка регистрации:', error); }
+}
+
+// ===== СОВЕТ МАСТЕРОВ =====
+window.showCouncilOfMasters = async function() {
+    const container = document.getElementById('chat-container');
+    if (container) container.innerHTML = '';
+    const blockedUsers = await getBlockedUsers();
+    const blockedNames = blockedUsers.map(u => u.id);
     
-    // Обработка состояний (создание ДЗ, отправка ответов, комментарии, редактирование)
-    if (addLessonState && addLessonState.step === 'create_hw_title') {
-        if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание отменено.</p>'; }
-        addLessonState.hwTitle = question; addLessonState.step = 'create_hw_desc'; return '<p>Введите <strong>описание задания</strong> (или <em>"отмена"</em>):</p>';
-    }
-    if (addLessonState && addLessonState.step === 'create_hw_desc') {
-        if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание отменено.</p>'; }
-        const success = await createAssignment(addLessonState.hwTitle, question);
-        if (success) { addMessage(`<p>✅ Задание "<strong>${addLessonState.hwTitle}</strong>" создано!</p>`); window.showHomeworkBoard(); }
-        else { addMessage('<p>❌ Ошибка создания.</p>'); }
-        addLessonState = null; return '';
-    }
-    if (addLessonState && addLessonState.step === 'submit_hw_text') {
-        if (q === 'отмена') { addLessonState = null; return '<p>❌ Отмена.</p>'; }
-        const savedHwId = addLessonState.hwId; const savedHwTitle = addLessonState.hwTitle; addLessonState = null;
-        const success = await submitHomeworkToFirebase(savedHwId, question);
-        if (success) { addMessage(`<p>✅ Ваш ответ на задание "<strong>${savedHwTitle}</strong>" отправлен Мастеру на проверку!</p>`); showMainMenu(); }
-        else { addMessage('<p>❌ Ошибка отправки.</p>'); }
-        return '';
-    }
-    if (addLessonState && addLessonState.step === 'ask_comment_type') {
-        if (q === 'отмена') { addLessonState = null; return ''; }
-        if (q === 'задание' || q === 'task') { addLessonState.type = 'task'; addLessonState.step = 'add_comment_text'; return '<p>Напиши текст задания (или <em>"отмена"</em>):</p>'; }
-        if (q === 'комментарий' || q === 'comment') { addLessonState.type = 'question'; addLessonState.step = 'add_comment_text'; return '<p>Напиши комментарий (или <em>"отмена"</em>):</p>'; }
-        return '<p>Напиши <em>"задание"</em> или <em>"комментарий"</em>:</p>';
-    }
-    if (addLessonState && addLessonState.step === 'add_comment_text') {
-        if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; }
-        const success = await addCommentToFirebase(addLessonState.lessonId, question, addLessonState.type);
-        if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); setTimeout(() => { showLessonContent(addLessonState.lessonId); }, 500); }
-        else { addMessage('<p> Ошибка.</p>'); }
-        addLessonState = null; return '';
-    }
-    if (addLessonState && addLessonState.step === 'edit_comment') {
-        if (q === 'отмена') { addLessonState = null; return '<p> Отменено.</p>'; }
-        const success = await updateCommentInFirebase(addLessonState.commentId, question);
-        if (success) { addMessage(`<p>✅ Обновлён!</p>`); showLessonContent(addLessonState.lessonId); }
-        else { addMessage('<p>❌ Ошибка.</p>'); }
-        addLessonState = null; return '';
-    }
-    if (addLessonState && addLessonState.step && addLessonState.step.startsWith('edit_')) {
-        const lessonId = addLessonState.lessonId; const lesson = addLessonState.currentData;
-        if (addLessonState.step === 'edit_choose') {
-            if (q === 'отмена') { addLessonState = null; return ''; }
-            if (q === 'название') { addLessonState.step = 'edit_title'; return `<p>Новое название (или <em>"пропустить"</em>):</p>`; }
-            if (q === 'текст') { addLessonState.step = 'edit_content'; return `<p>Новый текст (или <em>"пропустить"</em>):</p>`; }
-            if (q === 'медиа') { addLessonState.step = 'edit_media'; return `<p>Новая ссылка (или <em>"пропустить"</em>, <em>"нет"</em>):</p>`; }
-            if (q === 'всё') { addLessonState.step = 'edit_title'; addLessonState.editAll = true; return `<p>Новое название (или <em>"пропустить"</em>):</p>`; }
-            return '<p>Напиши: <em>название</em>, <em>текст</em>, <em>медиа</em>, <em>"всё"</em> или <em>"отмена"</em>.</p>';
+    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
+    html += `<h3 class="council-title">🏛️ Совет Мастеров</h3>`;
+    html += `<p class="council-subtitle">Руководство Ордена Вольных Джедаев</p>`;
+    
+    const supremeMaster = Object.values(usersDatabase).find(u => u.ранг === 'верховный магистр' && u.specialTitle);
+    if (supremeMaster) {
+        const isBlocked = blockedNames.includes(supremeMaster.fullName);
+        html += `<div class="council-supreme">`;
+        html += `<div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">`;
+        html += `<div style="font-size:2em;">🔮</div>`;
+        html += `<div style="flex:1;">`;
+        html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${supremeMaster.fullName}</div>`;
+        html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${supremeMaster.specialTitle}</div>`;
+        html += `</div>`;
+        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">`;
+        html += isBlocked ? '🚫 Заблок.' : '✅ Активен';
+        html += `</div>`;
+        html += `</div>`;
+        if (supremeMaster.description) {
+            html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${supremeMaster.description}</div>`;
         }
-        if (addLessonState.step === 'edit_title') {
-            if (q !== 'пропустить') addLessonState.newTitle = question; else addLessonState.newTitle = lesson.title;
-            if (addLessonState.editAll) { addLessonState.step = 'edit_content'; return `<p>Новый текст (или <em>"пропустить"</em>):</p>`; }
-            const success = await updateLessonInFirebase(lessonId, { title: addLessonState.newTitle });
-            if (success) { addMessage(`<p>✅ Название изменено!</p>`); loadLessonsFromFirebase(); }
-            else { addMessage('<p>❌ Ошибка.</p>'); }
-            addLessonState = null; return '';
-        }
-        if (addLessonState.step === 'edit_content') {
-            if (q !== 'пропустить') addLessonState.newContent = question; else addLessonState.newContent = lesson.content;
-            if (addLessonState.editAll) { addLessonState.step = 'edit_media'; return `<p>Новая ссылка (или <em>"пропустить"</em>, <em>"нет"</em>):</p>`; }
-            const success = await updateLessonInFirebase(lessonId, { content: addLessonState.newContent });
-            if (success) { addMessage(`<p>✅ Текст обновлён!</p>`); loadLessonsFromFirebase(); }
-            else { addMessage('<p>❌ Ошибка.</p>'); }
-            addLessonState = null; return '';
-        }
-        if (addLessonState.step === 'edit_media') {
-            let newMedia = q === 'пропустить' ? lesson.media_url : (q === 'нет' ? '' : question);
-            const updates = {};
-            if (addLessonState.newTitle !== undefined) updates.title = addLessonState.newTitle;
-            if (addLessonState.newContent !== undefined) updates.content = addLessonState.newContent;
-            updates.media_url = newMedia;
-            const success = await updateLessonInFirebase(lessonId, updates);
-            if (success) { addMessage(`<p>✅ Урок обновлён!</p>`); loadLessonsFromFirebase(); }
-            else { addMessage('<p>❌ Ошибка.</p>'); }
-            addLessonState = null; return '';
-        }
-    }
-    if (addLessonState && currentUser && isAdmin()) {
-        if (addLessonState.step === 'confirm_delete') {
-            if (q === 'да, удалить' || q === 'да' || q === 'удалить') {
-                const success = await deleteLesson(addLessonState.lessonId);
-                if (success) { addMessage(`<p>✅ Урок удалён!</p>`); loadLessonsFromFirebase(); }
-                else { addMessage('<p>❌ Ошибка.</p>'); }
-            } else { addMessage('<p>❌ Отменено.</p>'); }
-            addLessonState = null; return '';
-        }
-        if (addLessonState.step === 'category') {
-            const categories = ['адепт', 'юнлинг', 'падаван', 'рыцарь', 'мастер', 'магистр'];
-            if (categories.includes(q)) { addLessonState.category = q; addLessonState.step = 'title'; return '<p>Название урока:</p>'; }
-            else { return '<p>Выбери ранг.</p>'; }
-        }
-        if (addLessonState.step === 'title') { addLessonState.title = question; addLessonState.step = 'content'; return '<p>Текст урока:</p>'; }
-        if (addLessonState.step === 'content') { addLessonState.content = question; addLessonState.step = 'media'; return '<p>Ссылка на медиа (или <em>нет</em>):</p>'; }
-        if (addLessonState.step === 'media') {
-            const mediaUrl = q === 'нет' ? '' : question;
-            const success = await addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl);
-            if (success) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); }
-            else { addMessage('<p>❌ Ошибка.</p>'); }
-            addLessonState = null; return '';
-        }
+        html += `</div>`;
     }
     
-    // Если пользователь не авторизован — обработка входа
-    if (!currentUser) {
-        if (q.includes('имя') || q.includes('зовут') || q.includes('ранг') || q.includes('пароль') || q.includes('учитель')) {
-            const userData = parseUserInput(question);
-            if (userData.name && userData.ранг && userData.пароль) {
-                let foundUser = null;
-                for (let key in usersDatabase) {
-                    const user = usersDatabase[key];
-                    if (user.fullName.toLowerCase() === userData.name) { foundUser = user; break; }
+    html += `<h4 class="council-master-header">🔮 Мастера</h4>`;
+    
+    const masters = Object.values(usersDatabase).filter(u => u.ранг === 'мастер' && u.specialTitle);
+    masters.forEach(master => {
+        const isBlocked = blockedNames.includes(master.fullName);
+        html += `<div class="council-master-card">`;
+        html += `<div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">`;
+        html += `<div style="font-size:2em;">🔮</div>`;
+        html += `<div style="flex:1;">`;
+        html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${master.fullName}</div>`;
+        html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${master.specialTitle}</div>`;
+        html += `</div>`;
+        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">`;
+        html += isBlocked ? '🚫 Заблок.' : '✅ Активен';
+        html += `</div>`;
+        html += `</div>`;
+        if (master.description) {
+            html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${master.description}</div>`;
+        }
+        html += `</div>`;
+    });
+    
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:20px; padding:12px;">🔙 Вернуться в меню</button>`;
+    html += `</div>`;
+    addMessage(html);
+};
+
+// ===== СПИСОК ЧЛЕНОВ ОРДЕНА =====
+window.showMembersList = async function() {
+    const container = document.getElementById('chat-container');
+    if (container) container.innerHTML = '';
+    const blockedUsers = await getBlockedUsers();
+    const blockedNames = blockedUsers.map(u => u.id);
+    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">👥 Члены Ордена</h3>`;
+    html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px; font-style:italic;">От Адепта до Старейшины</p>`;
+    const ranks = ['старейшина', 'верховный магистр', 'магистр', 'мастер', 'рыцарь', 'старший падаван', 'падаван', 'юнлинг', 'адепт'];
+    for (const rank of ranks) {
+        const members = Object.values(usersDatabase).filter(u => u.ранг === rank);
+        if (members.length > 0) {
+            html += `<div style="margin:20px 0;">`;
+            html += `<h4 style="color:var(--accent-color); font-family:'Playfair Display',serif; font-size:1.3em; margin-bottom:10px; border-bottom:2px solid var(--border-color); padding-bottom:8px;">${rank}</h4>`;
+            for (const member of members) {
+                const isBlocked = blockedNames.includes(member.fullName);
+                const teacherName = member.учитель && member.учитель !== 'отсутствует' ? member.учитель : 'нет';
+                const regDate = await getUserRegistrationDate(member.fullName);
+                const timeInAkasha = formatTimeInAkasha(regDate);
+                html += `<div class="member-card">`;
+                html += `<div style="flex:1;">`;
+                html += `<div class="member-name">${member.fullName}</div>`;
+                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙♂️ Учитель: ${teacherName}</div>`;
+                html += `<div style="color:var(--text-secondary); font-size:0.85em; margin-top:2px;">⏱️ В Акаше: ${timeInAkasha}</div>`;
+                html += `</div>`;
+                html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">`;
+                html += isBlocked ? '🚫 Заблок.' : '✅ Активен';
+                html += `</div>`;
+                html += `</div>`;
+            }
+            html += `</div>`;
+        }
+    }
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button>`;
+    html += `</div>`;
+    addMessage(html);
+};
+
+// ===== ТАБЛИЦА УСПЕВАЕМОСТИ =====
+window.showProgressTable = async function() {
+    const container = document.getElementById('chat-container');
+    if (container) container.innerHTML = '';
+    const reads = await getAllLessonReads();
+    const isMasterUser = isMaster();
+    const totalLessons = Object.keys(lessonsById).length;
+    const totalHomework = assignmentsList.length;
+    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">📊 Таблица успеваемости Ордена</h3>`;
+    html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px; font-style:italic;">Всего уроков: ${totalLessons} | Всего ДЗ: ${totalHomework}</p>`;
+    html += `<div style="overflow-x:auto;"><table class="progress-table">`;
+    html += `<tr><th>Ученик</th><th>Ранг</th><th>Учитель</th><th>Время в Акаше</th><th>Уроки</th><th>ДЗ</th><th>Оценка</th></tr>`;
+    for (const user of Object.values(usersDatabase)) {
+        if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
+        const userReads = reads.filter(r => r.userId === user.fullName);
+        const userSubmissions = submissionsList.filter(s => s.studentName === user.fullName);
+        const approvedHomework = userSubmissions.filter(s => s.status === 'approved').length;
+        const submittedHomework = userSubmissions.length;
+        const regDate = await getUserRegistrationDate(user.fullName);
+        const timeInAkasha = formatTimeInAkasha(regDate);
+        const adjustments = await getUserAdjustments(user.fullName);
+        const gradeData = calculateGrade(userReads.length, approvedHomework, totalLessons, totalHomework, adjustments.adjustedLessons || 0, adjustments.adjustedHomework || 0);
+        const teacherName = user.учитель && user.учитель !== 'отсутствует' ? user.учитель : '—';
+        html += `<tr>`;
+        html += `<td style="font-weight:600;">${user.fullName}</td>`;
+        html += `<td>${user.ранг}</td>`;
+        html += `<td style="font-size:0.9em;">${teacherName}</td>`;
+        html += `<td style="font-size:0.9em;">${timeInAkasha}</td>`;
+        html += `<td>${userReads.length}/${totalLessons}</td>`;
+        html += `<td>${submittedHomework} сдано<br><small style="color:#a89b7e;">(${approvedHomework} одобрено)</small></td>`;
+        html += `<td style="color:${gradeData.gradeColor}; font-weight:700; text-align:center;">${gradeData.grade}<br><small>${gradeData.percent}%</small></td>`;
+        html += `</tr>`;
+    }
+    html += `</table></div>`;
+    if (isMasterUser) {
+        html += `<div class="admin-panel">`;
+        html += `<h3>✏️ Ручная корректировка результатов</h3>`;
+        html += `<p style="color:var(--text-secondary); margin:10px 0;">Мастер может добавить баллы ученикам, которые не успели перенести свои результаты в Акашу. Это сделает таблицу честной.</p>`;
+        html += `<button class="hw-btn" onclick="window.showAdjustmentPanel()" style="background:rgba(100,255,218,0.2); color:#64ffda; width:100%; margin-top:10px;">⚙️ Открыть панель корректировки</button>`;
+        html += `</div>`;
+        html += `<button class="hw-btn" onclick="window.showDetailedProgress()" style="width:100%; margin-top:10px; background:rgba(100,255,218,0.2); color:#64ffda;">🔒 Показать детали (какие материалы сданы)</button>`;
+    }
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button>`;
+    html += `</div>`;
+    addMessage(html);
+};
+
+window.showAdjustmentPanel = async function() {
+    const container = document.getElementById('chat-container');
+    if (container) container.innerHTML = '';
+    if (!isMaster()) { addMessage('<p>❌ Доступ запрещён.</p>'); return; }
+    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Ручная корректировка</h3>`;
+    html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px;">Выбери ученика и добавь баллы за пройденные материалы вне Акаши</p>`;
+    for (const user of Object.values(usersDatabase)) {
+        if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
+        const adjustments = await getUserAdjustments(user.fullName);
+        const hasAdjustment = (adjustments.adjustedLessons || 0) > 0 || (adjustments.adjustedHomework || 0) > 0;
+        html += `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin:10px 0; border-left:3px solid ${hasAdjustment ? '#64ffda' : 'var(--border-color)'};">`;
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">`;
+        html += `<div><div style="color:var(--text-color); font-weight:600;">${user.fullName}</div><div style="color:var(--text-secondary); font-size:0.9em;">${user.ранг}</div></div>`;
+        if (hasAdjustment) html += `<div style="color:#64ffda; font-size:0.85em;">+${adjustments.adjustedLessons} уроков, +${adjustments.adjustedHomework} ДЗ</div>`;
+        html += `</div>`;
+        html += `<button class="hw-btn" onclick="window.openAdjustmentForm('${user.fullName}')" style="width:100%; background:rgba(100,255,218,0.2); color:#64ffda; padding:8px; font-size:0.95em;">✏️ ${hasAdjustment ? 'Изменить' : 'Добавить'} корректировку</button>`;
+        html += `</div>`;
+    }
+    html += `<button class="hw-btn" onclick="window.showProgressTable()" style="width:100%; margin-top:15px; padding:12px;">🔙 Назад к таблице</button>`;
+    html += `</div>`;
+    addMessage(html);
+};
+
+window.openAdjustmentForm = async function(userName) {
+    const adjustments = await getUserAdjustments(userName);
+    const currentLessons = adjustments.adjustedLessons || 0;
+    const currentHomework = adjustments.adjustedHomework || 0;
+    const currentReason = adjustments.reason || '';
+    
+    showCustomPrompt('Корректировка', `Дополнительных уроков для ${userName} (сейчас: ${currentLessons}):`, currentLessons, (lessons) => {
+        if (lessons === null) return;
+        showCustomPrompt('Корректировка', `Дополнительных ДЗ для ${userName} (сейчас: ${currentHomework}):`, currentHomework, (homework) => {
+            if (homework === null) return;
+            showCustomPrompt('Корректировка', `Причина корректировки (например: "Сдано в ВК до создания Акаши"):`, currentReason, async (reason) => {
+                if (reason === null) return;
+                const success = await saveManualAdjustment(userName, lessons, homework, reason);
+                if (success) {
+                    addMessage(`<p>✅ Корректировка для ${userName} сохранена!</p>`);
+                    window.showAdjustmentPanel();
+                } else {
+                    addMessage('<p>❌ Ошибка сохранения.</p>');
                 }
-                if (!foundUser) foundUser = usersDatabase[userData.name];
-                if (foundUser && foundUser.ранг === userData.ранг && foundUser.пароль === userData.пароль) {
-                    currentUser = { name: foundUser.fullName, ранг: foundUser.ранг, учитель: userData.учитель || foundUser.учитель };
-                    saveUserToStorage(); 
-                    updateLogoutButton(); 
-                    await loadLessonsFromFirebase(); 
-                    await loadAssignments(); 
-                    await loadSubmissions();
-                    await registerUserIfNeeded();
-                    addMessage(getRankGreeting(currentUser));
-                    showMainMenu();
-                    return '';
-                } else { return '<p>Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; }
-            } else { return '<p>Назови Имя, Ранг, Учителя и Пароль.</p>'; }
+            });
+        });
+    });
+};
+
+window.showDetailedProgress = async function() {
+    const container = document.getElementById('chat-container');
+    if (container) container.innerHTML = '';
+    if (!isMaster()) { addMessage('<p>❌ Доступ запрещён. Только для Мастеров.</p>'); return; }
+    const reads = await getAllLessonReads();
+    const totalLessons = Object.keys(lessonsById).length;
+    const totalHomework = assignmentsList.length;
+    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🔒 Детальная успеваемость</h3>`;
+    for (const user of Object.values(usersDatabase)) {
+        if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
+        const userReads = reads.filter(r => r.userId === user.fullName);
+        const userSubmissions = submissionsList.filter(s => s.studentName === user.fullName);
+        const adjustments = await getUserAdjustments(user.fullName);
+        const gradeData = calculateGrade(userReads.length, userSubmissions.filter(s => s.status === 'approved').length, totalLessons, totalHomework, adjustments.adjustedLessons || 0, adjustments.adjustedHomework || 0);
+        html += `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin:15px 0; border-left:3px solid ${gradeData.gradeColor};">`;
+        html += `<h4 style="color:${gradeData.gradeColor}; margin-bottom:10px;">${user.fullName} — ${gradeData.grade} (${gradeData.percent}%)</h4>`;
+        html += `<p style="color:#8bc34a; margin:10px 0 5px 0; font-weight:600;">📖 Прочитанные уроки (${userReads.length}/${totalLessons}):</p>`;
+        if (userReads.length > 0) {
+            html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
+            userReads.forEach(read => {
+                const lesson = lessonsById[read.lessonId];
+                if (lesson) {
+                    const readDate = read.readAt ? new Date(read.readAt.seconds * 1000).toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) : '';
+                    html += `<li>${lesson.title} <span style="color:#6b5f4a; font-size:0.85em;">— ${readDate}</span></li>`;
+                }
+            });
+            html += `</ul>`;
+        } else { html += `<p style="color:#6b5f4a; font-style:italic; margin:5px 0;">Нет прочитанных уроков</p>`; }
+        html += `<p style="color:#ffa500; margin:10px 0 5px 0; font-weight:600;">📝 Сданные ДЗ (${userSubmissions.length} всего, ${userSubmissions.filter(s => s.status === 'approved').length} одобрено):</p>`;
+        if (userSubmissions.length > 0) {
+            html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
+            userSubmissions.forEach(sub => {
+                const assignment = assignmentsList.find(a => a.id === sub.assignmentId);
+                const statusEmoji = sub.status === 'approved' ? '✅' : (sub.status === 'needs_revision' ? '⚠️' : '');
+                const title = assignment ? assignment.title : 'Неизвестное задание';
+                html += `<li>${statusEmoji} ${title}</li>`;
+            });
+            html += `</ul>`;
+        } else { html += `<p style="color:#6b5f4a; font-style:italic; margin:5px 0;">Нет сданных ДЗ</p>`; }
+        if ((adjustments.adjustedLessons || 0) > 0 || (adjustments.adjustedHomework || 0) > 0) {
+            html += `<div style="background:rgba(100,255,218,0.1); border-radius:8px; padding:10px; margin-top:10px;">`;
+            html += `<p style="color:#64ffda; margin:0; font-weight:600;">✏️ Ручная корректировка:</p>`;
+            html += `<p style="color:var(--text-color); margin:5px 0 0 0; font-size:0.9em;">+${adjustments.adjustedLessons} уроков, +${adjustments.adjustedHomework} ДЗ</p>`;
+            if (adjustments.reason) html += `<p style="color:var(--text-secondary); margin:5px 0 0 0; font-size:0.85em; font-style:italic;">Причина: ${adjustments.reason}</p>`;
+            if (adjustments.adjustedBy) html += `<p style="color:#6b5f4a; margin:5px 0 0 0; font-size:0.8em;">Внёс: ${adjustments.adjustedBy}</p>`;
+            html += `</div>`;
         }
-        return '<p>Назови своё Имя, Ранг, Учителя и Пароль.</p>';
+        html += `</div>`;
+    }
+    html += `<button class="hw-btn" onclick="window.showProgressTable()" style="width:100%; margin-top:15px; padding:12px;">🔙 Назад к таблице</button>`;
+    html += `</div>`;
+    addMessage(html);
+};
+
+// ===== АДМИН ПАНЕЛЬ =====
+window.showAdminPanel = async function() {
+    const container = document.getElementById('chat-container');
+    if (container) container.innerHTML = '';
+    if (!isAdmin()) { 
+        addMessage('<p>❌ Доступ запрещён. Только для Магистров.</p>'); 
+        return; 
     }
     
-    // Команды авторизованного пользователя
-    if (q.includes('выйти') || q.includes('logout')) { handleLogout(); return ''; }
-    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p>🧹 Очищено.</p>'); return ''; }
-    if (q.includes('оглавлен') || q.includes('меню')) { showMainMenu(); return ''; }
+    const blockedUsers = await getBlockedUsers();
+    let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Админ-панель</h3>`;
+    html += `<div class="admin-panel"><h3>👥 Управление всеми пользователями (включая Мастеров)</h3>`;
     
-    // Поиск по знаниям
-    let knowledge = '';
-    if (q.includes('ганн')) knowledge = checkAccess('ганн') ? (knowledgeBase['ганн'] ? knowledgeBase['ганн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
-    else if (q.includes('берг')) knowledge = checkAccess('берг') ? (knowledgeBase['берг'] ? knowledgeBase['берг'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
-    else if (q.includes('катарн')) knowledge = checkAccess('катарн') ? (knowledgeBase['катарн'] ? knowledgeBase['катарн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
-    else if (q.includes('крайт')) knowledge = checkAccess('крайт') ? (knowledgeBase['крайт'] ? knowledgeBase['крайт'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
-    else knowledge = '<p>Спроси о Кланах или напиши "оглавление".</p>';
-    return knowledge;
-}
+    Object.values(usersDatabase).forEach(user => {
+        const isBlocked = blockedUsers.find(b => b.id === user.fullName);
+        const userRank = user.ранг;
+        const rankColor = userRank.includes('магистр') || userRank.includes('мастер') ? '#ffd700' : 'var(--accent-color)';
+        
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--border-color); background:rgba(0,0,0,0.2); border-radius:8px; margin:8px 0;">`;
+        html += `<div>`;
+        html += `<div style="color:var(--text-color); font-weight:600; font-size:1.1em;">${user.fullName}</div>`;
+        html += `<div style="color:${rankColor}; font-size:0.9em;">${user.ранг}</div>`;
+        html += `</div>`;
+        html += `<div>`;
+        if (isBlocked) {
+            html += `<button class="unblock-btn" onclick="window.unblockUser('${user.fullName}')">✅ Разблокировать</button>`;
+        } else {
+            html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')">🚫 Заблокировать</button>`;
+        }
+        html += `</div></div>`;
+    });
+    html += `</div>`;
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button>`;
+    html += `</div>`;
+    addMessage(html);
+};
 
-async function handleSend() {
-    const text = customTextarea.value.trim();
-    if (!text) return;
-    addMessage(text, true);
-    customTextarea.value = '';
-    const answer = await findAnswer(text);
-    if (answer) addMessage(answer);
-}
+window.blockUser = async function(userName) {
+    showCustomPrompt('Блокировка', `Причина блокировки ${userName}:`, '', async (reason) => {
+        if (!reason) return;
+        const success = await blockUser(userName, reason);
+        if (success) { 
+            addMessage(`<p>✅ Пользователь ${userName} заблокирован.</p>`); 
+            window.showAdminPanel(); 
+        }
+        else { addMessage('<p>❌ Ошибка блокировки.</p>'); }
+    });
+};
 
-function handleLogout() {
-    currentUser = null; saveUserToStorage(); updateLogoutButton();
-    chatContainer.innerHTML = '';
-    addMessage('<p>👋 До встречи.</p>');
-}
-
-function updateLogoutButton() {
-    const btn = document.querySelector('.logout-btn');
-    if (btn) btn.style.display = currentUser ? 'block' : 'none';
-}
+window.unblockUser = async function(userName) {
+    showCustomConfirm('Разблокировка', `Разблокировать пользователя ${userName}?`, async (confirmed) => {
+        if (!confirmed) return;
+        const success = await unblockUser(userName);
+        if (success) { 
+            addMessage(`<p>✅ Пользователь ${userName} разблокирован.</p>`); 
+            window.showAdminPanel(); 
+        }
+        else { addMessage('<p>❌ Ошибка разблокировки.</p>'); }
+    });
+};
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -2050,21 +1726,32 @@ document.addEventListener('DOMContentLoaded', () => {
     applySeasonTheme();
     renderKeyboard();
     
-    setTimeout(async () => {
-        loadUserFromStorage();
-        
-        const container = document.getElementById('chat-container');
-        if (container) container.innerHTML = '';
-        
-        if (currentUser) { 
-            await loadLessonsFromFirebase(); 
-            await loadAssignments(); 
-            await loadSubmissions(); 
-            updateLogoutButton();
-            addMessage(getRankGreeting(currentUser));
-            showMainMenu();
-        } else {
-            addMessage(getStrangerGreeting());
+    if (typeof firebase !== 'undefined' && firebaseConfig) {
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            windowDb = firebase.firestore();
+            console.log('✅ Firebase инициализирован');
+        } catch (e) { console.error('Ошибка инициализации Firebase:', e); }
+    }
+    
+    setTimeout(() => {
+        if (windowDb) {
+            loadUserFromStorage();
+            loadHistoryFromStorage();
+            
+            const container = document.getElementById('chat-container');
+            if (container) container.innerHTML = '';
+            
+            if (currentUser) { 
+                loadLessonsFromFirebase(); 
+                loadAssignments(); 
+                loadSubmissions(); 
+                updateLogoutButton();
+                addMessage(getRankGreeting(currentUser));
+                showMainMenu();
+            } else {
+                addMessage(getStrangerGreeting());
+            }
         }
     }, 500);
 });
@@ -2081,6 +1768,7 @@ window.addEventListener('resize', () => {
 });
 
 // ===== ЭКСПОРТ ВСЕХ ФУНКЦИЙ =====
+window.showLessonContent = showLessonContent;
 window.startAddLesson = startAddLesson;
 window.editLesson = editLesson;
 window.confirmDeleteLesson = confirmDeleteLesson;
