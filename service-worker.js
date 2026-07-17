@@ -1,9 +1,12 @@
-const CACHE_NAME = 'akasha-v1';
+const CACHE_NAME = 'akasha-v2';
 const urlsToCache = [
-  '/akasha-order/',
-  '/akasha-order/index.html',
-  '/akasha-order/style.css',
-  '/akasha-order/script.js',
+  './',
+  './index.html',
+  './style.css',
+  './script.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
   'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;700&display=swap'
 ];
 
@@ -13,7 +16,10 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('✅ Кэш открыт');
-        return cache.addAll(urlsToCache);
+        return cache.addAll(urlsToCache.map(url => {
+          // Убираем точку в начале для относительных путей
+          return url.replace('./', '');
+        }));
       })
       .catch(err => {
         console.log('❌ Ошибка кэширования:', err);
@@ -28,7 +34,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            console.log('️ Удаляю старый кэш:', cacheName);
+            console.log('🗑️ Удаляю старый кэш:', cacheName);
             return caches.delete(cacheName);
           }
         })
