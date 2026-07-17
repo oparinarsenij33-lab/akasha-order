@@ -369,7 +369,7 @@ h1 {
     box-shadow: 0 -5px 25px rgba(0,0,0,0.6);
 }
 
-/*  ИСПРАВЛЕННОЕ ПОЛЕ ВВОДА С ПРОКРУТКОЙ */
+/* 🔥 ПОЛЕ ВВОДА С contenteditable — ПРОКРУТКА РАБОТАЕТ! */
 .custom-textarea {
     width: 100%;
     min-height: 80px;
@@ -386,12 +386,19 @@ h1 {
     overflow-y: auto;         /* 🔥 ВЕРТИКАЛЬНАЯ ПРОКРУТКА */
     overflow-x: hidden;
     white-space: pre-wrap;    /* 🔥 Сохраняет переносы строк */
-    word-wrap: break-word;    /* 🔥 Разрыв длинных слов */
-    resize: none;             /* 🔥 Убрано растягивание */
+    word-wrap: break-word;
     line-height: 1.6;
     caret-color: #64ffda !important;
     scrollbar-width: thin;
     scrollbar-color: var(--accent-color) rgba(13, 31, 15, 0.3);
+}
+
+/* 🔥 Placeholder для contenteditable */
+.custom-textarea:empty:before {
+    content: attr(placeholder);
+    color: #6b5f4a;
+    font-style: italic;
+    pointer-events: none;
 }
 
 /* 🔥 Стилизация скроллбара для Chrome/Safari */
@@ -417,11 +424,6 @@ h1 {
     border-color: rgba(100, 255, 218, 0.6);
     box-shadow: 0 0 10px rgba(100, 255, 218, 0.2);
     outline: 2px solid rgba(100, 255, 218, 0.3);
-}
-
-.custom-textarea::placeholder {
-    color: #6b5f4a;
-    font-style: italic;
 }
 
 #user-input { display: none; }
@@ -474,7 +476,7 @@ h1 {
     gap: 3px;
 }
 
-/* 🔥 ОГРОМНЫЕ БУКВЫ НА КЛАВИШАХ */
+/*  ОГРОМНЫЕ БУКВЫ НА КЛАВИШАХ */
 .key {
     flex: 1;
     min-width: 35px;
@@ -484,7 +486,7 @@ h1 {
     background: var(--key-bg);
     color: var(--text-color);
     font-family: 'Cormorant Garamond', serif;
-    font-size: 2em;           /* 🔥 ОГРОМНЫЕ БУКВЫ */
+    font-size: 2em;
     font-weight: 700;
     cursor: pointer;
     display: flex;
