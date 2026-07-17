@@ -2,7 +2,7 @@
   "name": "Акаша — Хранительница Знаний Ордена Вольных Джедаев",
   "short_name": "Акаша",
   "description": "Хранительница Знаний Ордена Вольных Джедаев. Уроки, задания, чат с Мастером и таблица успеваемости.",
-  "start_url": "/akasha-order/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#0d1f0f",
   "theme_color": "#1a3a1a",
