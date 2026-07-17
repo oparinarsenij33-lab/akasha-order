@@ -50,7 +50,7 @@ function applySeasonTheme() {
     let season, seasonName, emoji;
     if (month >= 3 && month <= 5) { season = 'spring'; seasonName = 'Весна'; emoji = '🌸'; }
     else if (month >= 6 && month <= 8) { season = 'summer'; seasonName = 'Лето'; emoji = '☀️'; }
-    else if (month >= 9 && month <= 11) { season = 'autumn'; seasonName = 'Осень'; emoji = '🍂'; }
+    else if (month >= 9 && month <= 11) { season = 'autumn'; seasonName = 'Осень'; emoji = ''; }
     else { season = 'winter'; seasonName = 'Зима'; emoji = '❄️'; }
     document.body.className = `season-${season}`;
     const indicator = document.getElementById('season-indicator');
@@ -76,7 +76,7 @@ function getRankGreeting(user) {
     const isMasterRank = ['мастер', 'магистр', 'верховный магистр', 'старейшина'].includes(rank);
     if (isMasterRank) {
         return `<div style="background:rgba(13,31,15,0.5); border:1px solid rgba(255,215,0,0.3); border-radius:15px; padding:25px; margin:15px 0;">
-            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Приветствую тебя, ${rank} ${name}</h3>
+            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, ${rank} ${name}</h3>
             <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев рад видеть тебя среди своих хранителей. Твоя мудрость и опыт — бесценный дар для наших учеников.</p>
             <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📋 Твои возможности:</h4>
             <ul style="color:var(--text-color); line-height:1.8; padding-left:20px; margin-bottom:15px;">
@@ -184,14 +184,26 @@ function addMessage(text, isUser = false, saveToStorage = true) {
     }, 100);
 }
 
-// ===== MARKDOWN ПАРСИНГ =====
+// =====  ИСПРАВЛЕННОЕ ФОРМАТИРОВАНИЕ С АБЗАЦАМИ =====
 function parseMarkdown(text) {
-    // ***жирный и курсив*** → <strong><em>...</em></strong>
+    // Сохраняем переносы строк как <br>
+    text = text.replace(/\n/g, '<br>');
+    
+    // Создаём абзацы (два переноса = новый абзац)
+    text = text.replace(/<br><br>/g, '</p><p style="text-indent:20px; margin:15px 0;">');
+    
+    // Обёртываем весь текст в <p> если нужно
+    if (!text.startsWith('<p>')) {
+        text = '<p style="text-indent:20px; margin:15px 0;">' + text + '</p>';
+    }
+    
+    // ***жирный и курсив***
     text = text.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-    // **жирный** → <strong>...</strong>
+    // **жирный**
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // *курсив* → <em>...</em>
+    // *курсив*
     text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
     return text;
 }
 
@@ -429,14 +441,14 @@ async function showMasterDashboard() {
             students.forEach(student => {
                 const time = student.timestamp ? new Date(student.timestamp.seconds * 1000).toLocaleString('ru-RU', {hour: '2-digit', minute: '2-digit'}) : '';
                 const unreadBadge = student.unread ? '<span style="background:#ff6b6b; color:white; padding:2px 8px; border-radius:10px; font-size:0.8em; margin-left:10px;">NEW</span>' : '';
-                html += `<div style="background:rgba(100,255,218,0.1); border:1px solid rgba(100,255,218,0.3); border-radius:10px; padding:15px; margin:10px 0; cursor:pointer;" onclick="window.openChatWithStudent(\'${student.name}\')">`;
+                html += `<div style="background:rgba(100,255,218,0.1); border:1px solid rgba(100,255,218,0.3); border-radius:10px; padding:15px; margin:10px 0; cursor:pointer;" onclick="window.openChatWithStudent('${student.name}')">`;
                 html += `<div style="display:flex; justify-content:space-between; align-items:center;">`;
                 html += `<div style="font-size:1.15em; color:#64ffda; font-weight:bold;">👤 ${student.name} ${unreadBadge}</div>`;
                 html += `<div style="color:#6b5f4a; font-size:0.9em;">${time}</div></div>`;
                 html += `<div style="color:#a89b7e; margin-top:8px; font-style:italic;">"${student.lastMessage.substring(0, 50)}${student.lastMessage.length > 50 ? '...' : ''}"</div></div>`;
             });
         }
-        html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
+        html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
         addMessage(html);
     } catch (error) {
         console.error('Ошибка загрузки панели Мастера:', error);
@@ -577,10 +589,10 @@ function showMainMenu() {
     if (!container) return;
     container.innerHTML = '';
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🔮 Главное меню</h3>`;
-    html += `<button class="menu-btn" onclick="window.showHomeworkBoard()"> Домашние задания</button>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Главное меню</h3>`;
+    html += `<button class="menu-btn" onclick="window.showHomeworkBoard()">📝 Домашние задания</button>`;
     html += `<button class="menu-btn chat-btn" onclick="window.openMasterChat()">✉️ Написать Мастеру</button>`;
-    html += `<button class="menu-btn" onclick="showTOC()"> Оглавление знаний</button>`;
+    html += `<button class="menu-btn" onclick="showTOC()">📚 Оглавление знаний</button>`;
     html += `<button class="menu-btn" onclick="window.showCouncilOfMasters()" style="background:rgba(100,255,218,0.15); border-color:rgba(100,255,218,0.4); color:#64ffda;">🏛️ Совет Мастеров</button>`;
     html += `<button class="menu-btn" onclick="window.showMembersList()">👥 Члены Ордена</button>`;
     html += `<button class="menu-btn" onclick="window.showProgressTable()">📊 Успеваемость</button>`;
@@ -620,7 +632,7 @@ window.showHomeworkBoard = async function() {
             const myLastSubmission = mySubmissions.length > 0 ? mySubmissions.sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0))[0] : null;
             html += `<div class="hw-card"><div class="hw-title">${hwTitle}</div><div class="hw-desc">${hw.description || ''}</div>`;
             const dateStr = hw.createdAt ? new Date(hw.createdAt.seconds * 1000).toLocaleString('ru-RU') : 'дата неизвестна';
-            html += `<div class="hw-meta"> ${hw.createdBy || 'неизвестно'} | 📅 ${dateStr}</div>`;
+            html += `<div class="hw-meta">👤 ${hw.createdBy || 'неизвестно'} |  ${dateStr}</div>`;
             if (myLastSubmission) {
                 const statusEmoji = myLastSubmission.status === 'approved' ? '✅' : (myLastSubmission.status === 'needs_revision' ? '⚠️' : '');
                 const statusText = myLastSubmission.status === 'approved' ? 'Одобрено' : (myLastSubmission.status === 'needs_revision' ? 'На доработку' : 'На проверке');
@@ -628,9 +640,9 @@ window.showHomeworkBoard = async function() {
                 html += `<div style="margin:15px 0; padding:12px; background:rgba(${myLastSubmission.status === 'approved' ? '76,175,80' : (myLastSubmission.status === 'needs_revision' ? '255,152,0' : '33,150,243')},0.1); border-radius:8px; border-left:3px solid ${statusColor};">`;
                 html += `<p style="color:${statusColor}; margin:0 0 8px 0; font-weight:bold;">${statusEmoji} Статус: ${statusText}</p>`;
                 html += `<p style="color:var(--text-color); margin:0 0 8px 0; font-size:0.95em;"><strong>Мой ответ:</strong> ${myLastSubmission.content}</p>`;
-                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong>💬 Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
+                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong> Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
                 const submitDate = myLastSubmission.submittedAt ? new Date(myLastSubmission.submittedAt.seconds * 1000).toLocaleString('ru-RU') : '';
-                html += `<p style="color:#6b5f4a; margin:8px 0 0 0; font-size:0.85em; font-style:italic;"> Отправлено: ${submitDate}</p>`;
+                html += `<p style="color:#6b5f4a; margin:8px 0 0 0; font-size:0.85em; font-style:italic;">📅 Отправлено: ${submitDate}</p>`;
                 if (myLastSubmission && myLastSubmission.id) {
                     html += `<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
                         <button class="hw-btn" onclick="window.deleteMySubmission('${myLastSubmission.id}', '${hwId}')" 
@@ -643,7 +655,7 @@ window.showHomeworkBoard = async function() {
             }
             if (isMaster()) {
                 html += `<div style="margin:10px 0; padding:10px; background:rgba(255,165,0,0.1); border-radius:8px; border:1px solid rgba(255,165,0,0.3);">`;
-                html += `<p style="color:#ffa500; margin:0;"> Ответов: ${hwSubmissions.length} | ⏳ На проверке: ${pendingCount}</p>`;
+                html += `<p style="color:#ffa500; margin:0;">📬 Ответов: ${hwSubmissions.length} | ⏳ На проверке: ${pendingCount}</p>`;
                 html += `<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">`;
                 if (hwSubmissions.length > 0) {
                     html += `<button class="hw-btn" onclick="window.reviewSubmissions('${hwId}')" style="flex:1; min-width:150px; background:rgba(255,165,0,0.3); color:#ffa500;">🔍 Проверить ответы</button>`;
@@ -659,8 +671,8 @@ window.showHomeworkBoard = async function() {
             html += `</div>`;
         });
     }
-    if (isMaster()) html += `<button class="hw-btn create" onclick="window.startCreateAssignment()" style="width:100%; margin-top:20px; padding:15px;"> Создать новое задание</button>`;
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;"> Вернуться в меню</button></div>`;
+    if (isMaster()) html += `<button class="hw-btn create" onclick="window.startCreateAssignment()" style="width:100%; margin-top:20px; padding:15px;">➕ Создать новое задание</button>`;
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button></div>`;
     addMessage(html);
 };
 
@@ -674,12 +686,12 @@ window.reviewSubmissions = function(assignmentId) {
     if (hwSubmissions.length === 0) html += `<p style="color:#6b5f4a; text-align:center;">Ответов пока нет.</p>`;
     else {
         hwSubmissions.forEach(sub => {
-            const statusEmoji = sub.status === 'approved' ? '✅' : (sub.status === 'needs_revision' ? '⚠️' : '⏳');
+            const statusEmoji = sub.status === 'approved' ? '✅' : (sub.status === 'needs_revision' ? '️' : '⏳');
             const statusText = sub.status === 'approved' ? 'Одобрено' : (sub.status === 'needs_revision' ? 'На доработку' : 'На проверке');
             html += `<div class="hw-card" style="border-left-color: ${sub.status === 'approved' ? '#4caf50' : (sub.status === 'needs_revision' ? '#ff9800' : '#2196f3')};">`;
             html += `<div class="hw-title">${statusEmoji} ${sub.studentName} <span style="font-size:0.8em; color:#a89b7e;">(${sub.studentRank})</span></div><div class="hw-desc">${sub.content}</div>`;
             const dateStr = sub.submittedAt ? new Date(sub.submittedAt.seconds * 1000).toLocaleString('ru-RU') : '';
-            html += `<div class="hw-meta"> ${dateStr} | Статус: ${statusText}</div>`;
+            html += `<div class="hw-meta">📅 ${dateStr} | Статус: ${statusText}</div>`;
             if (sub.masterFeedback) html += `<div style="margin:10px 0; padding:10px; background:rgba(100,255,218,0.1); border-radius:8px;"><p style="color:#64ffda; margin:0;"><strong>💬 Комментарий Мастера:</strong> ${sub.masterFeedback}</p></div>`;
             html += `<div class="hw-actions"><button class="hw-btn" onclick="window.gradeSubmission('${sub.id}', '${hw.id}', 'approved')" style="background:rgba(76,175,80,0.3); color:#4caf50;">✅ Одобрить</button><button class="hw-btn" onclick="window.gradeSubmission('${sub.id}', '${hw.id}', 'needs_revision')" style="background:rgba(255,152,0,0.3); color:#ff9800;">⚠️ На доработку</button><button class="hw-btn" onclick="window.addFeedback('${sub.id}', '${hw.id}')" style="background:rgba(100,255,218,0.2); color:#64ffda;">💬 Комментарий</button></div></div>`;
         });
@@ -756,7 +768,7 @@ function showTOC() {
         }
     });
     if (isAdminUser) tocHTML += `<div class="toc-section"><div class="toc-section-title">6. Админ-панель</div><div class="toc-lesson-link" onclick="window.startAddLesson()">➕ Добавить новый урок</div></div>`;
-    tocHTML += `</div><button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>`;
+    tocHTML += `</div><button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;"> Вернуться в меню</button>`;
     addMessage(tocHTML);
 }
 
@@ -776,7 +788,7 @@ async function showLessonContentWithReadButton(lessonId) {
         if (lesson.mediaUrl.includes('youtube.com') || lesson.mediaUrl.includes('rutube.ru')) html += `<iframe width="100%" height="315" src="${lesson.mediaUrl}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe>`;
         else if (lesson.mediaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) html += `<img src="${lesson.mediaUrl}" style="max-width:100%; border-radius:10px; margin-top:10px;">`;
         else if (lesson.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) html += `<video controls style="max-width:100%; margin-top:10px; border-radius:10px;"><source src="${lesson.mediaUrl}"></video>`;
-        else html += `<a href="${lesson.mediaUrl}" target="_blank" rel="noopener noreferrer" style="color:#64ffda; text-decoration:underline;">🔗 Открыть медиа</a>`;
+        else html += `<a href="${lesson.mediaUrl}" target="_blank" rel="noopener noreferrer" style="color:#64ffda; text-decoration:underline;"> Открыть медиа</a>`;
         html += `</div>`;
     }
     if (isRead) {
@@ -785,7 +797,7 @@ async function showLessonContentWithReadButton(lessonId) {
         html += `<button class="read-btn" onclick="window.markLessonRead('${lessonId}')">👁️ Отметить как прочитанное</button>`;
     }
     const isAdminUser = isAdmin();
-    if (isAdminUser) html += `<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;"><button class="edit-btn" onclick="window.editLesson('${lesson.id}')">✏️ Редактировать</button><button class="delete-btn" onclick="window.confirmDeleteLesson('${lesson.id}')">🗑️ Удалить</button></div>`;
+    if (isAdminUser) html += `<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;"><button class="edit-btn" onclick="window.editLesson('${lesson.id}')">✏️ Редактировать</button><button class="delete-btn" onclick="window.confirmDeleteLesson('${lesson.id}')">️ Удалить</button></div>`;
     html += `<div class="comments-section"><div class="comments-header">💬 Комментарии</div>`;
     const comments = await loadCommentsForLesson(lessonId);
     if (comments.length === 0) html += `<p style="color:#6b5f4a; font-style:italic;">Комментариев пока нет. Будь первым!</p>`;
@@ -798,7 +810,7 @@ async function showLessonContentWithReadButton(lessonId) {
             html += `<div class="comment-item ${isMasterComment ? 'master-comment' : ''}"><div class="comment-author ${isMasterComment ? 'master' : ''}">${comment.authorName}<span class="comment-type-badge ${isMasterComment ? 'badge-task' : 'badge-question'}">${isMasterComment ? '📝 Задание' : '💬 Комментарий'}</span></div><div class="comment-text">${comment.text}</div><div class="comment-meta">${comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString('ru-RU') : ''}</div>`;
             if (canEdit || canDelete) {
                 html += `<div class="comment-actions">`;
-                if (canEdit) html += `<button class="comment-edit-btn" onclick="window.editComment('${comment.id}', '${lesson.id}')">✏️ Изменить</button>`;
+                if (canEdit) html += `<button class="comment-edit-btn" onclick="window.editComment('${comment.id}', '${lesson.id}')">️ Изменить</button>`;
                 if (canDelete) html += `<button class="comment-delete-btn" onclick="window.deleteComment('${comment.id}', '${lesson.id}')">🗑️ Удалить</button>`;
                 html += `</div>`;
             }
@@ -854,7 +866,7 @@ window.editLesson = function(lessonId) {
 window.confirmDeleteLesson = async function(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) return;
-    addMessage(`<p>️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
+    addMessage(`<p>⚠️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
     addLessonState = { step: 'confirm_delete', lessonId: lessonId, lessonTitle: lesson.title };
 };
 
@@ -876,7 +888,7 @@ function findAnswer(question) {
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step === 'submit_hw_text') {
-        if (q === 'отмена') { addLessonState = null; return '<p>❌ Отмена.</p>'; }
+        if (q === 'отмена') { addLessonState = null; return '<p> Отмена.</p>'; }
         const savedHwId = addLessonState.hwId; const savedHwTitle = addLessonState.hwTitle; addLessonState = null;
         submitHomeworkToFirebase(savedHwId, question).then(success => { if (success) { addMessage(`<p>✅ Ваш ответ на задание "<strong>${savedHwTitle}</strong>" отправлен Мастеру на проверку!</p>`); showMainMenu(); } else { addMessage('<p>❌ Ошибка отправки.</p>'); } });
         return '';
@@ -944,7 +956,7 @@ function findAnswer(question) {
         if (addLessonState.step === 'content') { addLessonState.content = question; addLessonState.step = 'media'; return '<p>Ссылка на медиа (или <em>нет</em>):</p>'; }
         if (addLessonState.step === 'media') {
             const mediaUrl = q === 'нет' ? '' : question;
-            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p> Ошибка.</p>'); } });
             addLessonState = null; return '';
         }
     }
@@ -981,7 +993,7 @@ function findAnswer(question) {
                     return '<p>❌ Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; 
                 }
             } else { 
-                return '<p>📋 Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; 
+                return '<p> Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; 
             }
         }
         return '<p>👋 Назови своё Имя, Ранг, Учителя и Пароль.</p>';
@@ -1018,11 +1030,60 @@ function updateLogoutButton() {
     if (btn) btn.style.display = currentUser ? 'block' : 'none';
 }
 
+// =====  НОВЫЕ ФУНКЦИИ: СКРЫТИЕ КЛАВИАТУРЫ И УВЕЛИЧЕНИЕ ШРИФТА =====
+
+// Переключение видимости клавиатуры
+function toggleKeyboardVisibility() {
+    const keyboard = document.getElementById('custom-keyboard');
+    const inputWrapper = document.getElementById('main-input-wrapper');
+    
+    if (keyboard.style.display === 'none') {
+        keyboard.style.display = 'flex';
+        inputWrapper.classList.remove('keyboard-hidden');
+        localStorage.setItem('akasha-keyboard-visible', 'true');
+    } else {
+        keyboard.style.display = 'none';
+        inputWrapper.classList.add('keyboard-hidden');
+        localStorage.setItem('akasha-keyboard-visible', 'false');
+    }
+}
+
+// Восстановление состояния клавиатуры
+function restoreKeyboardState() {
+    const isVisible = localStorage.getItem('akasha-keyboard-visible');
+    if (isVisible === 'false') {
+        const keyboard = document.getElementById('custom-keyboard');
+        const inputWrapper = document.getElementById('main-input-wrapper');
+        keyboard.style.display = 'none';
+        inputWrapper.classList.add('keyboard-hidden');
+    }
+}
+
+// Переключение увеличенного шрифта
+function toggleLargeText() {
+    document.body.classList.toggle('keyboard-large-text');
+    const isLarge = document.body.classList.contains('keyboard-large-text');
+    localStorage.setItem('akasha-large-text', isLarge ? 'true' : 'false');
+}
+
+// Восстановление настройки увеличенного шрифта
+function restoreLargeTextPreference() {
+    const saved = localStorage.getItem('akasha-large-text');
+    if (saved === 'true') {
+        document.body.classList.add('keyboard-large-text');
+    }
+}
+
 // ===== КЛАВИАТУРА =====
 const layouts = {
     ru: [['й','ц','у','к','е','н','г','ш','щ','з','х','ъ'], ['ф','ы','в','а','п','р','о','л','д','ж','э'], ['shift','я','ч','с','м','и','т','ь','б','ю','backspace'], ['123', ',', 'enter', 'space']],
     en: [['q','w','e','r','t','y','u','i','o','p'], ['a','s','d','f','g','h','j','k','l'], ['shift','z','x','c','v','b','n','m','backspace'], ['123', ',', 'enter', 'space']],
-    numbers: [['1','2','3','4','5','6','7','8','9','0'], ['-','/',':',';','(',')','$','&','@','"'], ['!','?','#','%','*','+','=','backspace'], ['abc', ',', 'enter', 'space']]
+    numbers: [
+        ['1','2','3','4','5','6','7','8','9','0'],
+        ['-','/',':',';','(',')','$','&','@','"'],
+        ['.','!','?','#','%','*','+','=','№','\\'],
+        ['abc', ',', 'enter', 'space']
+    ]
 };
 
 let currentLang = 'ru';
@@ -1587,7 +1648,6 @@ window.excludeJedi = async function(userName) {
         
         await windowDb.collection('users').doc(normalizedName).delete();
         
-        // Удаляем связанные данные
         const readsSnap = await windowDb.collection('lesson_reads').where('userId', '==', userName).get();
         if (!readsSnap.empty) {
             const batch1 = windowDb.batch();
@@ -1638,12 +1698,12 @@ window.showCouncilOfMasters = async function() {
         if (supremeMaster.description) html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${supremeMaster.description}</div>`;
         html += `</div>`;
     }
-    html += `<h4 class="council-master-header"> 👑 Мастера</h4>`;
+    html += `<h4 class="council-master-header">👑 Мастера</h4>`;
     const masters = Object.values(usersDatabase).filter(u => u.ранг === 'мастер' && u.specialTitle);
     masters.forEach(master => {
         const isBlocked = blockedNames.includes(master.fullName);
         html += `<div class="council-master-card"><div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">`;
-        html += `<div style="font-size:2em;">⚔️</div><div style="flex:1;">`;
+        html += `<div style="font-size:2em;">️</div><div style="flex:1;">`;
         html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${master.fullName}</div>`;
         html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${master.specialTitle}</div></div>`;
         html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
@@ -1676,7 +1736,7 @@ window.showMembersList = async function() {
                 const timeInAkasha = regDate ? formatTimeInAkasha(regDate) : '—';
                 html += `<div class="member-card"><div style="flex:1;">`;
                 html += `<div class="member-name">${member.fullName}</div>`;
-                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙‍♂️ Учитель: ${teacherName}</div>`;
+                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙♂️ Учитель: ${teacherName}</div>`;
                 html += `<div style="color:var(--text-secondary); font-size:0.85em; margin-top:2px;">⏱️ В Акаше: ${timeInAkasha}</div></div>`;
                 html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
             }
@@ -1733,7 +1793,7 @@ window.showAdjustmentPanel = async function() {
     if (container) container.innerHTML = '';
     if (!isMaster()) { addMessage('<p>❌ Доступ запрещён.</p>'); return; }
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Ручная корректировка</h3>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">️ Ручная корректировка</h3>`;
     html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px;">Выбери ученика и добавь баллы за пройденные материалы вне Акаши</p>`;
     for (const user of Object.values(usersDatabase)) {
         if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
@@ -1753,7 +1813,7 @@ window.showAdjustmentPanel = async function() {
 window.showDetailedProgress = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
-    if (!isMaster()) { addMessage('<p>❌ Доступ запрещён. Только для Мастеров.</p>'); return; }
+    if (!isMaster()) { addMessage('<p> Доступ запрещён. Только для Мастеров.</p>'); return; }
     const reads = await getAllLessonReads();
     const totalLessons = Object.keys(lessonsById).length;
     const totalHomework = assignmentsList.length;
@@ -1767,7 +1827,7 @@ window.showDetailedProgress = async function() {
         const gradeData = calculateGrade(userReads.length, userSubmissions.filter(s => s.status === 'approved').length, totalLessons, totalHomework, adjustments.adjustedLessons || 0, adjustments.adjustedHomework || 0);
         html += `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin:15px 0; border-left:3px solid ${gradeData.gradeColor};">`;
         html += `<h4 style="color:${gradeData.gradeColor}; margin-bottom:10px;">${user.fullName} — ${gradeData.grade} (${gradeData.percent}%)</h4>`;
-        html += `<p style="color:#8bc34a; margin:10px 0 5px 0; font-weight:600;">📖 Прочитанные уроки (${userReads.length}/${totalLessons}):</p>`;
+        html += `<p style="color:#8bc34a; margin:10px 0 5px 0; font-weight:600;"> Прочитанные уроки (${userReads.length}/${totalLessons}):</p>`;
         if (userReads.length > 0) {
             html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
             userReads.forEach(read => {
@@ -1779,7 +1839,7 @@ window.showDetailedProgress = async function() {
             });
             html += `</ul>`;
         } else { html += `<p style="color:#6b5f4a; font-style:italic; margin:5px 0;">Нет прочитанных уроков</p>`; }
-        html += `<p style="color:#ffa500; margin:10px 0 5px 0; font-weight:600;">📝 Сданные ДЗ (${userSubmissions.length} всего, ${userSubmissions.filter(s => s.status === 'approved').length} одобрено):</p>`;
+        html += `<p style="color:#ffa500; margin:10px 0 5px 0; font-weight:600;"> Сданные ДЗ (${userSubmissions.length} всего, ${userSubmissions.filter(s => s.status === 'approved').length} одобрено):</p>`;
         if (userSubmissions.length > 0) {
             html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
             userSubmissions.forEach(sub => {
@@ -1800,7 +1860,7 @@ window.showDetailedProgress = async function() {
         }
         html += `</div>`;
     }
-    html += `<button class="hw-btn" onclick="window.showProgressTable()" style="width:100%; margin-top:15px; padding:12px;"> Назад к таблице</button></div>`;
+    html += `<button class="hw-btn" onclick="window.showProgressTable()" style="width:100%; margin-top:15px; padding:12px;">🔙 Назад к таблице</button></div>`;
     addMessage(html);
 };
 
@@ -1826,11 +1886,11 @@ window.showAdminPanel = async function() {
         } else { 
             html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')">🚫 Заблокировать</button>`; 
         }
-        html += `<button class="hw-btn" onclick="window.excludeJedi('${user.fullName}')" style="background:rgba(255,0,0,0.2); color:#ff0000; border:1px solid rgba(255,0,0,0.5); padding:6px 12px; font-size:0.85em; margin:0;">️ Исключить</button>`;
+        html += `<button class="hw-btn" onclick="window.excludeJedi('${user.fullName}')" style="background:rgba(255,0,0,0.2); color:#ff0000; border:1px solid rgba(255,0,0,0.5); padding:6px 12px; font-size:0.85em; margin:0;">⚠️ Исключить</button>`;
         html += `</div></div>`;
     });
     html += `</div>`;
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
     addMessage(html);
 };
 
@@ -1863,6 +1923,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 addMessage(getStrangerGreeting());
             }
+            // 🔥 Восстанавливаем состояние клавиатуры и шрифта
+            restoreKeyboardState();
+            restoreLargeTextPreference();
         }
     }, 500);
 });
@@ -1876,90 +1939,6 @@ window.addEventListener('resize', () => {
             document.body.style.paddingBottom = '300px';
         }
     }
-});
-
-// ===== ТЕКСТОВОЕ ФОРМАТИРОВАНИЕ (УДЕРЖАНИЕ ПАЛЬЦА) =====
-function initTextFormatting() {
-    document.querySelectorAll('.message-content').forEach(el => {
-        el.addEventListener('touchstart', handleLongPressStart);
-        el.addEventListener('touchend', handleLongPressEnd);
-        el.addEventListener('mousedown', handleLongPressStart);
-        el.addEventListener('mouseup', handleLongPressEnd);
-        el.addEventListener('mouseleave', handleLongPressEnd);
-    });
-}
-
-let longPressTimer = null;
-let longPressTarget = null;
-
-function handleLongPressStart(e) {
-    e.preventDefault(); // 🔥 КРИТИЧЕСКИ ВАЖНО
-    clearTimeout(longPressTimer);
-    longPressTarget = e.target;
-    longPressTimer = setTimeout(() => {
-        const rect = e.target.getBoundingClientRect();
-        const x = e.clientX || (rect.left + rect.width / 2);
-        const y = e.clientY || (rect.top + rect.height / 2);
-        showFormatMenu(x, y);
-    }, 600); // 600ms = стандартное удержание
-}
-
-function handleLongPressEnd() {
-    clearTimeout(longPressTimer);
-    hideFormatMenu();
-}
-
-function showFormatMenu(x, y) {
-    const menu = document.getElementById('format-menu');
-    if (!menu) return;
-    menu.style.display = 'flex';
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
-}
-
-function hideFormatMenu() {
-    const menu = document.getElementById('format-menu');
-    if (menu) menu.style.display = 'none';
-}
-
-function handleFormatClick(e) {
-    const btn = e.target.closest('.fmt-btn');
-    if (!btn) return;
-    
-    const action = btn.dataset.action;
-    if (action === 'cancel') {
-        hideFormatMenu();
-        return;
-    }
-    if (action === 'copy') {
-        const selection = window.getSelection();
-        if (selection.toString()) {
-            navigator.clipboard.writeText(selection.toString())
-                .then(() => showAlert('Копировано', 'Выделенный текст скопирован!'))
-                .catch(() => showAlert('Ошибка', 'Не удалось скопировать.'));
-        }
-        hideFormatMenu();
-        return;
-    }
-
-    try {
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-
-        // Применяем команду форматирования
-        document.execCommand(action, false);
-
-        hideFormatMenu();
-    } catch (err) {
-        console.error('Ошибка форматирования:', err);
-        showAlert('Ошибка', 'Не удалось применить форматирование.');
-    }
-}
-
-// Привязываем обработчик клика к меню
-document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.fmt-btn');
-    if (btn) handleFormatClick(e);
 });
 
 // ===== ЭКСПОРТ ВСЕХ ФУНКЦИЙ =====
@@ -1994,4 +1973,5 @@ window.markLessonRead = markLessonRead;
 window.showCouncilOfMasters = showCouncilOfMasters;
 window.addNewMember = addNewMember;
 window.excludeJedi = excludeJedi;
-window.initTextFormatting = initTextFormatting;
+window.toggleKeyboardVisibility = toggleKeyboardVisibility;
+window.toggleLargeText = toggleLargeText;
