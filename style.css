@@ -150,7 +150,6 @@ h1 {
     font-family: 'Cormorant Garamond', serif;
     font-weight: 400;
     letter-spacing: 0.5px;
-    /* 🔥 КРИТИЧЕСКИ ВАЖНО — отключаем системное выделение */
     user-select: none;
     -webkit-user-select: none;
 }
@@ -370,12 +369,12 @@ h1 {
     box-shadow: 0 -5px 25px rgba(0,0,0,0.6);
 }
 
-/*  УВЕЛИЧЕННОЕ ПОЛЕ ВВОДА */
+/* 🔥 УВЕЛИЧЕННОЕ ПОЛЕ ВВОДА С ПРОКРУТКОЙ */
 .custom-textarea {
     width: 100%;
-    min-height: 80px;  /* Было 50px */
-    max-height: 200px; /* Было 100px */
-    padding: 15px;     /* Было 10px */
+    min-height: 80px;
+    max-height: 200px;
+    padding: 15px;
     border: 2px solid var(--border-color);
     border-radius: 12px;
     background: rgba(13, 31, 15, 0.9);
@@ -384,12 +383,14 @@ h1 {
     font-size: 1.2em;
     outline: none;
     margin-bottom: 8px;
-    overflow-y: auto;
-    white-space: pre-wrap;      /* 🔥 Сохраняет переносы строк */
+    overflow-y: auto;        /* 🔥 Прокрутка по вертикали */
+    overflow-x: hidden;      /* 🔥 Скрываем горизонтальную прокрутку */
+    white-space: pre-wrap;
     word-wrap: break-word;
-    resize: vertical;           /* 🔥 Можно растягивать */
-    line-height: 1.6;           /* Было 1.4 */
+    resize: vertical;
+    line-height: 1.6;
     caret-color: #64ffda !important;
+    text-overflow: ellipsis;
 }
 
 .custom-textarea:focus {
@@ -453,18 +454,18 @@ h1 {
     gap: 3px;
 }
 
-/*  УВЕЛИЧЕННЫЕ КЛАВИШИ */
+/* 🔥 ОГРОМНЫЕ БУКВЫ НА КЛАВИШАХ */
 .key {
     flex: 1;
-    min-width: 35px;  /* Было 28px */
-    height: 50px;     /* Было 42px */
+    min-width: 35px;
+    height: 50px;
     border: 1px solid var(--border-color);
-    border-radius: 10px;  /* Было 8px */
+    border-radius: 10px;
     background: var(--key-bg);
     color: var(--text-color);
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.3em;   /* Было 1.15em */
-    font-weight: 700;   /* Было 600 */
+    font-size: 2em;           /* 🔥 БЫЛО 1.3em → СТАЛО 2em */
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -486,7 +487,7 @@ h1 {
     background: linear-gradient(180deg, rgba(100, 255, 218, 0.25) 0%, rgba(100, 255, 218, 0.15) 100%);
     border-color: rgba(100, 255, 218, 0.5);
     color: #64ffda;
-    font-size: 1.1em;
+    font-size: 1.5em;         /* 🔥 БЫЛО 1.1em → СТАЛО 1.5em */
     font-weight: 700;
 }
 
@@ -504,7 +505,7 @@ h1 {
 
 .key.space {
     flex: 5;
-    font-size: 1em;
+    font-size: 1.3em;         /* 🔥 БЫЛО 1em → СТАЛО 1.3em */
     letter-spacing: 2px;
 }
 
@@ -513,7 +514,7 @@ h1 {
     background: linear-gradient(180deg, rgba(139, 195, 74, 0.8) 0%, rgba(100, 255, 218, 0.6) 100%);
     color: #0d1f0f;
     font-weight: 700;
-    font-size: 1.1em;
+    font-size: 1.4em;         /* 🔥 БЫЛО 1.1em → СТАЛО 1.4em */
 }
 
 .key.enter:active, .key.enter.pressed {
@@ -523,21 +524,21 @@ h1 {
 
 /* 🔥 УВЕЛИЧЕННЫЙ ШРИФТ ДЛЯ ДАЛИССЫ */
 .keyboard-large-text .key {
-    font-size: 1.8em !important;  /* Ещё больше! */
+    font-size: 2.5em !important;   /* 🔥 БЫЛО 1.8em → СТАЛО 2.5em */
     height: 55px !important;
     font-weight: 700 !important;
 }
 
 .keyboard-large-text .key.special {
-    font-size: 1.5em !important;
+    font-size: 2em !important;     /* 🔥 БЫЛО 1.5em → СТАЛО 2em */
 }
 
 .keyboard-large-text .key.space {
-    font-size: 1.3em !important;
+    font-size: 1.8em !important;   /* 🔥 БЫЛО 1.3em → СТАЛО 1.8em */
 }
 
 .keyboard-large-text .key.enter {
-    font-size: 1.4em !important;
+    font-size: 2em !important;     /* 🔥 БЫЛО 1.4em → СТАЛО 2em */
 }
 
 .master-chat-wrapper {
@@ -979,14 +980,17 @@ h1 {
 @media (max-width: 768px) {
     h1 { font-size: 2.2em; }
     .message-content { font-size: 1.05em; }
-    .key { height: 48px; font-size: 1.2em; min-width: 32px; }
+    .key { height: 48px; font-size: 1.8em; min-width: 32px; }
+    .key.special { font-size: 1.3em; }
+    .key.space { font-size: 1.1em; }
+    .key.enter { font-size: 1.2em; }
     body { padding-bottom: 280px; }
     .progress-table { font-size: 0.85em; }
     .progress-table th, .progress-table td { padding: 8px 4px; }
 }
 
 @media (max-width: 380px) {
-    .key { height: 45px; font-size: 1.1em; min-width: 30px; }
+    .key { height: 45px; font-size: 1.6em; min-width: 30px; }
     .keyboard-row { gap: 2px; }
 }
 
@@ -999,5 +1003,5 @@ h1 {
 
 @media (max-height: 600px) {
     .chat-container { max-height: calc(100vh - 400px) !important; }
-    .key { height: 42px; font-size: 1.1em; }
+    .key { height: 42px; font-size: 1.5em; }
 }
