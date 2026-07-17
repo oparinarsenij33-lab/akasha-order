@@ -46,7 +46,7 @@ body.season-autumn {
     --key-active: linear-gradient(180deg, rgba(255, 140, 0, 0.7) 0%, rgba(255, 120, 0, 0.5) 100%);
     --border-color: rgba(255, 140, 0, 0.3);
     --particle-color: rgba(255, 140, 0, 0.6);
-    --season-emoji: '';
+    --season-emoji: '🍂';
 }
 
 /* ===== ЗИМНЯЯ ТЕМА ===== */
@@ -369,7 +369,7 @@ h1 {
     box-shadow: 0 -5px 25px rgba(0,0,0,0.6);
 }
 
-/* 🔥 УВЕЛИЧЕННОЕ ПОЛЕ ВВОДА С ПРОКРУТКОЙ */
+/*  ИСПРАВЛЕННОЕ ПОЛЕ ВВОДА С ПРОКРУТКОЙ */
 .custom-textarea {
     width: 100%;
     min-height: 80px;
@@ -383,14 +383,34 @@ h1 {
     font-size: 1.2em;
     outline: none;
     margin-bottom: 8px;
-    overflow-y: auto;        /* 🔥 Прокрутка по вертикали */
-    overflow-x: hidden;      /* 🔥 Скрываем горизонтальную прокрутку */
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    resize: vertical;
+    overflow-y: auto;         /* 🔥 ВЕРТИКАЛЬНАЯ ПРОКРУТКА */
+    overflow-x: hidden;
+    white-space: pre-wrap;    /* 🔥 Сохраняет переносы строк */
+    word-wrap: break-word;    /* 🔥 Разрыв длинных слов */
+    resize: none;             /* 🔥 Убрано растягивание */
     line-height: 1.6;
     caret-color: #64ffda !important;
-    text-overflow: ellipsis;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) rgba(13, 31, 15, 0.3);
+}
+
+/* 🔥 Стилизация скроллбара для Chrome/Safari */
+.custom-textarea::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-textarea::-webkit-scrollbar-track {
+    background: rgba(13, 31, 15, 0.3);
+    border-radius: 10px;
+}
+
+.custom-textarea::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 10px;
+}
+
+.custom-textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-glow);
 }
 
 .custom-textarea:focus {
@@ -464,7 +484,7 @@ h1 {
     background: var(--key-bg);
     color: var(--text-color);
     font-family: 'Cormorant Garamond', serif;
-    font-size: 2em;           /* 🔥 БЫЛО 1.3em → СТАЛО 2em */
+    font-size: 2em;           /* 🔥 ОГРОМНЫЕ БУКВЫ */
     font-weight: 700;
     cursor: pointer;
     display: flex;
@@ -487,7 +507,7 @@ h1 {
     background: linear-gradient(180deg, rgba(100, 255, 218, 0.25) 0%, rgba(100, 255, 218, 0.15) 100%);
     border-color: rgba(100, 255, 218, 0.5);
     color: #64ffda;
-    font-size: 1.5em;         /* 🔥 БЫЛО 1.1em → СТАЛО 1.5em */
+    font-size: 1.5em;
     font-weight: 700;
 }
 
@@ -505,7 +525,7 @@ h1 {
 
 .key.space {
     flex: 5;
-    font-size: 1.3em;         /* 🔥 БЫЛО 1em → СТАЛО 1.3em */
+    font-size: 1.3em;
     letter-spacing: 2px;
 }
 
@@ -514,7 +534,7 @@ h1 {
     background: linear-gradient(180deg, rgba(139, 195, 74, 0.8) 0%, rgba(100, 255, 218, 0.6) 100%);
     color: #0d1f0f;
     font-weight: 700;
-    font-size: 1.4em;         /* 🔥 БЫЛО 1.1em → СТАЛО 1.4em */
+    font-size: 1.4em;
 }
 
 .key.enter:active, .key.enter.pressed {
@@ -524,21 +544,21 @@ h1 {
 
 /* 🔥 УВЕЛИЧЕННЫЙ ШРИФТ ДЛЯ ДАЛИССЫ */
 .keyboard-large-text .key {
-    font-size: 2.5em !important;   /* 🔥 БЫЛО 1.8em → СТАЛО 2.5em */
+    font-size: 2.5em !important;
     height: 55px !important;
     font-weight: 700 !important;
 }
 
 .keyboard-large-text .key.special {
-    font-size: 2em !important;     /* 🔥 БЫЛО 1.5em → СТАЛО 2em */
+    font-size: 2em !important;
 }
 
 .keyboard-large-text .key.space {
-    font-size: 1.8em !important;   /* 🔥 БЫЛО 1.3em → СТАЛО 1.8em */
+    font-size: 1.8em !important;
 }
 
 .keyboard-large-text .key.enter {
-    font-size: 2em !important;     /* 🔥 БЫЛО 1.4em → СТАЛО 2em */
+    font-size: 2em !important;
 }
 
 .master-chat-wrapper {
