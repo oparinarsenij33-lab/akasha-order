@@ -50,7 +50,7 @@ function applySeasonTheme() {
     let season, seasonName, emoji;
     if (month >= 3 && month <= 5) { season = 'spring'; seasonName = 'Весна'; emoji = '🌸'; }
     else if (month >= 6 && month <= 8) { season = 'summer'; seasonName = 'Лето'; emoji = '☀️'; }
-    else if (month >= 9 && month <= 11) { season = 'autumn'; seasonName = 'Осень'; emoji = ''; }
+    else if (month >= 9 && month <= 11) { season = 'autumn'; seasonName = 'Осень'; emoji = '🍂'; }
     else { season = 'winter'; seasonName = 'Зима'; emoji = '❄️'; }
     document.body.className = `season-${season}`;
     const indicator = document.getElementById('season-indicator');
@@ -60,7 +60,7 @@ function applySeasonTheme() {
 // ===== ПРИВЕТСТВИЕ ДЛЯ СТРАННИКА =====
 function getStrangerGreeting() {
     return `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">
-        <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Приветствую тебя, Странник</h3>
+        <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, Странник</h3>
         <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Я — <strong>Акаша</strong>, Хранительница Знаний Ордена Вольных Джедаев. В моих архивах хранится мудрость веков, тайны магии и знания, что передавались через Великих Мастеров и Магистров всех времён и эпох.</p>
         <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев — это братство тех, кто посвятил себя изучению высших искусств, защите, сохранению целостности и единства Света. Здесь ты найдёшь уроки, задания и возможность общаться с Наставниками.</p>
         <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;"> Как получить доступ:</h4>
@@ -78,10 +78,10 @@ function getRankGreeting(user) {
         return `<div style="background:rgba(13,31,15,0.5); border:1px solid rgba(255,215,0,0.3); border-radius:15px; padding:25px; margin:15px 0;">
             <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, ${rank} ${name}</h3>
             <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев рад видеть тебя среди своих хранителей. Твоя мудрость и опыт — бесценный дар для наших учеников.</p>
-            <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📋 Твои возможности:</h4>
+            <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;"> Твои возможности:</h4>
             <ul style="color:var(--text-color); line-height:1.8; padding-left:20px; margin-bottom:15px;">
                 <li>📚 Доступ ко всем разделам знаний Ордена</li>
-                <li>📝 Создание и проверка домашних заданий</li>
+                <li> Создание и проверка домашних заданий</li>
                 <li>✏️ Добавление и редактирование уроков</li>
                 <li>💬 Общение с учениками через личный чат</li>
                 <li>📊 Просмотр таблицы успеваемости</li>
@@ -184,26 +184,16 @@ function addMessage(text, isUser = false, saveToStorage = true) {
     }, 100);
 }
 
-// =====  ИСПРАВЛЕННОЕ ФОРМАТИРОВАНИЕ С АБЗАЦАМИ =====
+// ===== ФОРМАТИРОВАНИЕ С АБЗАЦАМИ =====
 function parseMarkdown(text) {
-    // Сохраняем переносы строк как <br>
     text = text.replace(/\n/g, '<br>');
-    
-    // Создаём абзацы (два переноса = новый абзац)
     text = text.replace(/<br><br>/g, '</p><p style="text-indent:20px; margin:15px 0;">');
-    
-    // Обёртываем весь текст в <p> если нужно
     if (!text.startsWith('<p>')) {
         text = '<p style="text-indent:20px; margin:15px 0;">' + text + '</p>';
     }
-    
-    // ***жирный и курсив***
     text = text.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
-    // **жирный**
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // *курсив*
     text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    
     return text;
 }
 
@@ -355,7 +345,7 @@ async function sendMessageToMaster(text) {
         });
         return true;
     } catch (error) {
-        console.error('💥 Ошибка:', error);
+        console.error(' Ошибка:', error);
         addMessage(`<p>❌ Ошибка отправки: ${error.message}</p>`);
         return false;
     }
@@ -434,7 +424,7 @@ async function showMasterDashboard() {
         });
         const students = Array.from(studentsMap.values());
         let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-        html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">📋 Сообщения от учеников</h3>`;
+        html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Сообщения от учеников</h3>`;
         if (students.length === 0) {
             html += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Пока нет сообщений от учеников.</p>`;
         } else {
@@ -448,7 +438,7 @@ async function showMasterDashboard() {
                 html += `<div style="color:#a89b7e; margin-top:8px; font-style:italic;">"${student.lastMessage.substring(0, 50)}${student.lastMessage.length > 50 ? '...' : ''}"</div></div>`;
             });
         }
-        html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
+        html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
         addMessage(html);
     } catch (error) {
         console.error('Ошибка загрузки панели Мастера:', error);
@@ -589,10 +579,10 @@ function showMainMenu() {
     if (!container) return;
     container.innerHTML = '';
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Главное меню</h3>`;
-    html += `<button class="menu-btn" onclick="window.showHomeworkBoard()">📝 Домашние задания</button>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🔮 Главное меню</h3>`;
+    html += `<button class="menu-btn" onclick="window.showHomeworkBoard()"> Домашние задания</button>`;
     html += `<button class="menu-btn chat-btn" onclick="window.openMasterChat()">✉️ Написать Мастеру</button>`;
-    html += `<button class="menu-btn" onclick="showTOC()">📚 Оглавление знаний</button>`;
+    html += `<button class="menu-btn" onclick="showTOC()"> Оглавление знаний</button>`;
     html += `<button class="menu-btn" onclick="window.showCouncilOfMasters()" style="background:rgba(100,255,218,0.15); border-color:rgba(100,255,218,0.4); color:#64ffda;">🏛️ Совет Мастеров</button>`;
     html += `<button class="menu-btn" onclick="window.showMembersList()">👥 Члены Ордена</button>`;
     html += `<button class="menu-btn" onclick="window.showProgressTable()">📊 Успеваемость</button>`;
@@ -632,7 +622,7 @@ window.showHomeworkBoard = async function() {
             const myLastSubmission = mySubmissions.length > 0 ? mySubmissions.sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0))[0] : null;
             html += `<div class="hw-card"><div class="hw-title">${hwTitle}</div><div class="hw-desc">${hw.description || ''}</div>`;
             const dateStr = hw.createdAt ? new Date(hw.createdAt.seconds * 1000).toLocaleString('ru-RU') : 'дата неизвестна';
-            html += `<div class="hw-meta">👤 ${hw.createdBy || 'неизвестно'} |  ${dateStr}</div>`;
+            html += `<div class="hw-meta"> ${hw.createdBy || 'неизвестно'} | 📅 ${dateStr}</div>`;
             if (myLastSubmission) {
                 const statusEmoji = myLastSubmission.status === 'approved' ? '✅' : (myLastSubmission.status === 'needs_revision' ? '⚠️' : '');
                 const statusText = myLastSubmission.status === 'approved' ? 'Одобрено' : (myLastSubmission.status === 'needs_revision' ? 'На доработку' : 'На проверке');
@@ -640,14 +630,14 @@ window.showHomeworkBoard = async function() {
                 html += `<div style="margin:15px 0; padding:12px; background:rgba(${myLastSubmission.status === 'approved' ? '76,175,80' : (myLastSubmission.status === 'needs_revision' ? '255,152,0' : '33,150,243')},0.1); border-radius:8px; border-left:3px solid ${statusColor};">`;
                 html += `<p style="color:${statusColor}; margin:0 0 8px 0; font-weight:bold;">${statusEmoji} Статус: ${statusText}</p>`;
                 html += `<p style="color:var(--text-color); margin:0 0 8px 0; font-size:0.95em;"><strong>Мой ответ:</strong> ${myLastSubmission.content}</p>`;
-                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong> Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
+                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong>💬 Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
                 const submitDate = myLastSubmission.submittedAt ? new Date(myLastSubmission.submittedAt.seconds * 1000).toLocaleString('ru-RU') : '';
                 html += `<p style="color:#6b5f4a; margin:8px 0 0 0; font-size:0.85em; font-style:italic;">📅 Отправлено: ${submitDate}</p>`;
                 if (myLastSubmission && myLastSubmission.id) {
                     html += `<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
                         <button class="hw-btn" onclick="window.deleteMySubmission('${myLastSubmission.id}', '${hwId}')" 
                                 style="background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4); flex:1; min-width:150px;">
-                            🗑️ Удалить мой ответ
+                            ️ Удалить мой ответ
                         </button>
                     </div>`;
                 }
@@ -655,13 +645,13 @@ window.showHomeworkBoard = async function() {
             }
             if (isMaster()) {
                 html += `<div style="margin:10px 0; padding:10px; background:rgba(255,165,0,0.1); border-radius:8px; border:1px solid rgba(255,165,0,0.3);">`;
-                html += `<p style="color:#ffa500; margin:0;">📬 Ответов: ${hwSubmissions.length} | ⏳ На проверке: ${pendingCount}</p>`;
+                html += `<p style="color:#ffa500; margin:0;"> Ответов: ${hwSubmissions.length} |  На проверке: ${pendingCount}</p>`;
                 html += `<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">`;
                 if (hwSubmissions.length > 0) {
                     html += `<button class="hw-btn" onclick="window.reviewSubmissions('${hwId}')" style="flex:1; min-width:150px; background:rgba(255,165,0,0.3); color:#ffa500;">🔍 Проверить ответы</button>`;
                 }
                 html += `<button class="hw-btn" onclick="window.deleteAssignment('${hwId}', '${hwTitle.replace(/'/g, "\\'")}')" 
-                         style="flex:1; min-width:150px; background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4);">🗑️ Удалить задание</button>`;
+                         style="flex:1; min-width:150px; background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4);">️ Удалить задание</button>`;
                 html += `</div></div>`;
             }
             if (!isMaster() || hw.createdBy !== currentUser.name) {
@@ -711,43 +701,27 @@ window.submitHomework = function(hwId, hwTitle) {
     addLessonState = { step: 'submit_hw_text', hwId: hwId, hwTitle: hwTitle };
 };
 
-// ===== УДАЛЕНИЕ ЗАДАНИЯ ДЛЯ МАСТЕРОВ =====
 window.deleteAssignment = async function(assignmentId, assignmentTitle) {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
     if (!isMaster()) return showAlert('Доступ запрещён', 'Только для Мастеров и Магистров.');
-
     const submissionCount = submissionsList.filter(s => s.assignmentId === assignmentId).length;
-    
-    const confirmed = await askConfirm(
-        '⚠️ ВНИМАНИЕ!', 
-        `Вы действительно хотите УДАЛИТЬ задание "${assignmentTitle}"?\n\nЭто действие НЕОБРАТИМО!\n\nБудут удалены:\n• Само задание\n• ВСЕ ответы учеников (${submissionCount} шт.)`
-    );
-    
+    const confirmed = await askConfirm('⚠️ ВНИМАНИЕ!', `Вы действительно хотите УДАЛИТЬ задание "${assignmentTitle}"?\n\nЭто действие НЕОБРАТИМО!\n\nБудут удалены:\n• Само задание\n• ВСЕ ответы учеников (${submissionCount} шт.)`);
     if (!confirmed) return;
-
     const confirmText = await askPrompt('Подтверждение', 'Напишите "УДАЛИТЬ" для подтверждения:');
-    if (confirmText !== 'УДАЛИТЬ') {
-        return showAlert('Отменено', 'Удаление отменено.');
-    }
-
+    if (confirmText !== 'УДАЛИТЬ') { return showAlert('Отменено', 'Удаление отменено.'); }
     try {
         await windowDb.collection('homework_assignments').doc(assignmentId).delete();
-        
         const submissionsSnap = await windowDb.collection('homework_submissions').where('assignmentId', '==', assignmentId).get();
         if (!submissionsSnap.empty) {
             const batch1 = windowDb.batch();
             submissionsSnap.forEach(doc => batch1.delete(doc.ref));
             await batch1.commit();
         }
-        
         assignmentsList = assignmentsList.filter(a => a.id !== assignmentId);
         submissionsList = submissionsList.filter(s => s.assignmentId !== assignmentId);
-        
         showAlert('Успех', `Задание "${assignmentTitle}" и все ответы (${submissionCount} шт.) удалены!`);
         window.showHomeworkBoard();
-    } catch (error) {
-        showAlert('Ошибка', `Не удалось удалить задание: ${error.message}`);
-    }
+    } catch (error) { showAlert('Ошибка', `Не удалось удалить задание: ${error.message}`); }
 };
 
 // ===== ОГЛАВЛЕНИЕ =====
@@ -788,7 +762,7 @@ async function showLessonContentWithReadButton(lessonId) {
         if (lesson.mediaUrl.includes('youtube.com') || lesson.mediaUrl.includes('rutube.ru')) html += `<iframe width="100%" height="315" src="${lesson.mediaUrl}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe>`;
         else if (lesson.mediaUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) html += `<img src="${lesson.mediaUrl}" style="max-width:100%; border-radius:10px; margin-top:10px;">`;
         else if (lesson.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) html += `<video controls style="max-width:100%; margin-top:10px; border-radius:10px;"><source src="${lesson.mediaUrl}"></video>`;
-        else html += `<a href="${lesson.mediaUrl}" target="_blank" rel="noopener noreferrer" style="color:#64ffda; text-decoration:underline;"> Открыть медиа</a>`;
+        else html += `<a href="${lesson.mediaUrl}" target="_blank" rel="noopener noreferrer" style="color:#64ffda; text-decoration:underline;">🔗 Открыть медиа</a>`;
         html += `</div>`;
     }
     if (isRead) {
@@ -797,7 +771,7 @@ async function showLessonContentWithReadButton(lessonId) {
         html += `<button class="read-btn" onclick="window.markLessonRead('${lessonId}')">👁️ Отметить как прочитанное</button>`;
     }
     const isAdminUser = isAdmin();
-    if (isAdminUser) html += `<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;"><button class="edit-btn" onclick="window.editLesson('${lesson.id}')">✏️ Редактировать</button><button class="delete-btn" onclick="window.confirmDeleteLesson('${lesson.id}')">️ Удалить</button></div>`;
+    if (isAdminUser) html += `<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;"><button class="edit-btn" onclick="window.editLesson('${lesson.id}')">✏️ Редактировать</button><button class="delete-btn" onclick="window.confirmDeleteLesson('${lesson.id}')">🗑️ Удалить</button></div>`;
     html += `<div class="comments-section"><div class="comments-header">💬 Комментарии</div>`;
     const comments = await loadCommentsForLesson(lessonId);
     if (comments.length === 0) html += `<p style="color:#6b5f4a; font-style:italic;">Комментариев пока нет. Будь первым!</p>`;
@@ -810,7 +784,7 @@ async function showLessonContentWithReadButton(lessonId) {
             html += `<div class="comment-item ${isMasterComment ? 'master-comment' : ''}"><div class="comment-author ${isMasterComment ? 'master' : ''}">${comment.authorName}<span class="comment-type-badge ${isMasterComment ? 'badge-task' : 'badge-question'}">${isMasterComment ? '📝 Задание' : '💬 Комментарий'}</span></div><div class="comment-text">${comment.text}</div><div class="comment-meta">${comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString('ru-RU') : ''}</div>`;
             if (canEdit || canDelete) {
                 html += `<div class="comment-actions">`;
-                if (canEdit) html += `<button class="comment-edit-btn" onclick="window.editComment('${comment.id}', '${lesson.id}')">️ Изменить</button>`;
+                if (canEdit) html += `<button class="comment-edit-btn" onclick="window.editComment('${comment.id}', '${lesson.id}')">✏️ Изменить</button>`;
                 if (canDelete) html += `<button class="comment-delete-btn" onclick="window.deleteComment('${comment.id}', '${lesson.id}')">🗑️ Удалить</button>`;
                 html += `</div>`;
             }
@@ -823,12 +797,8 @@ async function showLessonContentWithReadButton(lessonId) {
 
 window.markLessonRead = async function(lessonId) {
     const success = await markLessonAsRead(lessonId);
-    if (success) {
-        addMessage('<p>✅ Урок отмечен как прочитанный!</p>');
-        showLessonContentWithReadButton(lessonId);
-    } else {
-        addMessage('<p>❌ Ошибка отметки урока.</p>');
-    }
+    if (success) { addMessage('<p>✅ Урок отмечен как прочитанный!</p>'); showLessonContentWithReadButton(lessonId); }
+    else { addMessage('<p>❌ Ошибка отметки урока.</p>'); }
 };
 
 window.showLessonContent = showLessonContentWithReadButton;
@@ -866,7 +836,7 @@ window.editLesson = function(lessonId) {
 window.confirmDeleteLesson = async function(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) return;
-    addMessage(`<p>⚠️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
+    addMessage(`<p>️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
     addLessonState = { step: 'confirm_delete', lessonId: lessonId, lessonTitle: lesson.title };
 };
 
@@ -888,7 +858,7 @@ function findAnswer(question) {
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step === 'submit_hw_text') {
-        if (q === 'отмена') { addLessonState = null; return '<p> Отмена.</p>'; }
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Отмена.</p>'; }
         const savedHwId = addLessonState.hwId; const savedHwTitle = addLessonState.hwTitle; addLessonState = null;
         submitHomeworkToFirebase(savedHwId, question).then(success => { if (success) { addMessage(`<p>✅ Ваш ответ на задание "<strong>${savedHwTitle}</strong>" отправлен Мастеру на проверку!</p>`); showMainMenu(); } else { addMessage('<p>❌ Ошибка отправки.</p>'); } });
         return '';
@@ -956,7 +926,7 @@ function findAnswer(question) {
         if (addLessonState.step === 'content') { addLessonState.content = question; addLessonState.step = 'media'; return '<p>Ссылка на медиа (или <em>нет</em>):</p>'; }
         if (addLessonState.step === 'media') {
             const mediaUrl = q === 'нет' ? '' : question;
-            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p> Ошибка.</p>'); } });
+            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } });
             addLessonState = null; return '';
         }
     }
@@ -967,19 +937,11 @@ function findAnswer(question) {
                 let foundUser = null;
                 for (let key in usersDatabase) { 
                     const user = usersDatabase[key]; 
-                    if (user.fullName.toLowerCase() === userData.name) { 
-                        foundUser = user; 
-                        break; 
-                    } 
+                    if (user.fullName.toLowerCase() === userData.name) { foundUser = user; break; } 
                 }
                 if (!foundUser) foundUser = usersDatabase[userData.name];
-                
                 if (foundUser && foundUser.ранг === userData.ранг && foundUser.пароль === userData.пароль) {
-                    currentUser = { 
-                        name: foundUser.fullName, 
-                        ранг: foundUser.ранг, 
-                        учитель: userData.учитель || foundUser.учитель 
-                    };
+                    currentUser = { name: foundUser.fullName, ранг: foundUser.ранг, учитель: userData.учитель || foundUser.учитель };
                     saveUserToStorage();
                     updateLogoutButton();
                     loadLessonsFromFirebase();
@@ -989,17 +951,13 @@ function findAnswer(question) {
                     addMessage(getRankGreeting(currentUser));
                     showMainMenu();
                     return '';
-                } else { 
-                    return '<p>❌ Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; 
-                }
-            } else { 
-                return '<p> Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; 
-            }
+                } else { return '<p>❌ Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; }
+            } else { return '<p>📋 Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; }
         }
-        return '<p>👋 Назови своё Имя, Ранг, Учителя и Пароль.</p>';
+        return '<p> Назови своё Имя, Ранг, Учителя и Пароль.</p>';
     }
     if (q.includes('выйти') || q.includes('logout')) { handleLogout(); return ''; }
-    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p>🧹 Очищено.</p>'); return ''; }
+    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p> Очищено.</p>'); return ''; }
     if (q.includes('оглавлен') || q.includes('меню')) { showMainMenu(); return ''; }
     let knowledge = '';
     if (q.includes('ганн')) knowledge = checkAccess('ганн') ? (knowledgeBase['ганн'] ? knowledgeBase['ганн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
@@ -1010,11 +968,12 @@ function findAnswer(question) {
     return knowledge;
 }
 
+// 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТПРАВКИ (для contenteditable)
 async function handleSend() {
-    const text = customTextarea.value.trim();
+    const text = customTextarea.innerText.trim();
     if (!text) return;
     addMessage(text, true);
-    customTextarea.value = '';
+    customTextarea.innerText = '';
     const answer = await findAnswer(text);
     if (answer) addMessage(answer);
 }
@@ -1028,50 +987,6 @@ function handleLogout() {
 function updateLogoutButton() {
     const btn = document.querySelector('.logout-btn');
     if (btn) btn.style.display = currentUser ? 'block' : 'none';
-}
-
-// =====  НОВЫЕ ФУНКЦИИ: СКРЫТИЕ КЛАВИАТУРЫ И УВЕЛИЧЕНИЕ ШРИФТА =====
-
-// Переключение видимости клавиатуры
-function toggleKeyboardVisibility() {
-    const keyboard = document.getElementById('custom-keyboard');
-    const inputWrapper = document.getElementById('main-input-wrapper');
-    
-    if (keyboard.style.display === 'none') {
-        keyboard.style.display = 'flex';
-        inputWrapper.classList.remove('keyboard-hidden');
-        localStorage.setItem('akasha-keyboard-visible', 'true');
-    } else {
-        keyboard.style.display = 'none';
-        inputWrapper.classList.add('keyboard-hidden');
-        localStorage.setItem('akasha-keyboard-visible', 'false');
-    }
-}
-
-// Восстановление состояния клавиатуры
-function restoreKeyboardState() {
-    const isVisible = localStorage.getItem('akasha-keyboard-visible');
-    if (isVisible === 'false') {
-        const keyboard = document.getElementById('custom-keyboard');
-        const inputWrapper = document.getElementById('main-input-wrapper');
-        keyboard.style.display = 'none';
-        inputWrapper.classList.add('keyboard-hidden');
-    }
-}
-
-// Переключение увеличенного шрифта
-function toggleLargeText() {
-    document.body.classList.toggle('keyboard-large-text');
-    const isLarge = document.body.classList.contains('keyboard-large-text');
-    localStorage.setItem('akasha-large-text', isLarge ? 'true' : 'false');
-}
-
-// Восстановление настройки увеличенного шрифта
-function restoreLargeTextPreference() {
-    const saved = localStorage.getItem('akasha-large-text');
-    if (saved === 'true') {
-        document.body.classList.add('keyboard-large-text');
-    }
 }
 
 // ===== КЛАВИАТУРА =====
@@ -1092,28 +1007,16 @@ let isShift = false;
 let isCaps = false;
 let shiftTimeout = null;
 
+// 🔥 ВСТАВКА ТЕКСТА ЧЕРЕЗ execCommand (работает с contenteditable)
 function insertTextAtCursor(text) {
-    const start = customTextarea.selectionStart;
-    const end = customTextarea.selectionEnd;
-    const value = customTextarea.value;
-    customTextarea.value = value.substring(0, start) + text + value.substring(end);
-    const newPos = start + text.length;
-    customTextarea.setSelectionRange(newPos, newPos);
     customTextarea.focus();
+    document.execCommand('insertText', false, text);
 }
 
+// 🔥 УДАЛЕНИЕ СИМВОЛА ЧЕРЕЗ execCommand
 function deleteCharAtCursor() {
-    const start = customTextarea.selectionStart;
-    const end = customTextarea.selectionEnd;
-    const value = customTextarea.value;
-    if (start === end && start > 0) {
-        customTextarea.value = value.substring(0, start - 1) + value.substring(end);
-        customTextarea.setSelectionRange(start - 1, start - 1);
-    } else if (start !== end) {
-        customTextarea.value = value.substring(0, start) + value.substring(end);
-        customTextarea.setSelectionRange(start, start);
-    }
     customTextarea.focus();
+    document.execCommand('delete', false, null);
 }
 
 function renderKeyboard() {
@@ -1132,7 +1035,7 @@ function renderKeyboard() {
             keyDiv.className = 'key';
             if (key === 'shift') {
                 keyDiv.classList.add('special');
-                keyDiv.textContent = isCaps ? '⇪' : '⇧';
+                keyDiv.textContent = isCaps ? '⇪' : '';
                 if (isCaps) keyDiv.classList.add('caps-active');
                 let touchStartTime = 0;
                 keyDiv.addEventListener('touchstart', (e) => { e.preventDefault(); touchStartTime = Date.now(); keyDiv.classList.add('pressed'); }, { passive: false });
@@ -1220,25 +1123,59 @@ customTextarea.addEventListener('keydown', (e) => {
     else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
 });
 
-// ===== НОВЫЙ ДВИЖОК МОДАЛЬНЫХ ОКОН (НА ПРОМИСАХ) =====
+// ===== НОВЫЕ ФУНКЦИИ: СКРЫТИЕ КЛАВИАТУРЫ И УВЕЛИЧЕНИЕ ШРИФТА =====
+function toggleKeyboardVisibility() {
+    const keyboard = document.getElementById('custom-keyboard');
+    const inputWrapper = document.getElementById('main-input-wrapper');
+    if (keyboard.style.display === 'none') {
+        keyboard.style.display = 'flex';
+        inputWrapper.classList.remove('keyboard-hidden');
+        localStorage.setItem('akasha-keyboard-visible', 'true');
+    } else {
+        keyboard.style.display = 'none';
+        inputWrapper.classList.add('keyboard-hidden');
+        localStorage.setItem('akasha-keyboard-visible', 'false');
+    }
+}
+
+function restoreKeyboardState() {
+    const isVisible = localStorage.getItem('akasha-keyboard-visible');
+    if (isVisible === 'false') {
+        const keyboard = document.getElementById('custom-keyboard');
+        const inputWrapper = document.getElementById('main-input-wrapper');
+        keyboard.style.display = 'none';
+        inputWrapper.classList.add('keyboard-hidden');
+    }
+}
+
+function toggleLargeText() {
+    document.body.classList.toggle('keyboard-large-text');
+    const isLarge = document.body.classList.contains('keyboard-large-text');
+    localStorage.setItem('akasha-large-text', isLarge ? 'true' : 'false');
+}
+
+function restoreLargeTextPreference() {
+    const saved = localStorage.getItem('akasha-large-text');
+    if (saved === 'true') {
+        document.body.classList.add('keyboard-large-text');
+    }
+}
+
+// ===== МОДАЛЬНЫЕ ОКНА =====
 function showCustomModal(title, bodyHTML, buttons) {
     const modal = document.getElementById('custom-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const modalFooter = document.getElementById('modal-footer');
-
     if (!modal || !modalTitle || !modalBody || !modalFooter) return;
-
     modalTitle.textContent = title || 'Сообщение';
     modalBody.innerHTML = bodyHTML || '';
     modalFooter.innerHTML = '';
-
     buttons.forEach(btn => {
         const button = document.createElement('button');
         button.className = btn.class || 'hw-btn';
         button.textContent = btn.text;
         if (btn.style) button.style.cssText = btn.style;
-
         button.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1247,7 +1184,6 @@ function showCustomModal(title, bodyHTML, buttons) {
         };
         modalFooter.appendChild(button);
     });
-
     modal.style.display = 'flex';
 }
 
@@ -1264,17 +1200,13 @@ function closeCustomModal() {
 
 document.addEventListener('click', (e) => {
     const modal = document.getElementById('custom-modal');
-    if (modal && e.target === modal) {
-        closeCustomModal();
-    }
+    if (modal && e.target === modal) { closeCustomModal(); }
 });
 
-// === ПРОСТЫЕ ФУНКЦИИ-ПОМОЩНИКИ ===
 function askPrompt(title, message, defaultValue = '') {
     return new Promise((resolve) => {
         currentModalResolve = resolve;
         const value = String(defaultValue || '');
-        
         showCustomModal(title,
             `<p>${message}</p>
              <input type="text" id="modal-prompt-input" class="modal-input"
@@ -1290,7 +1222,6 @@ function askPrompt(title, message, defaultValue = '') {
                 }
             ]
         );
-
         setTimeout(() => {
             const input = document.getElementById('modal-prompt-input');
             if (input) { input.focus(); input.select(); }
@@ -1316,7 +1247,7 @@ function showAlert(title, message) {
     });
 }
 
-// ===== НОВЫЕ ФУНКЦИИ =====
+// ===== FIREBASE ФУНКЦИИ =====
 async function isUserBlocked(userName) {
     if (!windowDb) return false;
     try {
@@ -1391,13 +1322,8 @@ async function getUserRegistrationDate(userName) {
         const doc = await windowDb.collection('user_registrations').doc(userName).get();
         if (doc.exists && doc.data().registeredAt) {
             return doc.data().registeredAt.toDate();
-        } else {
-            return null;
-        }
-    } catch (error) { 
-        console.error('Ошибка получения даты регистрации:', error); 
-        return null; 
-    }
+        } else { return null; }
+    } catch (error) { console.error('Ошибка получения даты регистрации:', error); return null; }
 }
 
 async function getUserAdjustments(userName) {
@@ -1459,147 +1385,94 @@ async function registerUserIfNeeded() {
     } catch (error) { console.error('Ошибка регистрации:', error); }
 }
 
-// ===== ИСПРАВЛЕННЫЕ ДЕЙСТВИЯ (БЕЗ ВЛОЖЕННОСТИ) =====
+// ===== ДЕЙСТВИЯ =====
 window.deleteMySubmission = async function(submissionId, assignmentId) {
     const confirmed = await askConfirm('Подтверждение', '⚠️ Вы уверены? Это действие нельзя отменить!');
     if (!confirmed) return;
-    
     try {
         await windowDb.collection('homework_submissions').doc(submissionId).delete();
         showAlert('Успех', 'Ваш ответ удалён!');
         window.showHomeworkBoard();
-    } catch (error) { 
-        showAlert('Ошибка', `Не удалось удалить: ${error.message}`); 
-    }
+    } catch (error) { showAlert('Ошибка', `Не удалось удалить: ${error.message}`); }
 };
 
 window.gradeSubmission = async function(submissionId, assignmentId, status) {
     const feedback = await askPrompt('Комментарий', 'Введите комментарий (или оставьте пустым):', '');
     if (feedback === null) return;
-    
     const success = await updateSubmissionStatus(submissionId, status, feedback);
-    if (success) { 
-        showAlert('Успех', 'Статус обновлён!'); 
-        window.reviewSubmissions(assignmentId); 
-    } else { 
-        showAlert('Ошибка', 'Ошибка обновления статуса.'); 
-    }
+    if (success) { showAlert('Успех', 'Статус обновлён!'); window.reviewSubmissions(assignmentId); }
+    else { showAlert('Ошибка', 'Ошибка обновления статуса.'); }
 };
 
 window.addFeedback = async function(submissionId, assignmentId) {
     const feedback = await askPrompt('Комментарий Мастера', 'Введите комментарий Мастера:', '');
     if (!feedback) return;
-    
     const sub = submissionsList.find(s => s.id === submissionId);
     const currentFeedback = sub.masterFeedback || '';
     const newFeedback = currentFeedback ? currentFeedback + '\n\n' + feedback : feedback;
-    
     const success = await updateSubmissionStatus(submissionId, sub.status, newFeedback);
-    if (success) { 
-        showAlert('Успех', 'Комментарий добавлен!'); 
-        window.reviewSubmissions(assignmentId); 
-    } else { 
-        showAlert('Ошибка', 'Ошибка добавления комментария.'); 
-    }
+    if (success) { showAlert('Успех', 'Комментарий добавлен!'); window.reviewSubmissions(assignmentId); }
+    else { showAlert('Ошибка', 'Ошибка добавления комментария.'); }
 };
 
 window.blockUser = async function(userName) {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
     if (!currentUser || !isAdmin()) return showAlert('Доступ запрещён', 'Только для Магистров.');
-
     const reason = await askPrompt('Блокировка', `Причина блокировки ${userName}:`);
-    if (!reason) return; 
-
+    if (!reason) return;
     try {
         const success = await blockUserInDb(userName, reason);
-        if (success) { 
-            showAlert('Успех', `Пользователь ${userName} заблокирован.`);
-            window.showAdminPanel(); 
-        } else { 
-            showAlert('Ошибка', 'Не удалось заблокировать пользователя.');
-        }
-    } catch (error) {
-        showAlert('Ошибка', `Не удалось заблокировать: ${error.message}`);
-    }
+        if (success) { showAlert('Успех', `Пользователь ${userName} заблокирован.`); window.showAdminPanel(); }
+        else { showAlert('Ошибка', 'Не удалось заблокировать пользователя.'); }
+    } catch (error) { showAlert('Ошибка', `Не удалось заблокировать: ${error.message}`); }
 };
 
 window.unblockUser = async function(userName) {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
-    
     const confirmed = await askConfirm('Разблокировка', `Разблокировать пользователя ${userName}?`);
     if (!confirmed) return;
-
     try {
         const success = await unblockUserInDb(userName);
-        if (success) { 
-            showAlert('Успех', `Пользователь ${userName} разблокирован.`);
-            window.showAdminPanel();
-        } else { 
-            showAlert('Ошибка', 'Не удалось разблокировать пользователя.');
-        }
-    } catch (error) {
-        showAlert('Ошибка', `Не удалось разблокировать: ${error.message}`);
-    }
+        if (success) { showAlert('Успех', `Пользователь ${userName} разблокирован.`); window.showAdminPanel(); }
+        else { showAlert('Ошибка', 'Не удалось разблокировать пользователя.'); }
+    } catch (error) { showAlert('Ошибка', `Не удалось разблокировать: ${error.message}`); }
 };
 
 window.openAdjustmentForm = async function(userName) {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
-
     try {
         const adjustments = await getUserAdjustments(userName);
         const currentLessons = adjustments.adjustedLessons || 0;
         const currentHomework = adjustments.adjustedHomework || 0;
         const currentReason = adjustments.reason || '';
-
         const lessons = await askPrompt('Корректировка', `Дополнительных уроков для ${userName} (сейчас: ${currentLessons}):`, String(currentLessons));
         if (lessons === null) return;
-
         const homework = await askPrompt('Корректировка', `Дополнительных ДЗ для ${userName} (сейчас: ${currentHomework}):`, String(currentHomework));
         if (homework === null) return;
-
         const reason = await askPrompt('Корректировка', `Причина корректировки:`, currentReason);
         if (reason === null) return;
-
         const success = await saveManualAdjustment(userName, lessons, homework, reason);
-        if (success) {
-            showAlert('Успех', `Корректировка для ${userName} сохранена!`);
-            window.showAdjustmentPanel();
-        } else {
-            showAlert('Ошибка', 'Не удалось сохранить корректировку.');
-        }
-    } catch (error) {
-        showAlert('Ошибка', `Ошибка: ${error.message}`);
-    }
+        if (success) { showAlert('Успех', `Корректировка для ${userName} сохранена!`); window.showAdjustmentPanel(); }
+        else { showAlert('Ошибка', 'Не удалось сохранить корректировку.'); }
+    } catch (error) { showAlert('Ошибка', `Ошибка: ${error.message}`); }
 };
 
-// ===== НОВЫЕ ФУНКЦИИ АДМИН-ПАНЕЛИ =====
 window.addNewMember = async function() {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
     if (!isAdmin()) return showAlert('Доступ запрещён', 'Только для Магистров.');
-
     const name = await askPrompt('Новый член Ордена', 'Введите полное имя (например: "Иван Иванов"):');
     if (!name) return;
-
     const rank = await askPrompt('Ранг', 'Введите ранг (адепт, юнлинг, падаван, старший падаван, рыцарь, мастер, магистр, верховный магистр, старейшина):');
     if (!rank) return;
-
     const teacher = await askPrompt('Учитель', 'Введите имя Учителя (или "нет", "отсутствует"):');
     if (!teacher) return;
-
     const password = await askPrompt('Пароль', 'Введите пароль (минимум 6 символов):');
-    if (!password || password.length < 6) {
-        return showAlert('Ошибка', 'Пароль должен быть не менее 6 символов!');
-    }
-
+    if (!password || password.length < 6) { return showAlert('Ошибка', 'Пароль должен быть не менее 6 символов!'); }
     const specialTitle = await askPrompt('Специальное звание', 'Введите специальное звание (или оставьте пустым):', '');
     const description = await askPrompt('Описание', 'Введите описание/биографию (или оставьте пустым):', '');
-
     try {
         const normalizedName = name.toLowerCase().trim();
-        if (usersDatabase[normalizedName]) {
-            return showAlert('Ошибка', `Пользователь "${name}" уже существует!`);
-        }
-
+        if (usersDatabase[normalizedName]) { return showAlert('Ошибка', `Пользователь "${name}" уже существует!`); }
         await windowDb.collection('users').doc(normalizedName).set({
             fullName: name,
             rank: rank.toLowerCase().trim(),
@@ -1610,7 +1483,6 @@ window.addNewMember = async function() {
             createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
             createdBy: currentUser.name
         });
-
         usersDatabase[normalizedName] = {
             fullName: name,
             ранг: rank.toLowerCase().trim(),
@@ -1619,73 +1491,52 @@ window.addNewMember = async function() {
             specialTitle: specialTitle || '',
             description: description || ''
         };
-
         showAlert('Успех', `Пользователь "${name}" успешно добавлен в Орден!`);
         window.showAdminPanel();
-    } catch (error) {
-        showAlert('Ошибка', `Не удалось добавить пользователя: ${error.message}`);
-    }
+    } catch (error) { showAlert('Ошибка', `Не удалось добавить пользователя: ${error.message}`); }
 };
 
 window.excludeJedi = async function(userName) {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
     if (!isAdmin()) return showAlert('Доступ запрещён', 'Только для Магистров.');
-
-    const confirmed = await askConfirm(
-        '⚠️ ВНИМАНИЕ!', 
-        `Вы действительно хотите ИСКЛЮЧИТЬ ${userName} из Ордена?\n\nЭто действие НЕОБРАТИМО! Все данные будут удалены.`
-    );
-    
+    const confirmed = await askConfirm('⚠️ ВНИМАНИЕ!', `Вы действительно хотите ИСКЛЮЧИТЬ ${userName} из Ордена?\n\nЭто действие НЕОБРАТИМО! Все данные будут удалены.`);
     if (!confirmed) return;
-
     const confirmText = await askPrompt('Подтверждение', 'Напишите "ИСКЛЮЧИТЬ" для подтверждения:');
-    if (confirmText !== 'ИСКЛЮЧИТЬ') {
-        return showAlert('Отменено', 'Исключение отменено.');
-    }
-
+    if (confirmText !== 'ИСКЛЮЧИТЬ') { return showAlert('Отменено', 'Исключение отменено.'); }
     try {
         const normalizedName = userName.toLowerCase().trim();
-        
         await windowDb.collection('users').doc(normalizedName).delete();
-        
         const readsSnap = await windowDb.collection('lesson_reads').where('userId', '==', userName).get();
         if (!readsSnap.empty) {
             const batch1 = windowDb.batch();
             readsSnap.forEach(doc => batch1.delete(doc.ref));
             await batch1.commit();
         }
-        
         const subsSnap = await windowDb.collection('homework_submissions').where('studentName', '==', userName).get();
         if (!subsSnap.empty) {
             const batch2 = windowDb.batch();
             subsSnap.forEach(doc => batch2.delete(doc.ref));
             await batch2.commit();
         }
-        
         const commentsSnap = await windowDb.collection('comments').where('authorName', '==', userName).get();
         if (!commentsSnap.empty) {
             const batch3 = windowDb.batch();
             commentsSnap.forEach(doc => batch3.delete(doc.ref));
             await batch3.commit();
         }
-
         delete usersDatabase[normalizedName];
-
         showAlert('Успех', `${userName} исключён из Ордена Вольных Джедаев.`);
         window.showAdminPanel();
-    } catch (error) {
-        showAlert('Ошибка', `Не удалось исключить джедая: ${error.message}`);
-    }
+    } catch (error) { showAlert('Ошибка', `Не удалось исключить джедая: ${error.message}`); }
 };
 
-// ===== СОВЕТ МАСТЕРОВ =====
 window.showCouncilOfMasters = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
     const blockedUsers = await getBlockedUsers();
     const blockedNames = blockedUsers.map(u => u.id);
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 class="council-title">🏛️ Совет Мастеров</h3>`;
+    html += `<h3 class="council-title">️ Совет Мастеров</h3>`;
     html += `<p class="council-subtitle">Руководство Ордена Вольных Джедаев</p>`;
     const supremeMaster = Object.values(usersDatabase).find(u => u.ранг === 'верховный магистр' && u.specialTitle);
     if (supremeMaster) {
@@ -1703,10 +1554,10 @@ window.showCouncilOfMasters = async function() {
     masters.forEach(master => {
         const isBlocked = blockedNames.includes(master.fullName);
         html += `<div class="council-master-card"><div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">`;
-        html += `<div style="font-size:2em;">️</div><div style="flex:1;">`;
+        html += `<div style="font-size:2em;">⚔️</div><div style="flex:1;">`;
         html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${master.fullName}</div>`;
         html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${master.specialTitle}</div></div>`;
-        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
+        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? ' Заблок.' : '✅ Активен'}</div></div>`;
         if (master.description) html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${master.description}</div>`;
         html += `</div>`;
     });
@@ -1714,7 +1565,6 @@ window.showCouncilOfMasters = async function() {
     addMessage(html);
 };
 
-// ===== СПИСОК ЧЛЕНОВ ОРДЕНА =====
 window.showMembersList = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
@@ -1743,11 +1593,10 @@ window.showMembersList = async function() {
             html += `</div>`;
         }
     }
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
     addMessage(html);
 };
 
-// ===== ТАБЛИЦА УСПЕВАЕМОСТИ =====
 window.showProgressTable = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
@@ -1793,7 +1642,7 @@ window.showAdjustmentPanel = async function() {
     if (container) container.innerHTML = '';
     if (!isMaster()) { addMessage('<p>❌ Доступ запрещён.</p>'); return; }
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">️ Ручная корректировка</h3>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Ручная корректировка</h3>`;
     html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px;">Выбери ученика и добавь баллы за пройденные материалы вне Акаши</p>`;
     for (const user of Object.values(usersDatabase)) {
         if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
@@ -1813,7 +1662,7 @@ window.showAdjustmentPanel = async function() {
 window.showDetailedProgress = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
-    if (!isMaster()) { addMessage('<p> Доступ запрещён. Только для Мастеров.</p>'); return; }
+    if (!isMaster()) { addMessage('<p>❌ Доступ запрещён. Только для Мастеров.</p>'); return; }
     const reads = await getAllLessonReads();
     const totalLessons = Object.keys(lessonsById).length;
     const totalHomework = assignmentsList.length;
@@ -1827,7 +1676,7 @@ window.showDetailedProgress = async function() {
         const gradeData = calculateGrade(userReads.length, userSubmissions.filter(s => s.status === 'approved').length, totalLessons, totalHomework, adjustments.adjustedLessons || 0, adjustments.adjustedHomework || 0);
         html += `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin:15px 0; border-left:3px solid ${gradeData.gradeColor};">`;
         html += `<h4 style="color:${gradeData.gradeColor}; margin-bottom:10px;">${user.fullName} — ${gradeData.grade} (${gradeData.percent}%)</h4>`;
-        html += `<p style="color:#8bc34a; margin:10px 0 5px 0; font-weight:600;"> Прочитанные уроки (${userReads.length}/${totalLessons}):</p>`;
+        html += `<p style="color:#8bc34a; margin:10px 0 5px 0; font-weight:600;">📖 Прочитанные уроки (${userReads.length}/${totalLessons}):</p>`;
         if (userReads.length > 0) {
             html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
             userReads.forEach(read => {
@@ -1839,7 +1688,7 @@ window.showDetailedProgress = async function() {
             });
             html += `</ul>`;
         } else { html += `<p style="color:#6b5f4a; font-style:italic; margin:5px 0;">Нет прочитанных уроков</p>`; }
-        html += `<p style="color:#ffa500; margin:10px 0 5px 0; font-weight:600;"> Сданные ДЗ (${userSubmissions.length} всего, ${userSubmissions.filter(s => s.status === 'approved').length} одобрено):</p>`;
+        html += `<p style="color:#ffa500; margin:10px 0 5px 0; font-weight:600;">📝 Сданные ДЗ (${userSubmissions.length} всего, ${userSubmissions.filter(s => s.status === 'approved').length} одобрено):</p>`;
         if (userSubmissions.length > 0) {
             html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
             userSubmissions.forEach(sub => {
@@ -1864,7 +1713,6 @@ window.showDetailedProgress = async function() {
     addMessage(html);
 };
 
-// ===== АДМИН ПАНЕЛЬ =====
 window.showAdminPanel = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
@@ -1881,11 +1729,8 @@ window.showAdminPanel = async function() {
         html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--border-color); background:rgba(0,0,0,0.2); border-radius:8px; margin:8px 0; flex-wrap:wrap; gap:8px;">`;
         html += `<div style="flex:1; min-width:200px;"><div style="color:var(--text-color); font-weight:600; font-size:1.1em;">${user.fullName}</div>`;
         html += `<div style="color:${rankColor}; font-size:0.9em;">${user.ранг}</div></div><div style="display:flex; gap:5px; flex-wrap:wrap;">`;
-        if (isBlocked) { 
-            html += `<button class="unblock-btn" onclick="window.unblockUser('${user.fullName}')">✅ Разблокировать</button>`; 
-        } else { 
-            html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')">🚫 Заблокировать</button>`; 
-        }
+        if (isBlocked) { html += `<button class="unblock-btn" onclick="window.unblockUser('${user.fullName}')">✅ Разблокировать</button>`; }
+        else { html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')"> Заблокировать</button>`; }
         html += `<button class="hw-btn" onclick="window.excludeJedi('${user.fullName}')" style="background:rgba(255,0,0,0.2); color:#ff0000; border:1px solid rgba(255,0,0,0.5); padding:6px 12px; font-size:0.85em; margin:0;">⚠️ Исключить</button>`;
         html += `</div></div>`;
     });
@@ -1923,7 +1768,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 addMessage(getStrangerGreeting());
             }
-            // 🔥 Восстанавливаем состояние клавиатуры и шрифта
             restoreKeyboardState();
             restoreLargeTextPreference();
         }
