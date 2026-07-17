@@ -32,12 +32,13 @@
         <div id="chat-container" class="chat-container"></div>
         
         <div class="input-wrapper" id="main-input-wrapper">
-            <textarea id="custom-textarea" class="custom-textarea" placeholder="Задай вопрос Акаше..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none"></textarea>
+            <!-- 🔥 ЗАМЕНЕНО textarea НА div С contenteditable -->
+            <div id="custom-textarea" class="custom-textarea" contenteditable="true" placeholder="Задай вопрос Акаше..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
             
             <!-- Кнопки управления (вне клавиатуры!) -->
             <div class="toolbar" style="margin-bottom:5px;">
                 <button class="toolbar-btn" onclick="toggleKeyboardVisibility()" style="background:rgba(255,215,0,0.2); color:#ffd700; border-color:rgba(255,215,0,0.5); min-width:50px;" title="Скрыть/показать клавиатуру">⌨️</button>
-                <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить шрифт"></button>
+                <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить шрифт">🔍</button>
                 <div style="flex:1;"></div>
                 <button class="toolbar-btn lang-btn" id="lang-toggle-btn" onclick="toggleLanguage()">RU</button>
                 <button class="toolbar-btn send-btn" onclick="handleSend()">Отправить</button>
@@ -81,7 +82,7 @@
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="script.js?v=4"></script>
+    <script src="script.js?v=5"></script>
 
     <!-- Регистрация Service Worker для PWA -->
     <script>
@@ -89,7 +90,7 @@
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')
                 .then(reg => console.log('✅ Service Worker зарегистрирован:', reg))
-                .catch(err => console.log('❌ Ошибка регистрации Service Worker:', err));
+                .catch(err => console.log(' Ошибка регистрации Service Worker:', err));
         });
     }
     </script>
