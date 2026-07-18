@@ -170,7 +170,7 @@ function getRankGreeting(user) {
     const isMasterRank = ['мастер', 'магистр', 'верховный магистр', 'старейшина'].includes(rank);
     if (isMasterRank) {
         return `<div style="background:rgba(13,31,15,0.5); border:1px solid rgba(255,215,0,0.3); border-radius:15px; padding:25px; margin:15px 0;">
-            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, ${rank} ${name}</h3>
+            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Приветствую тебя, ${rank} ${name}</h3>
             <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев рад видеть тебя среди своих хранителей.</p>
             <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📋 Твои возможности:</h4>
             <ul style="color:var(--text-color); line-height:1.8; padding-left:20px; margin-bottom:15px;">
@@ -547,8 +547,8 @@ window.showSchedule = async function() {
             html += `<td>${item.teacher || '—'}</td>`;
             if (canEditSchedule()) {
                 html += `<td style="white-space:nowrap;">`;
-                html += `<button onclick="window.editScheduleItem('${item.id}')" style="background:rgba(100,255,218,0.2); color:#64ffda; border:1px solid rgba(100,255,218,0.4); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85em; margin-right:5px;">️</button>`;
-                html += `<button onclick="window.deleteScheduleItem('${item.id}')" style="background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85em;">🗑️</button>`;
+                html += `<button onclick="window.editScheduleItem('${item.id}')" style="background:rgba(100,255,218,0.2); color:#64ffda; border:1px solid rgba(100,255,218,0.4); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85em; margin-right:5px;">✏️</button>`;
+                html += `<button onclick="window.deleteScheduleItem('${item.id}')" style="background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85em;">️</button>`;
                 html += `</td>`;
             }
             html += `</tr>`;
@@ -563,7 +563,7 @@ window.showSchedule = async function() {
     
     html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
     
-    addMessage(html);
+    addRawHTML(html);
 };
 
 window.startAddSchedule = function() {
@@ -585,7 +585,7 @@ window.editScheduleItem = function(scheduleId) {
                 <p>📅 Дата: <em>${item.dateTime || '—'}</em></p>
                 <p>📚 Тема: <em>${item.topic || '—'}</em></p>
                 <p>📦 Что понадобится: <em>${item.materials || '—'}</em></p>
-                <p>👤 Учитель: <em>${item.teacher || '—'}</em></p>
+                <p> Учитель: <em>${item.teacher || '—'}</em></p>
                 <p>Что изменить? Напиши:</p>
                 <p>• <em>"дата"</em>, <em>"тема"</em>, <em>"материалы"</em>, <em>"учитель"</em>, <em>"всё"</em> или <em>"отмена"</em></p>`);
     addLessonState = { step: 'edit_schedule_choose', scheduleId: scheduleId, currentData: item };
@@ -856,11 +856,11 @@ function showMainMenu() {
     html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🔮 Главное меню</h3>`;
     html += `<button class="menu-btn" onclick="window.showHomeworkBoard()">📝 Домашние задания</button>`;
     html += `<button class="menu-btn chat-btn" onclick="window.openMasterChat()">✉️ Написать Мастеру</button>`;
-    html += `<button class="menu-btn" onclick="showTOC()">📚 Оглавление знаний</button>`;
+    html += `<button class="menu-btn" onclick="showTOC()"> Оглавление знаний</button>`;
     html += `<button class="menu-btn" onclick="window.showSchedule()">📅 Расписание</button>`;
     html += `<button class="menu-btn" onclick="window.showCouncilOfMasters()" style="background:rgba(100,255,218,0.15); border-color:rgba(100,255,218,0.4); color:#64ffda;">🏛️ Совет Мастеров</button>`;
     html += `<button class="menu-btn" onclick="window.showMembersList()">👥 Члены Ордена</button>`;
-    html += `<button class="menu-btn" onclick="window.showProgressTable()"> Успеваемость</button>`;
+    html += `<button class="menu-btn" onclick="window.showProgressTable()">📊 Успеваемость</button>`;
     if (isAdmin()) {
         html += `<button class="menu-btn" onclick="window.showAdminPanel()" style="background:rgba(255,80,80,0.2); border-color:rgba(255,80,80,0.5); color:#ff6b6b;">⚙️ Админ-панель</button>`;
     }
@@ -874,13 +874,17 @@ function showMainMenu() {
     setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
 }
 
+// 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: использует addRawHTML вместо addMessage
 window.showHomeworkBoard = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
+    
     await loadAssignments();
     await loadSubmissions();
+    
     let html = `<div class="homework-board">`;
-    html += `<div class="homework-header"> Домашние задания Ордена</div>`;
+    html += `<div class="homework-header">📝 Домашние задания Ордена</div>`;
+    
     if (assignmentsList.length === 0) {
         html += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Заданий пока нет.</p>`;
         html += `<p style="color:#8bc34a; text-align:center; margin-top:20px;">💡 Мастер может создать первое задание!</p>`;
@@ -890,23 +894,29 @@ window.showHomeworkBoard = async function() {
             const hwTitle = hw.title || 'Без названия';
             const hwId = hw.id || '';
             if (!hwId) return;
+            
             const hwSubmissions = submissionsList.filter(s => s.assignmentId === hwId);
             const pendingCount = hwSubmissions.filter(s => s.status === 'pending').length;
+            
             const mySubmissions = submissionsList.filter(s => s.assignmentId === hwId && s.studentName === currentUser.name);
             const myLastSubmission = mySubmissions.length > 0 ? mySubmissions.sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0))[0] : null;
+            
             html += `<div class="hw-card"><div class="hw-title">${hwTitle}</div><div class="hw-desc">${hw.description || ''}</div>`;
             const dateStr = hw.createdAt ? new Date(hw.createdAt.seconds * 1000).toLocaleString('ru-RU') : 'дата неизвестна';
             html += `<div class="hw-meta">👤 ${hw.createdBy || 'неизвестно'} | 📅 ${dateStr}</div>`;
+            
             if (myLastSubmission) {
                 const statusEmoji = myLastSubmission.status === 'approved' ? '✅' : (myLastSubmission.status === 'needs_revision' ? '⚠️' : '');
                 const statusText = myLastSubmission.status === 'approved' ? 'Одобрено' : (myLastSubmission.status === 'needs_revision' ? 'На доработку' : 'На проверке');
                 const statusColor = myLastSubmission.status === 'approved' ? '#4caf50' : (myLastSubmission.status === 'needs_revision' ? '#ff9800' : '#2196f3');
+                
                 html += `<div style="margin:15px 0; padding:12px; background:rgba(${myLastSubmission.status === 'approved' ? '76,175,80' : (myLastSubmission.status === 'needs_revision' ? '255,152,0' : '33,150,243')},0.1); border-radius:8px; border-left:3px solid ${statusColor};">`;
                 html += `<p style="color:${statusColor}; margin:0 0 8px 0; font-weight:bold;">${statusEmoji} Статус: ${statusText}</p>`;
                 html += `<p style="color:var(--text-color); margin:0 0 8px 0; font-size:0.95em;"><strong>Мой ответ:</strong> ${myLastSubmission.content}</p>`;
-                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong> Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
+                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong>💬 Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
                 const submitDate = myLastSubmission.submittedAt ? new Date(myLastSubmission.submittedAt.seconds * 1000).toLocaleString('ru-RU') : '';
                 html += `<p style="color:#6b5f4a; margin:8px 0 0 0; font-size:0.85em; font-style:italic;">📅 Отправлено: ${submitDate}</p>`;
+                
                 if (myLastSubmission && myLastSubmission.id) {
                     html += `<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
                         <button class="hw-btn" onclick="window.deleteMySubmission('${myLastSubmission.id}', '${hwId}')" 
@@ -917,6 +927,7 @@ window.showHomeworkBoard = async function() {
                 }
                 html += `</div>`;
             }
+            
             if (isMaster()) {
                 html += `<div style="margin:10px 0; padding:10px; background:rgba(255,165,0,0.1); border-radius:8px; border:1px solid rgba(255,165,0,0.3);">`;
                 html += `<p style="color:#ffa500; margin:0;">📬 Ответов: ${hwSubmissions.length} | ⏳ На проверке: ${pendingCount}</p>`;
@@ -928,16 +939,21 @@ window.showHomeworkBoard = async function() {
                          style="flex:1; min-width:150px; background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4);">🗑️ Удалить задание</button>`;
                 html += `</div></div>`;
             }
+            
             if (!isMaster() || hw.createdBy !== currentUser.name) {
                 const escapedTitle = hwTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 html += `<div class="hw-actions"><button class="hw-btn submit" onclick="window.submitHomework('${hwId}', '${escapedTitle}')"> Отправить ответ</button></div>`;
             }
+            
             html += `</div>`;
         });
     }
+    
     if (isMaster()) html += `<button class="hw-btn create" onclick="window.startCreateAssignment()" style="width:100%; margin-top:20px; padding:15px;">➕ Создать новое задание</button>`;
     html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button></div>`;
-    addMessage(html);
+    
+    // 🔥 ИСПРАВЛЕНИЕ: используем addRawHTML вместо addMessage
+    addRawHTML(html);
 };
 
 window.reviewSubmissions = function(assignmentId) {
@@ -961,7 +977,7 @@ window.reviewSubmissions = function(assignmentId) {
         });
     }
     html += `<button class="hw-btn" onclick="window.showHomeworkBoard()" style="width:100%; margin-top:10px; padding:12px;">🔙 Назад к заданиям</button></div>`;
-    addMessage(html);
+    addRawHTML(html);
 };
 
 window.startCreateAssignment = function() {
@@ -979,7 +995,7 @@ window.deleteAssignment = async function(assignmentId, assignmentTitle) {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
     if (!isMaster()) return showAlert('Доступ запрещён', 'Только для Мастеров и Магистров.');
     const submissionCount = submissionsList.filter(s => s.assignmentId === assignmentId).length;
-    const confirmed = await askConfirm('️ ВНИМАНИЕ!', `Вы действительно хотите УДАЛИТЬ задание "${assignmentTitle}"?\n\nЭто действие НЕОБРАТИМО!\n\nБудут удалены:\n• Само задание\n• ВСЕ ответы учеников (${submissionCount} шт.)`);
+    const confirmed = await askConfirm('⚠️ ВНИМАНИЕ!', `Вы действительно хотите УДАЛИТЬ задание "${assignmentTitle}"?\n\nЭто действие НЕОБРАТИМО!\n\nБудут удалены:\n• Само задание\n• ВСЕ ответы учеников (${submissionCount} шт.)`);
     if (!confirmed) return;
     const confirmText = await askPrompt('Подтверждение', 'Напишите "УДАЛИТЬ" для подтверждения:');
     if (confirmText !== 'УДАЛИТЬ') { return showAlert('Отменено', 'Удаление отменено.'); }
@@ -1015,14 +1031,14 @@ function showTOC() {
         }
     });
     if (isAdminUser) tocHTML += `<div class="toc-section"><div class="toc-section-title">6. Админ-панель</div><div class="toc-lesson-link" onclick="window.startAddLesson()">➕ Добавить новый урок</div></div>`;
-    tocHTML += `</div><button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;"> Вернуться в меню</button>`;
+    tocHTML += `</div><button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>`;
     addMessage(tocHTML);
 }
 
 async function showLessonContentWithReadButton(lessonId) {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
-    if (!lessonId) { addMessage('<p>❌ Ошибка: нет ID урока!</p>'); return; }
+    if (!lessonId) { addMessage('<p> Ошибка: нет ID урока!</p>'); return; }
     const lesson = lessonsById[lessonId];
     if (!lesson) { addMessage('<p>❌ Урок не найден.</p>'); return; }
     const isRead = await isLessonRead(lessonId);
@@ -1057,13 +1073,13 @@ async function showLessonContentWithReadButton(lessonId) {
             if (canEdit || canDelete) {
                 html += `<div class="comment-actions">`;
                 if (canEdit) html += `<button class="comment-edit-btn" onclick="window.editComment('${comment.id}', '${lesson.id}')">✏️ Изменить</button>`;
-                if (canDelete) html += `<button class="comment-delete-btn" onclick="window.deleteComment('${comment.id}', '${lesson.id}')">️ Удалить</button>`;
+                if (canDelete) html += `<button class="comment-delete-btn" onclick="window.deleteComment('${comment.id}', '${lesson.id}')">🗑️ Удалить</button>`;
                 html += `</div>`;
             }
             html += `</div>`;
         });
     }
-    html += `<button class="comment-btn" onclick="window.startAddComment('${lesson.id}')"> Добавить комментарий</button></div><button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>`;
+    html += `<button class="comment-btn" onclick="window.startAddComment('${lesson.id}')">💬 Добавить комментарий</button></div><button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>`;
     addMessage(html);
 }
 
@@ -1108,7 +1124,7 @@ window.editLesson = function(lessonId) {
 window.confirmDeleteLesson = async function(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) return;
-    addMessage(`<p>⚠️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
+    addMessage(`<p>️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
     addLessonState = { step: 'confirm_delete', lessonId: lessonId, lessonTitle: lesson.title };
 };
 
@@ -1240,12 +1256,12 @@ async function findAnswer(question) {
     }
     if (addLessonState && addLessonState.step === 'add_comment_text') {
         if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; }
-        addCommentToFirebase(addLessonState.lessonId, question, addLessonState.type).then(success => { if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); setTimeout(() => { showLessonContent(addLessonState.lessonId); }, 500); } else { addMessage('<p> Ошибка.</p>'); } });
+        addCommentToFirebase(addLessonState.lessonId, question, addLessonState.type).then(success => { if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); setTimeout(() => { showLessonContent(addLessonState.lessonId); }, 500); } else { addMessage('<p>❌ Ошибка.</p>'); } });
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step === 'edit_comment') {
         if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; }
-        updateCommentInFirebase(addLessonState.commentId, question).then(success => { if (success) { addMessage(`<p>✅ Обновлён!</p>`); showLessonContent(addLessonState.lessonId); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+        updateCommentInFirebase(addLessonState.commentId, question).then(success => { if (success) { addMessage(`<p>✅ Обновлён!</p>`); showLessonContent(addLessonState.lessonId); } else { addMessage('<p> Ошибка.</p>'); } });
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step && addLessonState.step.startsWith('edit_') && !addLessonState.step.startsWith('edit_schedule')) {
@@ -1283,7 +1299,7 @@ async function findAnswer(question) {
     if (addLessonState && currentUser && isAdmin()) {
         if (addLessonState.step === 'confirm_delete') {
             if (q === 'да, удалить' || q === 'да' || q === 'удалить') { deleteLesson(addLessonState.lessonId).then(s => { if (s) { addMessage(`<p>✅ Урок удалён!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } }); }
-            else { addMessage('<p>❌ Отменено.</p>'); }
+            else { addMessage('<p> Отменено.</p>'); }
             addLessonState = null; return '';
         }
         if (addLessonState.step === 'category') {
@@ -1295,7 +1311,7 @@ async function findAnswer(question) {
         if (addLessonState.step === 'content') { addLessonState.content = question; addLessonState.step = 'media'; return '<p>Ссылка на медиа (или <em>нет</em>):</p>'; }
         if (addLessonState.step === 'media') {
             const mediaUrl = q === 'нет' ? '' : question;
-            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p> Ошибка.</p>'); } });
+            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } });
             addLessonState = null; return '';
         }
     }
@@ -1344,12 +1360,12 @@ async function findAnswer(question) {
                     showMainMenu();
                     return '';
                 } else { return '<p>❌ Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; }
-            } else { return '<p> Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; }
+            } else { return '<p>📋 Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; }
         }
-        return '<p> Назови своё Имя, Ранг, Учителя и Пароль.</p>';
+        return '<p>👋 Назови своё Имя, Ранг, Учителя и Пароль.</p>';
     }
     if (q.includes('выйти') || q.includes('logout')) { handleLogout(); return ''; }
-    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p> Очищено.</p>'); return ''; }
+    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p>🧹 Очищено.</p>'); return ''; }
     if (q.includes('оглавлен') || q.includes('меню')) { showMainMenu(); return ''; }
     let knowledge = '';
     if (q.includes('ганн')) knowledge = checkAccess('ганн') ? (knowledgeBase['ганн'] ? knowledgeBase['ганн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
@@ -1743,7 +1759,7 @@ function calculateGrade(lessonsRead, homeworkDone, totalLessons, totalHomework, 
     if (maxScore === 0) return { percent: 0, grade: '—', gradeColor: '#6b5f4a' };
     const percent = Math.min(100, Math.round((adjustedScore / maxScore) * 100));
     let grade, gradeColor;
-    if (percent >= 90) { grade = ' Отлично'; gradeColor = '#ffd700'; }
+    if (percent >= 90) { grade = '🏆 Отлично'; gradeColor = '#ffd700'; }
     else if (percent >= 70) { grade = '✨ Хорошо'; gradeColor = '#4caf50'; }
     else if (percent >= 50) { grade = '✅ Удовлетворительно'; gradeColor = '#ff9800'; }
     else { grade = '❌ Плохо'; gradeColor = '#ff6b6b'; }
@@ -1941,7 +1957,7 @@ window.showCouncilOfMasters = async function() {
         if (supremeMaster.description) html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${supremeMaster.description}</div>`;
         html += `</div>`;
     }
-    html += `<h4 class="council-master-header"> Мастера</h4>`;
+    html += `<h4 class="council-master-header">👑 Мастера</h4>`;
     const masters = Object.values(usersDatabase).filter(u => u.ранг === 'мастер' && u.specialTitle);
     masters.forEach(master => {
         const isBlocked = blockedNames.includes(master.fullName);
@@ -1978,14 +1994,14 @@ window.showMembersList = async function() {
                 const timeInAkasha = regDate ? formatTimeInAkasha(regDate) : '—';
                 html += `<div class="member-card"><div style="flex:1;">`;
                 html += `<div class="member-name">${member.fullName}</div>`;
-                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙♂️ Учитель: ${teacherName}</div>`;
+                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙‍♂️ Учитель: ${teacherName}</div>`;
                 html += `<div style="color:var(--text-secondary); font-size:0.85em; margin-top:2px;">⏱️ В Акаше: ${timeInAkasha}</div></div>`;
                 html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
             }
             html += `</div>`;
         }
     }
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
     addMessage(html);
 };
 
@@ -2025,7 +2041,7 @@ window.showProgressTable = async function() {
         html += `<button class="hw-btn" onclick="window.showAdjustmentPanel()" style="background:rgba(100,255,218,0.2); color:#64ffda; width:100%; margin-top:10px;">⚙️ Открыть панель корректировки</button></div>`;
         html += `<button class="hw-btn" onclick="window.showDetailedProgress()" style="width:100%; margin-top:10px; background:rgba(100,255,218,0.2); color:#64ffda;">🔒 Показать детали (какие материалы сданы)</button>`;
     }
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
     addMessage(html);
 };
 
@@ -2034,7 +2050,7 @@ window.showAdjustmentPanel = async function() {
     if (container) container.innerHTML = '';
     if (!isMaster()) { addMessage('<p>❌ Доступ запрещён.</p>'); return; }
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Ручная корректировка</h3>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">️ Ручная корректировка</h3>`;
     html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px;">Выбери ученика и добавь баллы за пройденные материалы вне Акаши</p>`;
     for (const user of Object.values(usersDatabase)) {
         if (user.ранг === 'мастер' || user.ранг === 'магистр' || user.ранг === 'верховный магистр' || user.ранг === 'старейшина') continue;
@@ -2068,7 +2084,7 @@ window.showDetailedProgress = async function() {
         const gradeData = calculateGrade(userReads.length, userSubmissions.filter(s => s.status === 'approved').length, totalLessons, totalHomework, adjustments.adjustedLessons || 0, adjustments.adjustedHomework || 0);
         html += `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin:15px 0; border-left:3px solid ${gradeData.gradeColor};">`;
         html += `<h4 style="color:${gradeData.gradeColor}; margin-bottom:10px;">${user.fullName} — ${gradeData.grade} (${gradeData.percent}%)</h4>`;
-        html += `<p style="color:#8bc34a; margin:10px 0 5px 0; font-weight:600;">📖 Прочитанные уроки (${userReads.length}/${totalLessons}):</p>`;
+        html += `<p style="color:#8bc34a; margin:10px 0 5px 0; font-weight:600;"> Прочитанные уроки (${userReads.length}/${totalLessons}):</p>`;
         if (userReads.length > 0) {
             html += `<ul style="color:var(--text-color); margin:5px 0; padding-left:20px; font-size:0.95em;">`;
             userReads.forEach(read => {
@@ -2108,10 +2124,10 @@ window.showDetailedProgress = async function() {
 window.showAdminPanel = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
-    if (!isAdmin()) { addMessage('<p> Доступ запрещён. Только для Магистров.</p>'); return; }
+    if (!isAdmin()) { addMessage('<p>❌ Доступ запрещён. Только для Магистров.</p>'); return; }
     const blockedUsers = await getBlockedUsers();
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">️ Админ-панель</h3>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Админ-панель</h3>`;
     html += `<div class="admin-panel"><h3>👥 Управление всеми пользователями (включая Мастеров)</h3>`;
     html += `<button class="hw-btn" onclick="window.addNewMember()" style="background:rgba(76,175,80,0.3); color:#4caf50; margin-bottom:15px;">➕ Добавить нового члена Ордена</button>`;
     
@@ -2162,12 +2178,12 @@ window.manageUserRanks = async function(userKey) {
     }
     if (user.звания && user.звания.length > 0) {
         const titlesStr = user.звания.map(t => t.уточнение ? `${t.звание} (${t.уточнение})` : t.звание).join(', ');
-        html += `<div style="color:#ffd700; font-size:0.9em; margin-top:5px;">🎖️ Звания: ${titlesStr}</div>`;
+        html += `<div style="color:#ffd700; font-size:0.9em; margin-top:5px;">️ Звания: ${titlesStr}</div>`;
     }
     html += `</div>`;
 
     html += `<div style="margin-bottom:20px;">`;
-    html += `<h4 style="color:#64ffda; margin-bottom:10px; font-family:'Playfair Display',serif;"> Изменить Ранг</h4>`;
+    html += `<h4 style="color:#64ffda; margin-bottom:10px; font-family:'Playfair Display',serif;">🔹 Изменить Ранг</h4>`;
     html += `<select id="rank-select" onchange="window.handleRankChange()" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:rgba(13,31,15,0.8); color:var(--text-color); font-family:'Cormorant Garamond',serif; font-size:1.1em; margin-bottom:10px;">`;
     rankHierarchy.forEach(rank => {
         const selected = rank === user.ранг ? 'selected' : '';
@@ -2225,7 +2241,7 @@ window.manageUserRanks = async function(userKey) {
     html += `<div id="title-clarification-input-wrapper" style="display:none; margin-bottom:10px;">`;
     html += `<input type="text" id="title-clarification-input" placeholder="Какой именно? (например: Хранитель Архива)" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:rgba(13,31,15,0.8); color:var(--text-color); font-family:'Cormorant Garamond',serif; font-size:1em;">`;
     html += `</div>`;
-    html += `<button class="hw-btn" onclick="window.addUserTitle('${userKey}')" style="width:100%; background:rgba(255,215,0,0.2); color:#ffd700;">️ Добавить Звание</button>`;
+    html += `<button class="hw-btn" onclick="window.addUserTitle('${userKey}')" style="width:100%; background:rgba(255,215,0,0.2); color:#ffd700;">🎖️ Добавить Звание</button>`;
     html += `</div>`;
 
     if (user.звания && user.звания.length > 0) {
@@ -2235,7 +2251,7 @@ window.manageUserRanks = async function(userKey) {
             const titleDisplay = titleObj.уточнение ? `${titleObj.звание} (${titleObj.уточнение})` : titleObj.звание;
             html += `<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,215,0,0.1); border-radius:8px; padding:10px; margin:5px 0;">`;
             html += `<span style="color:var(--text-color);">${titleDisplay}</span>`;
-            html += `<button onclick="window.removeUserTitle('${userKey}', ${index})" style="background:rgba(255,80,80,0.3); color:#ff6b6b; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:0.9em;">️ Удалить</button>`;
+            html += `<button onclick="window.removeUserTitle('${userKey}', ${index})" style="background:rgba(255,80,80,0.3); color:#ff6b6b; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:0.9em;">🗑️ Удалить</button>`;
             html += `</div>`;
         });
         html += `</div>`;
@@ -2243,7 +2259,7 @@ window.manageUserRanks = async function(userKey) {
 
     html += `<button class="hw-btn" onclick="window.showAdminPanel()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в Админ-панель</button></div>`;
     
-    //  ИСПРАВЛЕНИЕ: используем addRawHTML вместо addMessage
+    // 🔥 ИСПРАВЛЕНИЕ: используем addRawHTML вместо addMessage
     addRawHTML(html);
     
     setTimeout(() => {
@@ -2489,7 +2505,7 @@ window.confirmDeleteLesson = confirmDeleteLesson;
 window.startAddComment = startAddComment;
 window.editComment = editComment;
 window.deleteComment = deleteComment;
-window.showHomeworkBoard = showHomeworkBoard;
+window.showHomeworkBoard = window.showHomeworkBoard;
 window.startCreateAssignment = startCreateAssignment;
 window.submitHomework = submitHomework;
 window.deleteMySubmission = deleteMySubmission;
