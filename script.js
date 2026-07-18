@@ -144,8 +144,8 @@ const accessLevels = {
 function applySeasonTheme() {
     const month = new Date().getMonth() + 1;
     let season, seasonName, emoji;
-    if (month >= 3 && month <= 5) { season = 'spring'; seasonName = 'Весна'; emoji = ''; }
-    else if (month >= 6 && month <= 8) { season = 'summer'; seasonName = 'Лето'; emoji = '️'; }
+    if (month >= 3 && month <= 5) { season = 'spring'; seasonName = 'Весна'; emoji = '🌸'; }
+    else if (month >= 6 && month <= 8) { season = 'summer'; seasonName = 'Лето'; emoji = '☀️'; }
     else if (month >= 9 && month <= 11) { season = 'autumn'; seasonName = 'Осень'; emoji = '🍂'; }
     else { season = 'winter'; seasonName = 'Зима'; emoji = '❄️'; }
     document.body.className = `season-${season}`;
@@ -170,7 +170,7 @@ function getRankGreeting(user) {
     const isMasterRank = ['мастер', 'магистр', 'верховный магистр', 'старейшина'].includes(rank);
     if (isMasterRank) {
         return `<div style="background:rgba(13,31,15,0.5); border:1px solid rgba(255,215,0,0.3); border-radius:15px; padding:25px; margin:15px 0;">
-            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Приветствую тебя, ${rank} ${name}</h3>
+            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, ${rank} ${name}</h3>
             <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев рад видеть тебя среди своих хранителей.</p>
             <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📋 Твои возможности:</h4>
             <ul style="color:var(--text-color); line-height:1.8; padding-left:20px; margin-bottom:15px;">
@@ -178,8 +178,8 @@ function getRankGreeting(user) {
                 <li>📝 Создание и проверка домашних заданий</li>
                 <li>✏️ Добавление и редактирование уроков</li>
                 <li>💬 Общение с учениками через личный чат</li>
-                <li>📊 Просмотр таблицы успеваемости</li>
-                <li> Управление расписанием занятий</li>
+                <li> Просмотр таблицы успеваемости</li>
+                <li>📅 Управление расписанием занятий</li>
                 ${rank === 'магистр' || rank === 'верховный магистр' || rank === 'старейшина' ? '<li>⚙️ Админ-панель: управление пользователями, назначение Рангов/Статусов/Званий</li>' : ''}
             </ul>
             <p style="color:#a89b7e; font-style:italic; text-align:center; margin-top:20px;">Используй свои возможности мудро, ${rank}. Орден доверяет тебе.</p>
@@ -188,15 +188,15 @@ function getRankGreeting(user) {
         return `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">
             <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Я рада приветствовать тебя в Ордене Вольных Джедаев, ${rank} ${name}!</h3>
             <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Твой путь только начинается. Впереди тебя ждут знания, испытания и рост.</p>
-            <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📜 Как пользоваться Акашей:</h4>
+            <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;"> Как пользоваться Акашей:</h4>
             <ul style="color:var(--text-color); line-height:1.8; padding-left:20px; margin-bottom:15px;">
-                <li> <strong>Домашние задания</strong></li>
-                <li>✉️ <strong>Написать Мастеру</strong></li>
+                <li>📝 <strong>Домашние задания</strong></li>
+                <li>️ <strong>Написать Мастеру</strong></li>
                 <li>📚 <strong>Оглавление знаний</strong></li>
-                <li> <strong>Расписание</strong></li>
+                <li>📅 <strong>Расписание</strong></li>
                 <li>🏛️ <strong>Совет Мастеров</strong></li>
                 <li>👥 <strong>Члены Ордена</strong></li>
-                <li> <strong>Успеваемость</strong></li>
+                <li>📊 <strong>Успеваемость</strong></li>
             </ul>
             <p style="color:#a89b7e; font-style:italic; text-align:center; margin-top:20px;">Да пребудет с тобой Сила, ${rank} ${name}.</p>
         </div>`;
@@ -311,6 +311,20 @@ function addMessage(text, isUser = false, saveToStorage = true) {
     messageDiv.appendChild(contentDiv);
     container.appendChild(messageDiv);
     if (saveToStorage) saveMessageToStorage(text, isUser);
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+        container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
+}
+
+// 🔥 НОВАЯ ФУНКЦИЯ: вставка HTML напрямую (без parseMarkdown)
+function addRawHTML(html) {
+    const container = document.getElementById('chat-container');
+    if (!container) return;
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message akasha-message';
+    messageDiv.innerHTML = html;
+    container.appendChild(messageDiv);
     setTimeout(() => {
         container.scrollTop = container.scrollHeight;
         container.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -512,7 +526,7 @@ window.showSchedule = async function() {
     await loadScheduleFromFirebase();
     
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">📅 Расписание занятий Ордена</h3>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Расписание занятий Ордена</h3>`;
     
     if (scheduleList.length === 0) {
         html += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Расписание пока пусто.</p>`;
@@ -533,7 +547,7 @@ window.showSchedule = async function() {
             html += `<td>${item.teacher || '—'}</td>`;
             if (canEditSchedule()) {
                 html += `<td style="white-space:nowrap;">`;
-                html += `<button onclick="window.editScheduleItem('${item.id}')" style="background:rgba(100,255,218,0.2); color:#64ffda; border:1px solid rgba(100,255,218,0.4); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85em; margin-right:5px;">✏️</button>`;
+                html += `<button onclick="window.editScheduleItem('${item.id}')" style="background:rgba(100,255,218,0.2); color:#64ffda; border:1px solid rgba(100,255,218,0.4); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85em; margin-right:5px;">️</button>`;
                 html += `<button onclick="window.deleteScheduleItem('${item.id}')" style="background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4); padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.85em;">🗑️</button>`;
                 html += `</td>`;
             }
@@ -597,7 +611,7 @@ async function sendMessageToMaster(text) {
     if (!windowDb || !currentUser) return false;
     const masterName = currentUser.учитель;
     if (!masterName || masterName === 'отсутствует') {
-        addMessage('<p> У тебя нет назначенного Мастера!</p>');
+        addMessage('<p>❌ У тебя нет назначенного Мастера!</p>');
         return false;
     }
     try {
@@ -700,7 +714,7 @@ async function showMasterDashboard() {
                 html += `<div style="color:#a89b7e; margin-top:8px; font-style:italic;">"${student.lastMessage.substring(0, 50)}${student.lastMessage.length > 50 ? '...' : ''}"</div></div>`;
             });
         }
-        html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
+        html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
         addMessage(html);
     } catch (error) {
         console.error('Ошибка загрузки панели Мастера:', error);
@@ -965,7 +979,7 @@ window.deleteAssignment = async function(assignmentId, assignmentTitle) {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
     if (!isMaster()) return showAlert('Доступ запрещён', 'Только для Мастеров и Магистров.');
     const submissionCount = submissionsList.filter(s => s.assignmentId === assignmentId).length;
-    const confirmed = await askConfirm('⚠️ ВНИМАНИЕ!', `Вы действительно хотите УДАЛИТЬ задание "${assignmentTitle}"?\n\nЭто действие НЕОБРАТИМО!\n\nБудут удалены:\n• Само задание\n• ВСЕ ответы учеников (${submissionCount} шт.)`);
+    const confirmed = await askConfirm('️ ВНИМАНИЕ!', `Вы действительно хотите УДАЛИТЬ задание "${assignmentTitle}"?\n\nЭто действие НЕОБРАТИМО!\n\nБудут удалены:\n• Само задание\n• ВСЕ ответы учеников (${submissionCount} шт.)`);
     if (!confirmed) return;
     const confirmText = await askPrompt('Подтверждение', 'Напишите "УДАЛИТЬ" для подтверждения:');
     if (confirmText !== 'УДАЛИТЬ') { return showAlert('Отменено', 'Удаление отменено.'); }
@@ -1043,13 +1057,13 @@ async function showLessonContentWithReadButton(lessonId) {
             if (canEdit || canDelete) {
                 html += `<div class="comment-actions">`;
                 if (canEdit) html += `<button class="comment-edit-btn" onclick="window.editComment('${comment.id}', '${lesson.id}')">✏️ Изменить</button>`;
-                if (canDelete) html += `<button class="comment-delete-btn" onclick="window.deleteComment('${comment.id}', '${lesson.id}')">🗑️ Удалить</button>`;
+                if (canDelete) html += `<button class="comment-delete-btn" onclick="window.deleteComment('${comment.id}', '${lesson.id}')">️ Удалить</button>`;
                 html += `</div>`;
             }
             html += `</div>`;
         });
     }
-    html += `<button class="comment-btn" onclick="window.startAddComment('${lesson.id}')">💬 Добавить комментарий</button></div><button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>`;
+    html += `<button class="comment-btn" onclick="window.startAddComment('${lesson.id}')"> Добавить комментарий</button></div><button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>`;
     addMessage(html);
 }
 
@@ -1094,7 +1108,7 @@ window.editLesson = function(lessonId) {
 window.confirmDeleteLesson = async function(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) return;
-    addMessage(`<p>️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
+    addMessage(`<p>⚠️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
     addLessonState = { step: 'confirm_delete', lessonId: lessonId, lessonTitle: lesson.title };
 };
 
@@ -1107,7 +1121,7 @@ async function findAnswer(question) {
     const q = question.toLowerCase().trim();
     
     if (addLessonState && addLessonState.step === 'add_schedule_datetime') {
-        if (q === 'отмена') { addLessonState = null; return '<p> Добавление отменено.</p>'; }
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Добавление отменено.</p>'; }
         const dateRegex = /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$/;
         if (!dateRegex.test(q)) {
             return '<p>❌ Неверный формат! Используй: <em>ГГГГ-ММ-ДД ЧЧ:ММ</em><br>Например: <em>2026-07-20 18:00</em></p>';
@@ -1208,8 +1222,8 @@ async function findAnswer(question) {
         addLessonState.hwTitle = question; addLessonState.step = 'create_hw_desc'; return '<p>Введите <strong>описание задания</strong> (или <em>"отмена"</em>):</p>';
     }
     if (addLessonState && addLessonState.step === 'create_hw_desc') {
-        if (q === 'отмена') { addLessonState = null; return '<p> Создание отменено.</p>'; }
-        createAssignment(addLessonState.hwTitle, question).then(success => { if (success) { addMessage(`<p>✅ Задание "<strong>${addLessonState.hwTitle}</strong>" создано!</p>`); window.showHomeworkBoard(); } else { addMessage('<p> Ошибка создания.</p>'); } });
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание отменено.</p>'; }
+        createAssignment(addLessonState.hwTitle, question).then(success => { if (success) { addMessage(`<p>✅ Задание "<strong>${addLessonState.hwTitle}</strong>" создано!</p>`); window.showHomeworkBoard(); } else { addMessage('<p>❌ Ошибка создания.</p>'); } });
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step === 'submit_hw_text') {
@@ -1226,7 +1240,7 @@ async function findAnswer(question) {
     }
     if (addLessonState && addLessonState.step === 'add_comment_text') {
         if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; }
-        addCommentToFirebase(addLessonState.lessonId, question, addLessonState.type).then(success => { if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); setTimeout(() => { showLessonContent(addLessonState.lessonId); }, 500); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+        addCommentToFirebase(addLessonState.lessonId, question, addLessonState.type).then(success => { if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); setTimeout(() => { showLessonContent(addLessonState.lessonId); }, 500); } else { addMessage('<p> Ошибка.</p>'); } });
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step === 'edit_comment') {
@@ -1281,7 +1295,7 @@ async function findAnswer(question) {
         if (addLessonState.step === 'content') { addLessonState.content = question; addLessonState.step = 'media'; return '<p>Ссылка на медиа (или <em>нет</em>):</p>'; }
         if (addLessonState.step === 'media') {
             const mediaUrl = q === 'нет' ? '' : question;
-            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+            addLessonToFirebase(addLessonState.category, addLessonState.title, addLessonState.content, mediaUrl).then(s => { if (s) { addMessage(`<p>✅ Урок добавлен!</p>`); loadLessonsFromFirebase(); } else { addMessage('<p> Ошибка.</p>'); } });
             addLessonState = null; return '';
         }
     }
@@ -1330,12 +1344,12 @@ async function findAnswer(question) {
                     showMainMenu();
                     return '';
                 } else { return '<p>❌ Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; }
-            } else { return '<p>📋 Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; }
+            } else { return '<p> Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; }
         }
-        return '<p>👋 Назови своё Имя, Ранг, Учителя и Пароль.</p>';
+        return '<p> Назови своё Имя, Ранг, Учителя и Пароль.</p>';
     }
     if (q.includes('выйти') || q.includes('logout')) { handleLogout(); return ''; }
-    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p>🧹 Очищено.</p>'); return ''; }
+    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p> Очищено.</p>'); return ''; }
     if (q.includes('оглавлен') || q.includes('меню')) { showMainMenu(); return ''; }
     let knowledge = '';
     if (q.includes('ганн')) knowledge = checkAccess('ганн') ? (knowledgeBase['ганн'] ? knowledgeBase['ганн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
@@ -1358,7 +1372,7 @@ async function handleSend() {
 function handleLogout() {
     currentUser = null; saveUserToStorage(); updateLogoutButton();
     chatContainer.innerHTML = '';
-    addMessage('<p> До встречи.</p>');
+    addMessage('<p>👋 До встречи.</p>');
 }
 
 function updateLogoutButton() {
@@ -1434,7 +1448,7 @@ function renderKeyboard() {
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'backspace') {
                 keyDiv.classList.add('special');
-                keyDiv.textContent = '';
+                keyDiv.textContent = '⌫';
                 keyDiv.addEventListener('touchstart', (e) => { e.preventDefault(); keyDiv.classList.add('pressed'); deleteCharAtCursor(); }, { passive: false });
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'space') {
@@ -1711,7 +1725,7 @@ async function getUserAdjustments(userName) {
 }
 
 async function saveManualAdjustment(userName, lessons, homework, reason) {
-    if (!windowDb) { console.error(' Firestore не доступен'); return false; }
+    if (!windowDb) { console.error('❌ Firestore не доступен'); return false; }
     try {
         await windowDb.collection('manual_adjustments').doc(userName).set({
             userName: userName, adjustedLessons: parseInt(lessons) || 0,
@@ -1729,7 +1743,7 @@ function calculateGrade(lessonsRead, homeworkDone, totalLessons, totalHomework, 
     if (maxScore === 0) return { percent: 0, grade: '—', gradeColor: '#6b5f4a' };
     const percent = Math.min(100, Math.round((adjustedScore / maxScore) * 100));
     let grade, gradeColor;
-    if (percent >= 90) { grade = '🏆 Отлично'; gradeColor = '#ffd700'; }
+    if (percent >= 90) { grade = ' Отлично'; gradeColor = '#ffd700'; }
     else if (percent >= 70) { grade = '✨ Хорошо'; gradeColor = '#4caf50'; }
     else if (percent >= 50) { grade = '✅ Удовлетворительно'; gradeColor = '#ff9800'; }
     else { grade = '❌ Плохо'; gradeColor = '#ff6b6b'; }
@@ -1761,7 +1775,7 @@ async function registerUserIfNeeded() {
 }
 
 window.deleteMySubmission = async function(submissionId, assignmentId) {
-    const confirmed = await askConfirm('Подтверждение', '️ Вы уверены? Это действие нельзя отменить!');
+    const confirmed = await askConfirm('Подтверждение', '⚠️ Вы уверены? Это действие нельзя отменить!');
     if (!confirmed) return;
     try {
         await windowDb.collection('homework_submissions').doc(submissionId).delete();
@@ -1964,14 +1978,14 @@ window.showMembersList = async function() {
                 const timeInAkasha = regDate ? formatTimeInAkasha(regDate) : '—';
                 html += `<div class="member-card"><div style="flex:1;">`;
                 html += `<div class="member-name">${member.fullName}</div>`;
-                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙‍♂️ Учитель: ${teacherName}</div>`;
+                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙♂️ Учитель: ${teacherName}</div>`;
                 html += `<div style="color:var(--text-secondary); font-size:0.85em; margin-top:2px;">⏱️ В Акаше: ${timeInAkasha}</div></div>`;
                 html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
             }
             html += `</div>`;
         }
     }
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
     addMessage(html);
 };
 
@@ -2094,7 +2108,7 @@ window.showDetailedProgress = async function() {
 window.showAdminPanel = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
-    if (!isAdmin()) { addMessage('<p>❌ Доступ запрещён. Только для Магистров.</p>'); return; }
+    if (!isAdmin()) { addMessage('<p> Доступ запрещён. Только для Магистров.</p>'); return; }
     const blockedUsers = await getBlockedUsers();
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
     html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">️ Админ-панель</h3>`;
@@ -2109,7 +2123,7 @@ window.showAdminPanel = async function() {
         html += `<div style="flex:1; min-width:200px;"><div style="color:var(--text-color); font-weight:600; font-size:1.1em;">${user.fullName}</div>`;
         html += `<div style="color:${rankColor}; font-size:0.9em;">${user.ранг}</div>`;
         if (user.статусы && user.статусы.length > 0) {
-            html += `<div style="color:#8bc34a; font-size:0.85em; margin-top:3px;">🏷️ ${user.статусы.join(', ')}</div>`;
+            html += `<div style="color:#8bc34a; font-size:0.85em; margin-top:3px;">️ ${user.статусы.join(', ')}</div>`;
         }
         if (user.звания && user.звания.length > 0) {
             const titlesStr = user.звания.map(t => t.уточнение ? `${t.звание} (${t.уточнение})` : t.звание).join(', ');
@@ -2117,8 +2131,8 @@ window.showAdminPanel = async function() {
         }
         html += `</div><div style="display:flex; gap:5px; flex-wrap:wrap;">`;
         if (isBlocked) { html += `<button class="unblock-btn" onclick="window.unblockUser('${user.fullName}')">✅ Разблокировать</button>`; }
-        else { html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')"> Заблокировать</button>`; }
-        html += `<button class="hw-btn" onclick="window.excludeJedi('${user.fullName}')" style="background:rgba(255,0,0,0.2); color:#ff0000; border:1px solid rgba(255,0,0,0.5); padding:6px 12px; font-size:0.85em; margin:0;">⚠️ Исключить</button>`;
+        else { html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')">🚫 Заблокировать</button>`; }
+        html += `<button class="hw-btn" onclick="window.excludeJedi('${user.fullName}')" style="background:rgba(255,0,0,0.2); color:#ff0000; border:1px solid rgba(255,0,0,0.5); padding:6px 12px; font-size:0.85em; margin:0;">️ Исключить</button>`;
         if (isAdmin()) {
             html += `<button class="hw-btn" onclick="window.manageUserRanks('${key}')" style="background:rgba(100,255,218,0.2); color:#64ffda; border:1px solid rgba(100,255,218,0.5); padding:6px 12px; font-size:0.85em; margin:0;">🎖️ Ранг/Статус/Звание</button>`;
         }
@@ -2129,6 +2143,7 @@ window.showAdminPanel = async function() {
     addMessage(html);
 };
 
+// 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ: использует addRawHTML вместо addMessage
 window.manageUserRanks = async function(userKey) {
     const user = usersDatabase[userKey];
     if (!user) {
@@ -2141,7 +2156,7 @@ window.manageUserRanks = async function(userKey) {
     html += `<div style="background:rgba(0,0,0,0.3); border-radius:10px; padding:15px; margin-bottom:20px;">`;
     html += `<div style="color:var(--text-color); font-size:1.2em; font-weight:600; margin-bottom:5px;">${user.fullName}</div>`;
     html += `<div style="color:var(--text-secondary); font-size:0.95em;">Текущий ранг: <strong style="color:var(--accent-color);">${user.ранг}</strong></div>`;
-    html += `<div style="color:var(--text-secondary); font-size:0.95em; margin-top:5px;">‍♂️ Учитель: <strong>${user.учитель || 'отсутствует'}</strong></div>`;
+    html += `<div style="color:var(--text-secondary); font-size:0.95em; margin-top:5px;">🧙‍♂️ Учитель: <strong>${user.учитель || 'отсутствует'}</strong></div>`;
     if (user.статусы && user.статусы.length > 0) {
         html += `<div style="color:#8bc34a; font-size:0.9em; margin-top:5px;">🏷️ Статусы: ${user.статусы.join(', ')}</div>`;
     }
@@ -2152,7 +2167,7 @@ window.manageUserRanks = async function(userKey) {
     html += `</div>`;
 
     html += `<div style="margin-bottom:20px;">`;
-    html += `<h4 style="color:#64ffda; margin-bottom:10px; font-family:'Playfair Display',serif;">🔹 Изменить Ранг</h4>`;
+    html += `<h4 style="color:#64ffda; margin-bottom:10px; font-family:'Playfair Display',serif;"> Изменить Ранг</h4>`;
     html += `<select id="rank-select" onchange="window.handleRankChange()" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:rgba(13,31,15,0.8); color:var(--text-color); font-family:'Cormorant Garamond',serif; font-size:1.1em; margin-bottom:10px;">`;
     rankHierarchy.forEach(rank => {
         const selected = rank === user.ранг ? 'selected' : '';
@@ -2210,7 +2225,7 @@ window.manageUserRanks = async function(userKey) {
     html += `<div id="title-clarification-input-wrapper" style="display:none; margin-bottom:10px;">`;
     html += `<input type="text" id="title-clarification-input" placeholder="Какой именно? (например: Хранитель Архива)" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:rgba(13,31,15,0.8); color:var(--text-color); font-family:'Cormorant Garamond',serif; font-size:1em;">`;
     html += `</div>`;
-    html += `<button class="hw-btn" onclick="window.addUserTitle('${userKey}')" style="width:100%; background:rgba(255,215,0,0.2); color:#ffd700;">🎖️ Добавить Звание</button>`;
+    html += `<button class="hw-btn" onclick="window.addUserTitle('${userKey}')" style="width:100%; background:rgba(255,215,0,0.2); color:#ffd700;">️ Добавить Звание</button>`;
     html += `</div>`;
 
     if (user.звания && user.звания.length > 0) {
@@ -2220,7 +2235,7 @@ window.manageUserRanks = async function(userKey) {
             const titleDisplay = titleObj.уточнение ? `${titleObj.звание} (${titleObj.уточнение})` : titleObj.звание;
             html += `<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,215,0,0.1); border-radius:8px; padding:10px; margin:5px 0;">`;
             html += `<span style="color:var(--text-color);">${titleDisplay}</span>`;
-            html += `<button onclick="window.removeUserTitle('${userKey}', ${index})" style="background:rgba(255,80,80,0.3); color:#ff6b6b; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:0.9em;">🗑️ Удалить</button>`;
+            html += `<button onclick="window.removeUserTitle('${userKey}', ${index})" style="background:rgba(255,80,80,0.3); color:#ff6b6b; border:none; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:0.9em;">️ Удалить</button>`;
             html += `</div>`;
         });
         html += `</div>`;
@@ -2228,7 +2243,8 @@ window.manageUserRanks = async function(userKey) {
 
     html += `<button class="hw-btn" onclick="window.showAdminPanel()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в Админ-панель</button></div>`;
     
-    addMessage(html);
+    //  ИСПРАВЛЕНИЕ: используем addRawHTML вместо addMessage
+    addRawHTML(html);
     
     setTimeout(() => {
         if (user.ранг === 'падаван' || user.ранг === 'старший падаван') {
