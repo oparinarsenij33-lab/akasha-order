@@ -16,17 +16,66 @@ let submissionsList = [];
 window.currentChatPartner = null;
 let currentModalResolve = null;
 
+// ===== ОБНОВЛЁННАЯ БАЗА ПОЛЬЗОВАТЕЛЕЙ С СТАТУСАМИ И ЗВАНИЯМИ =====
 const usersDatabase = {
-    'аранэль хальдарон': { ранг: 'верховный магистр', учитель: 'отсутствует', пароль: 'A1H23', fullName: 'Аранэль Хальдарон', specialTitle: 'Верховный Магистр', description: 'Глава Ордена Вольных Джедаев' },
-    'дорхат минас тур': { ранг: 'мастер', учитель: 'отсутствует', пароль: 'D1M1T', fullName: 'Дорхат Минас Тур', specialTitle: 'Заместитель Верховного Магистра', description: 'Глава безопасности Ордена Вольных Джедаев, Мастер Боевой Магии и специалист по Защите от тёмных искусств' },
-    'нарнэлион эдрад': { ранг: 'мастер', учитель: 'отсутствует', пароль: 'N1E1', fullName: 'Нарнэлион Эдрад', specialTitle: 'Мастер Артефактов и Целительства', description: 'Мастер по созданию различного рода магических Артефактов, а также специалист в знаниях о потусторонних мирах, измерениях и Мастер Целительства' },
-    'рондрил лаур': { ранг: 'мастер', учитель: 'отсутствует', пароль: 'R1L1', fullName: 'Рондрил Лаур', specialTitle: 'Мастер-Целитель', description: 'Мастер-Целитель, специалист по травам и всему что связано с физическим Целительством' },
-    'далисса вестуро': { ранг: 'старший падаван', учитель: 'Аранэль Хальдарон', пароль: 'D5i10V3', fullName: 'Далисса Иденааль Вестуро' },
-    'даниил ионов': { ранг: 'падаван', учитель: 'Нарнэлион Эдрад', пароль: 'D5i10', fullName: 'Даниил Ионов' },
-    'кайренарт ветэрмайтерос': { ранг: 'юнлинг', учитель: 'отсутствует', пароль: 'K12A1V3', fullName: 'Кайренарт Авандалэр Ветэрмайтерос' },
-    'тейраналь лоаннен-тиарастес': { ранг: 'юнлинг', учитель: 'отсутствует', пароль: 'T20A1LT13', fullName: 'Тейраналь Арианарт Лоаннен-Тиарастес' },
-    'асстария ламанш': { ранг: 'юнлинг', учитель: 'отсутствует', пароль: 'A1A1L13', fullName: 'Асстария Авангорн Ламанш' },
-    'наталья кузовцова': { ранг: 'юнлинг', учитель: 'отсутствует', пароль: 'N15K12', fullName: 'Наталья Кузовцова' }
+    'аранэль хальдарон': { 
+        ранг: 'верховный магистр', учитель: 'отсутствует', пароль: 'A1H23', 
+        fullName: 'Аранэль Хальдарон', specialTitle: 'Верховный Магистр', 
+        description: 'Глава Ордена Вольных Джедаев',
+        статусы: ['Член Совета Мастеров', 'Верховный Судья'], 
+        звания: [{звание: 'Верховный Магистр', уточнение: 'Глава Ордена'}] 
+    },
+    'дорхат минас тур': { 
+        ранг: 'мастер', учитель: 'отсутствует', пароль: 'D1M1T', 
+        fullName: 'Дорхат Минас Тур', specialTitle: 'Заместитель Верховного Магистра', 
+        description: 'Глава безопасности Ордена Вольных Джедаев, Мастер Боевой Магии и специалист по Защите от тёмных искусств',
+        статусы: ['Страж', 'Член Малого Совета'], 
+        звания: [{звание: 'Мастер', уточнение: 'Боевой Магии и Защиты от Тьмы'}] 
+    },
+    'нарнэлион эдрад': { 
+        ранг: 'мастер', учитель: 'отсутствует', пароль: 'N1E1', 
+        fullName: 'Нарнэлион Эдрад', specialTitle: 'Мастер Артефактов и Целительства', 
+        description: 'Мастер по созданию различного рода магических Артефактов, а также специалист в знаниях о потусторонних мирах, измерениях и Мастер Целительства',
+        статусы: ['Целитель', 'Исследователь'], 
+        звания: [{звание: 'Мастер', уточнение: 'Артефактов и Целительства'}] 
+    },
+    'рондрил лаур': { 
+        ранг: 'мастер', учитель: 'отсутствует', пароль: 'R1L1', 
+        fullName: 'Рондрил Лаур', specialTitle: 'Мастер-Целитель', 
+        description: 'Мастер-Целитель, специалист по травам и всему что связано с физическим Целительством',
+        статусы: ['Целитель'], 
+        звания: [{звание: 'Мастер', уточнение: 'Физического Целительства'}] 
+    },
+    'далисса вестуро': { 
+        ранг: 'старший падаван', учитель: 'Аранэль Хальдарон', пароль: 'D5i10V3', 
+        fullName: 'Далисса Иденааль Вестуро',
+        статусы: [], звания: [] 
+    },
+    'даниил ионов': { 
+        ранг: 'падаван', учитель: 'Нарнэлион Эдрад', пароль: 'D5i10', 
+        fullName: 'Даниил Ионов',
+        статусы: [], звания: [] 
+    },
+    'кайренарт ветэрмайтерос': { 
+        ранг: 'юнлинг', учитель: 'отсутствует', пароль: 'K12A1V3', 
+        fullName: 'Кайренарт Авандалэр Ветэрмайтерос',
+        статусы: [], звания: [] 
+    },
+    'тейраналь лоаннен-тиарастес': { 
+        ранг: 'юнлинг', учитель: 'отсутствует', пароль: 'T20A1LT13', 
+        fullName: 'Тейраналь Арианарт Лоаннен-Тиарастес',
+        статусы: [], звания: [] 
+    },
+    'асстария ламанш': { 
+        ранг: 'юнлинг', учитель: 'отсутствует', пароль: 'A1A1L13', 
+        fullName: 'Асстария Авангорн Ламанш',
+        статусы: [], звания: [] 
+    },
+    'наталья кузовцова': { 
+        ранг: 'юнлинг', учитель: 'отсутствует', пароль: 'N15K12', 
+        fullName: 'Наталья Кузовцова',
+        статусы: [], звания: [] 
+    }
 };
 
 let currentUser = null;
@@ -34,6 +83,52 @@ let addLessonState = null;
 let windowDb = null;
 let isInitialized = false;
 
+// ===== НОВАЯ СИСТЕМА ИЕРАРХИИ РАНГОВ =====
+const rankHierarchy = [
+    'адепт', 'юнлинг', 'падаван', 'старший падаван', 
+    'рыцарь', 'мастер', 'магистр', 'верховный магистр', 'старейшина'
+];
+
+// ===== СПИСКИ СТАТУСОВ И ЗВАНИЙ (для выпадающих меню) =====
+const availableStatuses = [
+    'Целитель', 'Воин', 'Страж', 'Исследователь', 'Учёный', 
+    'Рекрутёр', 'Инструктор', 'Библиотекарь', 'Хранитель', 
+    'Провидец', 'Судья', 'Верховный Судья', 
+    'Член Малого Совета', 'Член Совета Мастеров', 
+    'Член Совета', 'Другие'
+];
+
+const availableTitles = [
+    'Рядовой', 'Капитан', 'Генерал', 'Архивариус', 
+    'Рыцарь', 'Мастер', 'Предвестник', 'Вестник', 'Лорд', 'Леди'
+];
+
+// ===== ФУНКЦИИ ПРОВЕРКИ РАНГОВ =====
+function getRankLevel(rankName) {
+    const level = rankHierarchy.indexOf(rankName.toLowerCase());
+    return level === -1 ? 0 : level;
+}
+
+function isHigherRank(userRank, targetRank) {
+    return getRankLevel(userRank) > getRankLevel(targetRank);
+}
+
+function isSameOrHigherRank(userRank, targetRank) {
+    return getRankLevel(userRank) >= getRankLevel(targetRank);
+}
+
+// ===== ФУНКЦИИ ПРОВЕРКИ СТАТУСОВ И ЗВАНИЙ =====
+function hasStatus(user, statusName) {
+    if (!user.статусы) return false;
+    return user.статусы.some(s => typeof s === 'string' ? s.toLowerCase() === statusName.toLowerCase() : false);
+}
+
+function hasTitle(user, titleName) {
+    if (!user.звания) return false;
+    return user.звания.some(t => typeof t === 'object' ? t.звание.toLowerCase() === titleName.toLowerCase() : false);
+}
+
+// ===== СТАРЫЙ ОБЪЕКТ (для совместимости) =====
 const accessLevels = {
     'адепт': ['адепт'], 'юнлинг': ['адепт', 'юнлинг'], 'падаван': ['адепт', 'юнлинг', 'падаван'],
     'старший падаван': ['адепт', 'юнлинг', 'падаван', 'старший падаван'],
@@ -60,10 +155,10 @@ function applySeasonTheme() {
 // ===== ПРИВЕТСТВИЕ ДЛЯ СТРАННИКА =====
 function getStrangerGreeting() {
     return `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">
-        <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Приветствую тебя, Странник</h3>
+        <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, Странник</h3>
         <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Я — <strong>Акаша</strong>, Хранительница Знаний Ордена Вольных Джедаев. В моих архивах хранится мудрость веков, тайны магии и знания, что передавались через Великих Мастеров и Магистров всех времён и эпох.</p>
         <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев — это братство тех, кто посвятил себя изучению высших искусств, защите, сохранению целостности и единства Света. Здесь ты найдёшь уроки, задания и возможность общаться с Наставниками.</p>
-        <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;"> Как получить доступ:</h4>
+        <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📋 Как получить доступ:</h4>
         <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Чтобы войти в систему, назови мне своё <strong>Имя</strong>, <strong>Ранг</strong>, имя своего <strong>Учителя</strong> и <strong>Пароль</strong>.<br><br><em>Пример:</em> "Меня зовут Оби-Ван Кеноби, я Магистр, мой Учитель — Квай-Гон Джинн, пароль O2V7K9"</p>
         <p style="color:#a89b7e; font-style:italic; text-align:center; margin-top:20px;">✨ Орден ждёт тебя, Странник. Назови себя.</p>
     </div>`;
@@ -76,29 +171,30 @@ function getRankGreeting(user) {
     const isMasterRank = ['мастер', 'магистр', 'верховный магистр', 'старейшина'].includes(rank);
     if (isMasterRank) {
         return `<div style="background:rgba(13,31,15,0.5); border:1px solid rgba(255,215,0,0.3); border-radius:15px; padding:25px; margin:15px 0;">
-            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Приветствую тебя, ${rank} ${name}</h3>
+            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, ${rank} ${name}</h3>
             <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев рад видеть тебя среди своих хранителей. Твоя мудрость и опыт — бесценный дар для наших учеников.</p>
             <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📋 Твои возможности:</h4>
             <ul style="color:var(--text-color); line-height:1.8; padding-left:20px; margin-bottom:15px;">
                 <li>📚 Доступ ко всем разделам знаний Ордена</li>
-                <li>📝 Создание и проверка домашних заданий</li>
+                <li> Создание и проверка домашних заданий</li>
                 <li>✏️ Добавление и редактирование уроков</li>
                 <li>💬 Общение с учениками через личный чат</li>
                 <li>📊 Просмотр таблицы успеваемости</li>
-                ${rank === 'магистр' || rank === 'верховный магистр' || rank === 'старейшина' ? '<li>⚙️ Админ-панель: управление пользователями и блокировка</li>' : ''}
+                ${rank === 'магистр' || rank === 'верховный магистр' || rank === 'старейшина' ? '<li>⚙️ Админ-панель: управление пользователями, назначение Рангов/Статусов/Званий</li>' : ''}
             </ul>
             <p style="color:#a89b7e; font-style:italic; text-align:center; margin-top:20px;">Используй свои возможности мудро, ${rank}. Орден доверяет тебе.</p>
         </div>`;
     } else {
         return `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">
-            <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Я рада приветствовать тебя в Ордене Вольных Джедаев, ${rank} ${name}!</h3>
+            <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Я рада приветствовать тебя в Ордене Вольных Джедаев, ${rank} ${name}!</h3>
             <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Твой путь только начинается. Впереди тебя ждут знания, испытания и рост. Помни — дисциплина и усердие суть ключи к мастерству.</p>
             <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📜 Как пользоваться Акашей:</h4>
             <ul style="color:var(--text-color); line-height:1.8; padding-left:20px; margin-bottom:15px;">
-                <li>📝 <strong>Домашние задания</strong> — просматривай задания от Мастеров и отправляй свои ответы</li>
+                <li> <strong>Домашние задания</strong> — просматривай задания от Мастеров и отправляй свои ответы</li>
                 <li>✉️ <strong>Написать Мастеру</strong> — личный чат с твоим Наставником</li>
                 <li>📚 <strong>Оглавление знаний</strong> — уроки, доступные твоему Рангу</li>
-                <li>🏛️ <strong>Совет Мастеров</strong> — узнай, кто руководит Орденом</li>
+                <li>📅 <strong>Расписание</strong> — график занятий Ордена</li>
+                <li>️ <strong>Совет Мастеров</strong> — узнай, кто руководит Орденом</li>
                 <li>👥 <strong>Члены Ордена</strong> — список всех братьев и сестёр</li>
                 <li>📊 <strong>Успеваемость</strong> — следи за своим прогрессом</li>
             </ul>
@@ -438,7 +534,7 @@ async function showMasterDashboard() {
                 html += `<div style="color:#a89b7e; margin-top:8px; font-style:italic;">"${student.lastMessage.substring(0, 50)}${student.lastMessage.length > 50 ? '...' : ''}"</div></div>`;
             });
         }
-        html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
+        html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
         addMessage(html);
     } catch (error) {
         console.error('Ошибка загрузки панели Мастера:', error);
@@ -503,7 +599,7 @@ window.sendMasterChatMessage = async function() {
             await window.openChatWithStudent(window.currentChatPartner);
         } catch (error) {
             console.error('Ошибка отправки:', error);
-            addMessage('<p> Ошибка отправки.</p>');
+            addMessage('<p>❌ Ошибка отправки.</p>');
         }
     } else {
         const success = await sendMessageToMaster(text);
@@ -579,15 +675,16 @@ function showMainMenu() {
     if (!container) return;
     container.innerHTML = '';
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Главное меню</h3>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🔮 Главное меню</h3>`;
     html += `<button class="menu-btn" onclick="window.showHomeworkBoard()">📝 Домашние задания</button>`;
     html += `<button class="menu-btn chat-btn" onclick="window.openMasterChat()">✉️ Написать Мастеру</button>`;
     html += `<button class="menu-btn" onclick="showTOC()">📚 Оглавление знаний</button>`;
+    html += `<button class="menu-btn" onclick="window.showSchedule()">📅 Расписание</button>`;
     html += `<button class="menu-btn" onclick="window.showCouncilOfMasters()" style="background:rgba(100,255,218,0.15); border-color:rgba(100,255,218,0.4); color:#64ffda;">🏛️ Совет Мастеров</button>`;
-    html += `<button class="menu-btn" onclick="window.showMembersList()">👥 Члены Ордена</button>`;
+    html += `<button class="menu-btn" onclick="window.showMembersList()"> Члены Ордена</button>`;
     html += `<button class="menu-btn" onclick="window.showProgressTable()">📊 Успеваемость</button>`;
     if (isAdmin()) {
-        html += `<button class="menu-btn" onclick="window.showAdminPanel()" style="background:rgba(255,80,80,0.2); border-color:rgba(255,80,80,0.5); color:#ff6b6b;">️ Админ-панель</button>`;
+        html += `<button class="menu-btn" onclick="window.showAdminPanel()" style="background:rgba(255,80,80,0.2); border-color:rgba(255,80,80,0.5); color:#ff6b6b;">⚙️ Админ-панель</button>`;
     }
     html += `<hr style="border-color:var(--border-color); margin:20px 0;">`;
     html += `<p style="color:var(--text-secondary); text-align:center; font-style:italic;">Выбери раздел или задай вопрос Акаше</p>`;
@@ -599,6 +696,11 @@ function showMainMenu() {
     setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
 }
 
+// ===== ЗАГЛУШКА ДЛЯ РАСПИСАНИЯ (будет реализована в Блоке 4) =====
+window.showSchedule = function() {
+    addMessage('<p>📅 <strong>Раздел "Расписание" находится в разработке.</strong> Скоро здесь появится таблица занятий Ордена!</p>');
+};
+
 // ===== ДОМАШНИЕ ЗАДАНИЯ =====
 window.showHomeworkBoard = async function() {
     const container = document.getElementById('chat-container');
@@ -606,10 +708,10 @@ window.showHomeworkBoard = async function() {
     await loadAssignments();
     await loadSubmissions();
     let html = `<div class="homework-board">`;
-    html += `<div class="homework-header"> Домашние задания Ордена</div>`;
+    html += `<div class="homework-header">📝 Домашние задания Ордена</div>`;
     if (assignmentsList.length === 0) {
         html += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Заданий пока нет.</p>`;
-        html += `<p style="color:#8bc34a; text-align:center; margin-top:20px;">💡 Мастер может создать первое задание!</p>`;
+        html += `<p style="color:#8bc34a; text-align:center; margin-top:20px;"> Мастер может создать первое задание!</p>`;
     } else {
         assignmentsList.forEach((hw) => {
             if (!hw) return;
@@ -630,7 +732,7 @@ window.showHomeworkBoard = async function() {
                 html += `<div style="margin:15px 0; padding:12px; background:rgba(${myLastSubmission.status === 'approved' ? '76,175,80' : (myLastSubmission.status === 'needs_revision' ? '255,152,0' : '33,150,243')},0.1); border-radius:8px; border-left:3px solid ${statusColor};">`;
                 html += `<p style="color:${statusColor}; margin:0 0 8px 0; font-weight:bold;">${statusEmoji} Статус: ${statusText}</p>`;
                 html += `<p style="color:var(--text-color); margin:0 0 8px 0; font-size:0.95em;"><strong>Мой ответ:</strong> ${myLastSubmission.content}</p>`;
-                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong> Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
+                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong>💬 Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
                 const submitDate = myLastSubmission.submittedAt ? new Date(myLastSubmission.submittedAt.seconds * 1000).toLocaleString('ru-RU') : '';
                 html += `<p style="color:#6b5f4a; margin:8px 0 0 0; font-size:0.85em; font-style:italic;">📅 Отправлено: ${submitDate}</p>`;
                 if (myLastSubmission && myLastSubmission.id) {
@@ -656,7 +758,7 @@ window.showHomeworkBoard = async function() {
             }
             if (!isMaster() || hw.createdBy !== currentUser.name) {
                 const escapedTitle = hwTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                html += `<div class="hw-actions"><button class="hw-btn submit" onclick="window.submitHomework('${hwId}', '${escapedTitle}')"> Отправить ответ</button></div>`;
+                html += `<div class="hw-actions"><button class="hw-btn submit" onclick="window.submitHomework('${hwId}', '${escapedTitle}')">📤 Отправить ответ</button></div>`;
             }
             html += `</div>`;
         });
@@ -672,7 +774,7 @@ window.reviewSubmissions = function(assignmentId) {
     const hw = assignmentsList.find(a => a.id === assignmentId);
     if (!hw) return;
     const hwSubmissions = submissionsList.filter(s => s.assignmentId === assignmentId);
-    let html = `<div class="homework-board"><div class="homework-header"> Проверка ответов: ${hw.title}</div>`;
+    let html = `<div class="homework-board"><div class="homework-header">🔍 Проверка ответов: ${hw.title}</div>`;
     if (hwSubmissions.length === 0) html += `<p style="color:#6b5f4a; text-align:center;">Ответов пока нет.</p>`;
     else {
         hwSubmissions.forEach(sub => {
@@ -686,7 +788,7 @@ window.reviewSubmissions = function(assignmentId) {
             html += `<div class="hw-actions"><button class="hw-btn" onclick="window.gradeSubmission('${sub.id}', '${hw.id}', 'approved')" style="background:rgba(76,175,80,0.3); color:#4caf50;">✅ Одобрить</button><button class="hw-btn" onclick="window.gradeSubmission('${sub.id}', '${hw.id}', 'needs_revision')" style="background:rgba(255,152,0,0.3); color:#ff9800;">⚠️ На доработку</button><button class="hw-btn" onclick="window.addFeedback('${sub.id}', '${hw.id}')" style="background:rgba(100,255,218,0.2); color:#64ffda;">💬 Комментарий</button></div></div>`;
         });
     }
-    html += `<button class="hw-btn" onclick="window.showHomeworkBoard()" style="width:100%; margin-top:10px; padding:12px;">🔙 Назад к заданиям</button></div>`;
+    html += `<button class="hw-btn" onclick="window.showHomeworkBoard()" style="width:100%; margin-top:10px; padding:12px;"> Назад к заданиям</button></div>`;
     addMessage(html);
 };
 
@@ -754,7 +856,7 @@ async function showLessonContentWithReadButton(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) { addMessage('<p>❌ Урок не найден.</p>'); return; }
     const isRead = await isLessonRead(lessonId);
-    let html = `<h3 style="color:#64ffda; font-family:'Playfair Display',serif;"> ${lesson.title}</h3>`;
+    let html = `<h3 style="color:#64ffda; font-family:'Playfair Display',serif;">📖 ${lesson.title}</h3>`;
     html += `<p style="color:#a89b7e; font-size:0.9em; margin-bottom:15px;">Категория: <em>${lesson.category}</em></p>`;
     html += `<div style="line-height:1.9;">${lesson.content}</div>`;
     if (lesson.mediaUrl) {
@@ -771,7 +873,7 @@ async function showLessonContentWithReadButton(lessonId) {
         html += `<button class="read-btn" onclick="window.markLessonRead('${lessonId}')">👁️ Отметить как прочитанное</button>`;
     }
     const isAdminUser = isAdmin();
-    if (isAdminUser) html += `<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;"><button class="edit-btn" onclick="window.editLesson('${lesson.id}')">✏️ Редактировать</button><button class="delete-btn" onclick="window.confirmDeleteLesson('${lesson.id}')">🗑️ Удалить</button></div>`;
+    if (isAdminUser) html += `<div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;"><button class="edit-btn" onclick="window.editLesson('${lesson.id}')">✏️ Редактировать</button><button class="delete-btn" onclick="window.confirmDeleteLesson('${lesson.id}')">️ Удалить</button></div>`;
     html += `<div class="comments-section"><div class="comments-header">💬 Комментарии</div>`;
     const comments = await loadCommentsForLesson(lessonId);
     if (comments.length === 0) html += `<p style="color:#6b5f4a; font-style:italic;">Комментариев пока нет. Будь первым!</p>`;
@@ -836,7 +938,7 @@ window.editLesson = function(lessonId) {
 window.confirmDeleteLesson = async function(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) return;
-    addMessage(`<p>⚠️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
+    addMessage(`<p>️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
     addLessonState = { step: 'confirm_delete', lessonId: lessonId, lessonTitle: lesson.title };
 };
 
@@ -853,8 +955,8 @@ function findAnswer(question) {
         addLessonState.hwTitle = question; addLessonState.step = 'create_hw_desc'; return '<p>Введите <strong>описание задания</strong> (или <em>"отмена"</em>):</p>';
     }
     if (addLessonState && addLessonState.step === 'create_hw_desc') {
-        if (q === 'отмена') { addLessonState = null; return '<p> Создание отменено.</p>'; }
-        createAssignment(addLessonState.hwTitle, question).then(success => { if (success) { addMessage(`<p>✅ Задание "<strong>${addLessonState.hwTitle}</strong>" создано!</p>`); window.showHomeworkBoard(); } else { addMessage('<p> Ошибка создания.</p>'); } });
+        if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание отменено.</p>'; }
+        createAssignment(addLessonState.hwTitle, question).then(success => { if (success) { addMessage(`<p>✅ Задание "<strong>${addLessonState.hwTitle}</strong>" создано!</p>`); window.showHomeworkBoard(); } else { addMessage('<p>❌ Ошибка создания.</p>'); } });
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step === 'submit_hw_text') {
@@ -954,10 +1056,10 @@ function findAnswer(question) {
                 } else { return '<p>❌ Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; }
             } else { return '<p>📋 Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; }
         }
-        return '<p>👋 Назови своё Имя, Ранг, Учителя и Пароль.</p>';
+        return '<p> Назови своё Имя, Ранг, Учителя и Пароль.</p>';
     }
     if (q.includes('выйти') || q.includes('logout')) { handleLogout(); return ''; }
-    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p>🧹 Очищено.</p>'); return ''; }
+    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p> Очищено.</p>'); return ''; }
     if (q.includes('оглавлен') || q.includes('меню')) { showMainMenu(); return ''; }
     let knowledge = '';
     if (q.includes('ганн')) knowledge = checkAccess('ганн') ? (knowledgeBase['ганн'] ? knowledgeBase['ганн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
@@ -968,7 +1070,6 @@ function findAnswer(question) {
     return knowledge;
 }
 
-// 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТПРАВКИ (для contenteditable)
 async function handleSend() {
     const text = customTextarea.innerText.trim();
     if (!text) return;
@@ -1007,13 +1108,11 @@ let isShift = false;
 let isCaps = false;
 let shiftTimeout = null;
 
-// 🔥 ВСТАВКА ТЕКСТА ЧЕРЕЗ execCommand (работает с contenteditable)
 function insertTextAtCursor(text) {
     customTextarea.focus();
     document.execCommand('insertText', false, text);
 }
 
-// 🔥 УДАЛЕНИЕ СИМВОЛА ЧЕРЕЗ execCommand
 function deleteCharAtCursor() {
     customTextarea.focus();
     document.execCommand('delete', false, null);
@@ -1060,7 +1159,7 @@ function renderKeyboard() {
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'backspace') {
                 keyDiv.classList.add('special');
-                keyDiv.textContent = '';
+                keyDiv.textContent = '⌫';
                 keyDiv.addEventListener('touchstart', (e) => { e.preventDefault(); keyDiv.classList.add('pressed'); deleteCharAtCursor(); }, { passive: false });
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'space') {
@@ -1069,7 +1168,7 @@ function renderKeyboard() {
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'enter') {
                 keyDiv.classList.add('enter');
-                keyDiv.textContent = '↵';
+                keyDiv.textContent = '';
                 keyDiv.addEventListener('touchstart', (e) => { e.preventDefault(); keyDiv.classList.add('pressed'); insertTextAtCursor('\n'); }, { passive: false });
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else {
@@ -1123,12 +1222,11 @@ customTextarea.addEventListener('keydown', (e) => {
     else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
 });
 
-// 🔥 АВТОМАТИЧЕСКАЯ ПРОКРУТКА ПРИ ВВОДЕ
 customTextarea.addEventListener('input', () => {
     customTextarea.scrollTop = customTextarea.scrollHeight;
 });
 
-// ===== НОВЫЕ ФУНКЦИИ: СКРЫТИЕ КЛАВИАТУРЫ И УВЕЛИЧЕНИЕ ШРИФТА =====
+// ===== СКРЫТИЕ КЛАВИАТУРЫ И УВЕЛИЧЕНИЕ ШРИФТА =====
 function toggleKeyboardVisibility() {
     const keyboard = document.getElementById('custom-keyboard');
     const inputWrapper = document.getElementById('main-input-wrapper');
@@ -1359,7 +1457,7 @@ function calculateGrade(lessonsRead, homeworkDone, totalLessons, totalHomework, 
     if (maxScore === 0) return { percent: 0, grade: '—', gradeColor: '#6b5f4a' };
     const percent = Math.min(100, Math.round((adjustedScore / maxScore) * 100));
     let grade, gradeColor;
-    if (percent >= 90) { grade = '🏆 Отлично'; gradeColor = '#ffd700'; }
+    if (percent >= 90) { grade = ' Отлично'; gradeColor = '#ffd700'; }
     else if (percent >= 70) { grade = '✨ Хорошо'; gradeColor = '#4caf50'; }
     else if (percent >= 50) { grade = '✅ Удовлетворительно'; gradeColor = '#ff9800'; }
     else { grade = '❌ Плохо'; gradeColor = '#ff6b6b'; }
@@ -1392,7 +1490,7 @@ async function registerUserIfNeeded() {
 
 // ===== ДЕЙСТВИЯ =====
 window.deleteMySubmission = async function(submissionId, assignmentId) {
-    const confirmed = await askConfirm('Подтверждение', '️ Вы уверены? Это действие нельзя отменить!');
+    const confirmed = await askConfirm('Подтверждение', '⚠️ Вы уверены? Это действие нельзя отменить!');
     if (!confirmed) return;
     try {
         await windowDb.collection('homework_submissions').doc(submissionId).delete();
@@ -1494,7 +1592,9 @@ window.addNewMember = async function() {
             учитель: teacher.toLowerCase().trim() === 'нет' || teacher.toLowerCase().trim() === 'отсутствует' ? 'отсутствует' : teacher,
             пароль: password,
             specialTitle: specialTitle || '',
-            description: description || ''
+            description: description || '',
+            статусы: [],
+            звания: []
         };
         showAlert('Успех', `Пользователь "${name}" успешно добавлен в Орден!`);
         window.showAdminPanel();
@@ -1504,7 +1604,7 @@ window.addNewMember = async function() {
 window.excludeJedi = async function(userName) {
     if (!windowDb) return showAlert('Ошибка', 'База данных не подключена!');
     if (!isAdmin()) return showAlert('Доступ запрещён', 'Только для Магистров.');
-    const confirmed = await askConfirm('⚠️ ВНИМАНИЕ!', `Вы действительно хотите ИСКЛЮЧИТЬ ${userName} из Ордена?\n\nЭто действие НЕОБРАТИМО! Все данные будут удалены.`);
+    const confirmed = await askConfirm('️ ВНИМАНИЕ!', `Вы действительно хотите ИСКЛЮЧИТЬ ${userName} из Ордена?\n\nЭто действие НЕОБРАТИМО! Все данные будут удалены.`);
     if (!confirmed) return;
     const confirmText = await askPrompt('Подтверждение', 'Напишите "ИСКЛЮЧИТЬ" для подтверждения:');
     if (confirmText !== 'ИСКЛЮЧИТЬ') { return showAlert('Отменено', 'Исключение отменено.'); }
@@ -1550,19 +1650,19 @@ window.showCouncilOfMasters = async function() {
         html += `<div style="font-size:2em;">🔮</div><div style="flex:1;">`;
         html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${supremeMaster.fullName}</div>`;
         html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${supremeMaster.specialTitle}</div></div>`;
-        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? ' Заблок.' : '✅ Активен'}</div></div>`;
+        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
         if (supremeMaster.description) html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${supremeMaster.description}</div>`;
         html += `</div>`;
     }
-    html += `<h4 class="council-master-header">👑 Мастера</h4>`;
+    html += `<h4 class="council-master-header"> Мастера</h4>`;
     const masters = Object.values(usersDatabase).filter(u => u.ранг === 'мастер' && u.specialTitle);
     masters.forEach(master => {
         const isBlocked = blockedNames.includes(master.fullName);
         html += `<div class="council-master-card"><div style="display:flex; align-items:center; gap:15px; margin-bottom:10px;">`;
-        html += `<div style="font-size:2em;">⚔️</div><div style="flex:1;">`;
+        html += `<div style="font-size:2em;">️</div><div style="flex:1;">`;
         html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${master.fullName}</div>`;
         html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${master.specialTitle}</div></div>`;
-        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? ' Заблок.' : '✅ Активен'}</div></div>`;
+        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
         if (master.description) html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${master.description}</div>`;
         html += `</div>`;
     });
@@ -1645,7 +1745,7 @@ window.showProgressTable = async function() {
 window.showAdjustmentPanel = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
-    if (!isMaster()) { addMessage('<p> Доступ запрещён.</p>'); return; }
+    if (!isMaster()) { addMessage('<p>❌ Доступ запрещён.</p>'); return; }
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
     html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Ручная корректировка</h3>`;
     html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px;">Выбери ученика и добавь баллы за пройденные материалы вне Акаши</p>`;
@@ -1726,22 +1826,41 @@ window.showAdminPanel = async function() {
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
     html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Админ-панель</h3>`;
     html += `<div class="admin-panel"><h3>👥 Управление всеми пользователями (включая Мастеров)</h3>`;
-    html += `<button class="hw-btn" onclick="window.addNewMember()" style="background:rgba(76,175,80,0.3); color:#4caf50; margin-bottom:15px;">➕ Добавить нового члена Ордена</button>`;
+    html += `<button class="hw-btn" onclick="window.addNewMember()" style="background:rgba(76,175,80,0.3); color:#4caf50; margin-bottom:15px;"> Добавить нового члена Ордена</button>`;
     Object.values(usersDatabase).forEach(user => {
         const isBlocked = blockedUsers.find(b => b.id === user.fullName);
         const userRank = user.ранг;
         const rankColor = userRank.includes('магистр') || userRank.includes('мастер') ? '#ffd700' : 'var(--accent-color)';
         html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--border-color); background:rgba(0,0,0,0.2); border-radius:8px; margin:8px 0; flex-wrap:wrap; gap:8px;">`;
         html += `<div style="flex:1; min-width:200px;"><div style="color:var(--text-color); font-weight:600; font-size:1.1em;">${user.fullName}</div>`;
-        html += `<div style="color:${rankColor}; font-size:0.9em;">${user.ранг}</div></div><div style="display:flex; gap:5px; flex-wrap:wrap;">`;
+        html += `<div style="color:${rankColor}; font-size:0.9em;">${user.ранг}</div>`;
+        // Показываем статусы и звания
+        if (user.статусы && user.статусы.length > 0) {
+            html += `<div style="color:#8bc34a; font-size:0.85em; margin-top:3px;">🏷️ ${user.статусы.join(', ')}</div>`;
+        }
+        if (user.звания && user.звания.length > 0) {
+            const titlesStr = user.звания.map(t => t.уточнение ? `${t.звание} (${t.уточнение})` : t.звание).join(', ');
+            html += `<div style="color:#ffd700; font-size:0.85em; margin-top:3px;">🎖️ ${titlesStr}</div>`;
+        }
+        html += `</div><div style="display:flex; gap:5px; flex-wrap:wrap;">`;
         if (isBlocked) { html += `<button class="unblock-btn" onclick="window.unblockUser('${user.fullName}')">✅ Разблокировать</button>`; }
         else { html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')">🚫 Заблокировать</button>`; }
         html += `<button class="hw-btn" onclick="window.excludeJedi('${user.fullName}')" style="background:rgba(255,0,0,0.2); color:#ff0000; border:1px solid rgba(255,0,0,0.5); padding:6px 12px; font-size:0.85em; margin:0;">⚠️ Исключить</button>`;
+        // Кнопка управления кадрами (только для Магистров и выше)
+        if (isAdmin()) {
+            html += `<button class="hw-btn" onclick="window.manageUserRanks('${user.fullName}')" style="background:rgba(100,255,218,0.2); color:#64ffda; border:1px solid rgba(100,255,218,0.5); padding:6px 12px; font-size:0.85em; margin:0;">🎖️ Ранг/Статус/Звание</button>`;
+        }
         html += `</div></div>`;
     });
     html += `</div>`;
     html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
     addMessage(html);
+};
+
+// ===== УПРАВЛЕНИЕ РАНГАМИ/СТАТУСАМИ/ЗВАНИЯМИ (заглушка для Блока 3) =====
+window.manageUserRanks = function(userName) {
+    addMessage(`<p>🎖️ <strong>Управление кадрами: ${userName}</strong></p>
+                <p>Эта функция находится в разработке. Скоро здесь появится интерфейс для назначения Рангов, Статусов и Званий!</p>`);
 };
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
@@ -1824,3 +1943,5 @@ window.addNewMember = addNewMember;
 window.excludeJedi = excludeJedi;
 window.toggleKeyboardVisibility = toggleKeyboardVisibility;
 window.toggleLargeText = toggleLargeText;
+window.showSchedule = window.showSchedule;
+window.manageUserRanks = window.manageUserRanks;
