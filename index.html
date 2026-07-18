@@ -2,97 +2,57 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Акаша — Хранительница Знаний Ордена</title>
-    
-    <!-- Шрифты -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Акаша — Хранительница Знаний Ордена Вольных Джедаев</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- Стили -->
     <link rel="stylesheet" href="style.css">
-    
-    <!-- ===== PWA ===== -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a3a1a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Акаша">
-    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📜 Акаша</h1>
-            <p class="subtitle">Хранительница Знаний Ордена Вольных Джедаев</p>
-            <div id="season-indicator" class="season-indicator"></div>
-        </header>
-        
-        <button class="logout-btn" onclick="handleLogout()" style="display:none;">🚪 Выйти</button>
-        
-        <div id="chat-container" class="chat-container"></div>
-        
-        <div class="input-wrapper" id="main-input-wrapper">
-            <!-- 🔥 ЗАМЕНЕНО textarea НА div С contenteditable -->
-            <div id="custom-textarea" class="custom-textarea" contenteditable="true" placeholder="Задай вопрос Акаше..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-            
-            <!-- Кнопки управления (вне клавиатуры!) -->
-            <div class="toolbar" style="margin-bottom:5px;">
-                <button class="toolbar-btn" onclick="toggleKeyboardVisibility()" style="background:rgba(255,215,0,0.2); color:#ffd700; border-color:rgba(255,215,0,0.5); min-width:50px;" title="Скрыть/показать клавиатуру">⌨️</button>
-                <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить шрифт">🔍</button>
-                <div style="flex:1;"></div>
-                <button class="toolbar-btn lang-btn" id="lang-toggle-btn" onclick="toggleLanguage()">RU</button>
-                <button class="toolbar-btn send-btn" onclick="handleSend()">Отправить</button>
+    <div class="header">
+        <h1>📜 Акаша</h1>
+        <div class="subtitle">Хранительница Знаний Ордена Вольных Джедаев</div>
+        <div class="season-indicator" id="season-indicator">☀️ Лето</div>
+    </div>
+
+    <div class="chat-container" id="chat-container"></div>
+
+    <div class="master-chat-wrapper" id="master-chat-wrapper">
+        <div class="master-chat-container" id="master-chat-container"></div>
+        <div class="input-wrapper">
+            <textarea class="custom-textarea" id="master-chat-input" placeholder="Напиши сообщение..."></textarea>
+            <div class="input-controls">
+                <button class="control-btn" onclick="window.closeMasterChat()">🔙 Назад</button>
+                <button class="control-btn send-btn" onclick="window.sendMasterChatMessage()">📤 Отправить</button>
             </div>
-            
-            <!-- Сама клавиатура (можно скрыть) -->
-            <div id="custom-keyboard" class="custom-keyboard"></div>
-        </div>
-        
-        <div class="master-chat-wrapper" id="master-chat-wrapper" style="display:none;">
-            <div class="chat-header">💬 Личный чат с Мастером</div>
-            <div id="master-chat-container" class="chat-messages"></div>
-            <div class="chat-input-area">
-                <input type="text" id="master-chat-input" class="chat-input" placeholder="Напиши Мастеру..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text">
-                <button class="chat-send-btn" onclick="sendMasterChatMessage()"></button>
-            </div>
-            <button class="hw-btn" onclick="closeMasterChat()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>
         </div>
     </div>
-    
-    <div id="custom-modal" class="custom-modal" style="display:none;">
+
+    <div class="input-wrapper" id="main-input-wrapper">
+        <textarea class="custom-textarea" id="custom-textarea" placeholder="Задай вопрос Акаше..."></textarea>
+        <div class="input-controls">
+            <button class="control-btn" onclick="window.toggleKeyboardVisibility()">⌨️</button>
+            <button class="control-btn" onclick="window.toggleLargeText()">🔍</button>
+            <button class="control-btn" id="lang-toggle-btn" onclick="window.toggleLanguage()">RU</button>
+            <button class="control-btn send-btn" onclick="handleSend()">Отправить</button>
+        </div>
+    </div>
+
+    <div class="custom-keyboard" id="custom-keyboard"></div>
+
+    <div class="custom-modal" id="custom-modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">Заголовок</h3>
-                <button class="modal-close" onclick="closeCustomModal()">×</button>
-            </div>
-            <div class="modal-body" id="modal-body"></div>
-            <div class="modal-footer" id="modal-footer"></div>
+            <h3 id="modal-title" style="color: var(--accent-color); margin-bottom: 15px; font-family: 'Playfair Display', serif;"></h3>
+            <div id="modal-body"></div>
+            <div id="modal-footer" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;"></div>
         </div>
     </div>
-    
-    <div class="particles">
-        <div class="particle"></div><div class="particle"></div><div class="particle"></div>
-        <div class="particle"></div><div class="particle"></div><div class="particle"></div>
-        <div class="particle"></div><div class="particle"></div><div class="particle"></div>
-    </div>
 
-    <!-- Меню форматирования текста -->
-    <div id="format-menu" style="display:none;"></div>
+    <button class="logout-btn hidden" onclick="handleLogout()" style="position: fixed; top: 20px; right: 20px; z-index: 1000; background: rgba(255, 80, 80, 0.3); color: #ff6b6b; border: 1px solid rgba(255, 80, 80, 0.5); padding: 10px 15px; border-radius: 8px; cursor: pointer;">🚪 Выйти</button>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="script.js?v=5"></script>
-
-    <!-- Регистрация Service Worker для PWA -->
-    <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(reg => console.log('✅ Service Worker зарегистрирован:', reg))
-                .catch(err => console.log(' Ошибка регистрации Service Worker:', err));
-        });
-    }
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
