@@ -60,7 +60,7 @@ function applySeasonTheme() {
 // ===== ПРИВЕТСТВИЕ ДЛЯ СТРАННИКА =====
 function getStrangerGreeting() {
     return `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">
-        <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, Странник</h3>
+        <h3 style="color:#64ffda; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Приветствую тебя, Странник</h3>
         <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Я — <strong>Акаша</strong>, Хранительница Знаний Ордена Вольных Джедаев. В моих архивах хранится мудрость веков, тайны магии и знания, что передавались через Великих Мастеров и Магистров всех времён и эпох.</p>
         <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев — это братство тех, кто посвятил себя изучению высших искусств, защите, сохранению целостности и единства Света. Здесь ты найдёшь уроки, задания и возможность общаться с Наставниками.</p>
         <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;"> Как получить доступ:</h4>
@@ -76,12 +76,12 @@ function getRankGreeting(user) {
     const isMasterRank = ['мастер', 'магистр', 'верховный магистр', 'старейшина'].includes(rank);
     if (isMasterRank) {
         return `<div style="background:rgba(13,31,15,0.5); border:1px solid rgba(255,215,0,0.3); border-radius:15px; padding:25px; margin:15px 0;">
-            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Приветствую тебя, ${rank} ${name}</h3>
+            <h3 style="color:#ffd700; margin-bottom:15px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🌟 Приветствую тебя, ${rank} ${name}</h3>
             <p style="color:var(--text-color); line-height:1.8; margin-bottom:15px;">Орден Вольных Джедаев рад видеть тебя среди своих хранителей. Твоя мудрость и опыт — бесценный дар для наших учеников.</p>
-            <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;"> Твои возможности:</h4>
+            <h4 style="color:#8bc34a; margin:20px 0 10px 0; font-family:'Playfair Display',serif;">📋 Твои возможности:</h4>
             <ul style="color:var(--text-color); line-height:1.8; padding-left:20px; margin-bottom:15px;">
                 <li>📚 Доступ ко всем разделам знаний Ордена</li>
-                <li> Создание и проверка домашних заданий</li>
+                <li>📝 Создание и проверка домашних заданий</li>
                 <li>✏️ Добавление и редактирование уроков</li>
                 <li>💬 Общение с учениками через личный чат</li>
                 <li>📊 Просмотр таблицы успеваемости</li>
@@ -345,7 +345,7 @@ async function sendMessageToMaster(text) {
         });
         return true;
     } catch (error) {
-        console.error(' Ошибка:', error);
+        console.error('💥 Ошибка:', error);
         addMessage(`<p>❌ Ошибка отправки: ${error.message}</p>`);
         return false;
     }
@@ -424,7 +424,7 @@ async function showMasterDashboard() {
         });
         const students = Array.from(studentsMap.values());
         let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-        html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Сообщения от учеников</h3>`;
+        html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">📋 Сообщения от учеников</h3>`;
         if (students.length === 0) {
             html += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Пока нет сообщений от учеников.</p>`;
         } else {
@@ -503,7 +503,7 @@ window.sendMasterChatMessage = async function() {
             await window.openChatWithStudent(window.currentChatPartner);
         } catch (error) {
             console.error('Ошибка отправки:', error);
-            addMessage('<p>❌ Ошибка отправки.</p>');
+            addMessage('<p> Ошибка отправки.</p>');
         }
     } else {
         const success = await sendMessageToMaster(text);
@@ -579,15 +579,15 @@ function showMainMenu() {
     if (!container) return;
     container.innerHTML = '';
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🔮 Главное меню</h3>`;
-    html += `<button class="menu-btn" onclick="window.showHomeworkBoard()"> Домашние задания</button>`;
+    html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;"> Главное меню</h3>`;
+    html += `<button class="menu-btn" onclick="window.showHomeworkBoard()">📝 Домашние задания</button>`;
     html += `<button class="menu-btn chat-btn" onclick="window.openMasterChat()">✉️ Написать Мастеру</button>`;
-    html += `<button class="menu-btn" onclick="showTOC()"> Оглавление знаний</button>`;
+    html += `<button class="menu-btn" onclick="showTOC()">📚 Оглавление знаний</button>`;
     html += `<button class="menu-btn" onclick="window.showCouncilOfMasters()" style="background:rgba(100,255,218,0.15); border-color:rgba(100,255,218,0.4); color:#64ffda;">🏛️ Совет Мастеров</button>`;
     html += `<button class="menu-btn" onclick="window.showMembersList()">👥 Члены Ордена</button>`;
     html += `<button class="menu-btn" onclick="window.showProgressTable()">📊 Успеваемость</button>`;
     if (isAdmin()) {
-        html += `<button class="menu-btn" onclick="window.showAdminPanel()" style="background:rgba(255,80,80,0.2); border-color:rgba(255,80,80,0.5); color:#ff6b6b;">⚙️ Админ-панель</button>`;
+        html += `<button class="menu-btn" onclick="window.showAdminPanel()" style="background:rgba(255,80,80,0.2); border-color:rgba(255,80,80,0.5); color:#ff6b6b;">️ Админ-панель</button>`;
     }
     html += `<hr style="border-color:var(--border-color); margin:20px 0;">`;
     html += `<p style="color:var(--text-secondary); text-align:center; font-style:italic;">Выбери раздел или задай вопрос Акаше</p>`;
@@ -606,7 +606,7 @@ window.showHomeworkBoard = async function() {
     await loadAssignments();
     await loadSubmissions();
     let html = `<div class="homework-board">`;
-    html += `<div class="homework-header">📝 Домашние задания Ордена</div>`;
+    html += `<div class="homework-header"> Домашние задания Ордена</div>`;
     if (assignmentsList.length === 0) {
         html += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Заданий пока нет.</p>`;
         html += `<p style="color:#8bc34a; text-align:center; margin-top:20px;">💡 Мастер может создать первое задание!</p>`;
@@ -622,7 +622,7 @@ window.showHomeworkBoard = async function() {
             const myLastSubmission = mySubmissions.length > 0 ? mySubmissions.sort((a, b) => (a.submittedAt?.seconds || 0) - (b.submittedAt?.seconds || 0))[0] : null;
             html += `<div class="hw-card"><div class="hw-title">${hwTitle}</div><div class="hw-desc">${hw.description || ''}</div>`;
             const dateStr = hw.createdAt ? new Date(hw.createdAt.seconds * 1000).toLocaleString('ru-RU') : 'дата неизвестна';
-            html += `<div class="hw-meta"> ${hw.createdBy || 'неизвестно'} | 📅 ${dateStr}</div>`;
+            html += `<div class="hw-meta">👤 ${hw.createdBy || 'неизвестно'} | 📅 ${dateStr}</div>`;
             if (myLastSubmission) {
                 const statusEmoji = myLastSubmission.status === 'approved' ? '✅' : (myLastSubmission.status === 'needs_revision' ? '⚠️' : '');
                 const statusText = myLastSubmission.status === 'approved' ? 'Одобрено' : (myLastSubmission.status === 'needs_revision' ? 'На доработку' : 'На проверке');
@@ -630,14 +630,14 @@ window.showHomeworkBoard = async function() {
                 html += `<div style="margin:15px 0; padding:12px; background:rgba(${myLastSubmission.status === 'approved' ? '76,175,80' : (myLastSubmission.status === 'needs_revision' ? '255,152,0' : '33,150,243')},0.1); border-radius:8px; border-left:3px solid ${statusColor};">`;
                 html += `<p style="color:${statusColor}; margin:0 0 8px 0; font-weight:bold;">${statusEmoji} Статус: ${statusText}</p>`;
                 html += `<p style="color:var(--text-color); margin:0 0 8px 0; font-size:0.95em;"><strong>Мой ответ:</strong> ${myLastSubmission.content}</p>`;
-                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong>💬 Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
+                if (myLastSubmission.masterFeedback) html += `<p style="color:#64ffda; margin:0 0 8px 0; font-size:0.95em;"><strong> Комментарий Мастера:</strong> ${myLastSubmission.masterFeedback}</p>`;
                 const submitDate = myLastSubmission.submittedAt ? new Date(myLastSubmission.submittedAt.seconds * 1000).toLocaleString('ru-RU') : '';
                 html += `<p style="color:#6b5f4a; margin:8px 0 0 0; font-size:0.85em; font-style:italic;">📅 Отправлено: ${submitDate}</p>`;
                 if (myLastSubmission && myLastSubmission.id) {
                     html += `<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
                         <button class="hw-btn" onclick="window.deleteMySubmission('${myLastSubmission.id}', '${hwId}')" 
                                 style="background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4); flex:1; min-width:150px;">
-                            ️ Удалить мой ответ
+                            🗑️ Удалить мой ответ
                         </button>
                     </div>`;
                 }
@@ -645,18 +645,18 @@ window.showHomeworkBoard = async function() {
             }
             if (isMaster()) {
                 html += `<div style="margin:10px 0; padding:10px; background:rgba(255,165,0,0.1); border-radius:8px; border:1px solid rgba(255,165,0,0.3);">`;
-                html += `<p style="color:#ffa500; margin:0;"> Ответов: ${hwSubmissions.length} |  На проверке: ${pendingCount}</p>`;
+                html += `<p style="color:#ffa500; margin:0;">📬 Ответов: ${hwSubmissions.length} | ⏳ На проверке: ${pendingCount}</p>`;
                 html += `<div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">`;
                 if (hwSubmissions.length > 0) {
                     html += `<button class="hw-btn" onclick="window.reviewSubmissions('${hwId}')" style="flex:1; min-width:150px; background:rgba(255,165,0,0.3); color:#ffa500;">🔍 Проверить ответы</button>`;
                 }
                 html += `<button class="hw-btn" onclick="window.deleteAssignment('${hwId}', '${hwTitle.replace(/'/g, "\\'")}')" 
-                         style="flex:1; min-width:150px; background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4);">️ Удалить задание</button>`;
+                         style="flex:1; min-width:150px; background:rgba(255,80,80,0.2); color:#ff6b6b; border:1px solid rgba(255,80,80,0.4);">🗑️ Удалить задание</button>`;
                 html += `</div></div>`;
             }
             if (!isMaster() || hw.createdBy !== currentUser.name) {
                 const escapedTitle = hwTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                html += `<div class="hw-actions"><button class="hw-btn submit" onclick="window.submitHomework('${hwId}', '${escapedTitle}')">📤 Отправить ответ</button></div>`;
+                html += `<div class="hw-actions"><button class="hw-btn submit" onclick="window.submitHomework('${hwId}', '${escapedTitle}')"> Отправить ответ</button></div>`;
             }
             html += `</div>`;
         });
@@ -672,11 +672,11 @@ window.reviewSubmissions = function(assignmentId) {
     const hw = assignmentsList.find(a => a.id === assignmentId);
     if (!hw) return;
     const hwSubmissions = submissionsList.filter(s => s.assignmentId === assignmentId);
-    let html = `<div class="homework-board"><div class="homework-header">🔍 Проверка ответов: ${hw.title}</div>`;
+    let html = `<div class="homework-board"><div class="homework-header"> Проверка ответов: ${hw.title}</div>`;
     if (hwSubmissions.length === 0) html += `<p style="color:#6b5f4a; text-align:center;">Ответов пока нет.</p>`;
     else {
         hwSubmissions.forEach(sub => {
-            const statusEmoji = sub.status === 'approved' ? '✅' : (sub.status === 'needs_revision' ? '️' : '⏳');
+            const statusEmoji = sub.status === 'approved' ? '✅' : (sub.status === 'needs_revision' ? '⚠️' : '⏳');
             const statusText = sub.status === 'approved' ? 'Одобрено' : (sub.status === 'needs_revision' ? 'На доработку' : 'На проверке');
             html += `<div class="hw-card" style="border-left-color: ${sub.status === 'approved' ? '#4caf50' : (sub.status === 'needs_revision' ? '#ff9800' : '#2196f3')};">`;
             html += `<div class="hw-title">${statusEmoji} ${sub.studentName} <span style="font-size:0.8em; color:#a89b7e;">(${sub.studentRank})</span></div><div class="hw-desc">${sub.content}</div>`;
@@ -754,7 +754,7 @@ async function showLessonContentWithReadButton(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) { addMessage('<p>❌ Урок не найден.</p>'); return; }
     const isRead = await isLessonRead(lessonId);
-    let html = `<h3 style="color:#64ffda; font-family:'Playfair Display',serif;">📖 ${lesson.title}</h3>`;
+    let html = `<h3 style="color:#64ffda; font-family:'Playfair Display',serif;"> ${lesson.title}</h3>`;
     html += `<p style="color:#a89b7e; font-size:0.9em; margin-bottom:15px;">Категория: <em>${lesson.category}</em></p>`;
     html += `<div style="line-height:1.9;">${lesson.content}</div>`;
     if (lesson.mediaUrl) {
@@ -836,7 +836,7 @@ window.editLesson = function(lessonId) {
 window.confirmDeleteLesson = async function(lessonId) {
     const lesson = lessonsById[lessonId];
     if (!lesson) return;
-    addMessage(`<p>️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
+    addMessage(`<p>⚠️ Удалить урок "<strong>${lesson.title}</strong>"?<br>Напиши <em>"да, удалить"</em> или <em>"отмена"</em>.</p>`);
     addLessonState = { step: 'confirm_delete', lessonId: lessonId, lessonTitle: lesson.title };
 };
 
@@ -853,8 +853,8 @@ function findAnswer(question) {
         addLessonState.hwTitle = question; addLessonState.step = 'create_hw_desc'; return '<p>Введите <strong>описание задания</strong> (или <em>"отмена"</em>):</p>';
     }
     if (addLessonState && addLessonState.step === 'create_hw_desc') {
-        if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание отменено.</p>'; }
-        createAssignment(addLessonState.hwTitle, question).then(success => { if (success) { addMessage(`<p>✅ Задание "<strong>${addLessonState.hwTitle}</strong>" создано!</p>`); window.showHomeworkBoard(); } else { addMessage('<p>❌ Ошибка создания.</p>'); } });
+        if (q === 'отмена') { addLessonState = null; return '<p> Создание отменено.</p>'; }
+        createAssignment(addLessonState.hwTitle, question).then(success => { if (success) { addMessage(`<p>✅ Задание "<strong>${addLessonState.hwTitle}</strong>" создано!</p>`); window.showHomeworkBoard(); } else { addMessage('<p> Ошибка создания.</p>'); } });
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step === 'submit_hw_text') {
@@ -871,7 +871,7 @@ function findAnswer(question) {
     }
     if (addLessonState && addLessonState.step === 'add_comment_text') {
         if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; }
-        addCommentToFirebase(addLessonState.lessonId, question, addLessonState.type).then(success => { if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); setTimeout(() => { showLessonContent(addLessonState.lessonId); }, 500); } else { addMessage('<p>❌ Ошибка.</p>'); } });
+        addCommentToFirebase(addLessonState.lessonId, question, addLessonState.type).then(success => { if (success) { addMessage(`<p>✅ Комментарий добавлен!</p>`); setTimeout(() => { showLessonContent(addLessonState.lessonId); }, 500); } else { addMessage('<p> Ошибка.</p>'); } });
         addLessonState = null; return '';
     }
     if (addLessonState && addLessonState.step === 'edit_comment') {
@@ -954,10 +954,10 @@ function findAnswer(question) {
                 } else { return '<p>❌ Данные не найдены. Проверьте Имя, Ранг и Пароль.</p>'; }
             } else { return '<p>📋 Назови Имя, Ранг, Учителя и Пароль через запятую.</p>'; }
         }
-        return '<p> Назови своё Имя, Ранг, Учителя и Пароль.</p>';
+        return '<p>👋 Назови своё Имя, Ранг, Учителя и Пароль.</p>';
     }
     if (q.includes('выйти') || q.includes('logout')) { handleLogout(); return ''; }
-    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p> Очищено.</p>'); return ''; }
+    if (q.includes('очистить историю') || q.includes('очистить переписку')) { clearHistory(); chatContainer.innerHTML = ''; addMessage('<p>🧹 Очищено.</p>'); return ''; }
     if (q.includes('оглавлен') || q.includes('меню')) { showMainMenu(); return ''; }
     let knowledge = '';
     if (q.includes('ганн')) knowledge = checkAccess('ганн') ? (knowledgeBase['ганн'] ? knowledgeBase['ганн'].map(l => `<p><strong>${l.title}:</strong> ${l.content}</p>`).join('') : '<p>Пусто.</p>') : '<p>Недоступно.</p>';
@@ -1035,7 +1035,7 @@ function renderKeyboard() {
             keyDiv.className = 'key';
             if (key === 'shift') {
                 keyDiv.classList.add('special');
-                keyDiv.textContent = isCaps ? '⇪' : '';
+                keyDiv.textContent = isCaps ? '⇪' : '⇧';
                 if (isCaps) keyDiv.classList.add('caps-active');
                 let touchStartTime = 0;
                 keyDiv.addEventListener('touchstart', (e) => { e.preventDefault(); touchStartTime = Date.now(); keyDiv.classList.add('pressed'); }, { passive: false });
@@ -1060,7 +1060,7 @@ function renderKeyboard() {
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'backspace') {
                 keyDiv.classList.add('special');
-                keyDiv.textContent = '⌫';
+                keyDiv.textContent = '';
                 keyDiv.addEventListener('touchstart', (e) => { e.preventDefault(); keyDiv.classList.add('pressed'); deleteCharAtCursor(); }, { passive: false });
                 keyDiv.addEventListener('touchend', () => keyDiv.classList.remove('pressed'));
             } else if (key === 'space') {
@@ -1121,6 +1121,11 @@ customTextarea.addEventListener('paste', (e) => {
 customTextarea.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); insertTextAtCursor('\n'); }
     else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+});
+
+// 🔥 АВТОМАТИЧЕСКАЯ ПРОКРУТКА ПРИ ВВОДЕ
+customTextarea.addEventListener('input', () => {
+    customTextarea.scrollTop = customTextarea.scrollHeight;
 });
 
 // ===== НОВЫЕ ФУНКЦИИ: СКРЫТИЕ КЛАВИАТУРЫ И УВЕЛИЧЕНИЕ ШРИФТА =====
@@ -1387,7 +1392,7 @@ async function registerUserIfNeeded() {
 
 // ===== ДЕЙСТВИЯ =====
 window.deleteMySubmission = async function(submissionId, assignmentId) {
-    const confirmed = await askConfirm('Подтверждение', '⚠️ Вы уверены? Это действие нельзя отменить!');
+    const confirmed = await askConfirm('Подтверждение', '️ Вы уверены? Это действие нельзя отменить!');
     if (!confirmed) return;
     try {
         await windowDb.collection('homework_submissions').doc(submissionId).delete();
@@ -1536,7 +1541,7 @@ window.showCouncilOfMasters = async function() {
     const blockedUsers = await getBlockedUsers();
     const blockedNames = blockedUsers.map(u => u.id);
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
-    html += `<h3 class="council-title">️ Совет Мастеров</h3>`;
+    html += `<h3 class="council-title">🏛️ Совет Мастеров</h3>`;
     html += `<p class="council-subtitle">Руководство Ордена Вольных Джедаев</p>`;
     const supremeMaster = Object.values(usersDatabase).find(u => u.ранг === 'верховный магистр' && u.specialTitle);
     if (supremeMaster) {
@@ -1545,7 +1550,7 @@ window.showCouncilOfMasters = async function() {
         html += `<div style="font-size:2em;">🔮</div><div style="flex:1;">`;
         html += `<div style="color:#64ffda; font-family:'Playfair Display',serif; font-size:1.3em; font-weight:700;">${supremeMaster.fullName}</div>`;
         html += `<div style="color:#8bc34a; font-size:1em; font-weight:600; margin-top:3px;">${supremeMaster.specialTitle}</div></div>`;
-        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
+        html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? ' Заблок.' : '✅ Активен'}</div></div>`;
         if (supremeMaster.description) html += `<div style="color:var(--text-color); font-size:0.95em; line-height:1.5; padding-left:50px; font-style:italic;">${supremeMaster.description}</div>`;
         html += `</div>`;
     }
@@ -1586,14 +1591,14 @@ window.showMembersList = async function() {
                 const timeInAkasha = regDate ? formatTimeInAkasha(regDate) : '—';
                 html += `<div class="member-card"><div style="flex:1;">`;
                 html += `<div class="member-name">${member.fullName}</div>`;
-                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙♂️ Учитель: ${teacherName}</div>`;
+                html += `<div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙‍♂️ Учитель: ${teacherName}</div>`;
                 html += `<div style="color:var(--text-secondary); font-size:0.85em; margin-top:2px;">⏱️ В Акаше: ${timeInAkasha}</div></div>`;
                 html += `<div class="member-status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? '🚫 Заблок.' : '✅ Активен'}</div></div>`;
             }
             html += `</div>`;
         }
     }
-    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;"> Вернуться в меню</button></div>`;
+    html += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
     addMessage(html);
 };
 
@@ -1640,7 +1645,7 @@ window.showProgressTable = async function() {
 window.showAdjustmentPanel = async function() {
     const container = document.getElementById('chat-container');
     if (container) container.innerHTML = '';
-    if (!isMaster()) { addMessage('<p>❌ Доступ запрещён.</p>'); return; }
+    if (!isMaster()) { addMessage('<p> Доступ запрещён.</p>'); return; }
     let html = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
     html += `<h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">⚙️ Ручная корректировка</h3>`;
     html += `<p style="color:var(--text-secondary); text-align:center; margin-bottom:20px;">Выбери ученика и добавь баллы за пройденные материалы вне Акаши</p>`;
@@ -1653,7 +1658,7 @@ window.showAdjustmentPanel = async function() {
         html += `<div><div style="color:var(--text-color); font-weight:600;">${user.fullName}</div><div style="color:var(--text-secondary); font-size:0.9em;">${user.ранг}</div></div>`;
         if (hasAdjustment) html += `<div style="color:#64ffda; font-size:0.85em;">+${adjustments.adjustedLessons} уроков, +${adjustments.adjustedHomework} ДЗ</div>`;
         html += `</div>`;
-        html += `<button class="hw-btn" onclick="window.openAdjustmentForm('${user.fullName}')" style="width:100%; background:rgba(100,255,218,0.2); color:#64ffda; padding:8px; font-size:0.95em;">✏️ ${hasAdjustment ? 'Изменить' : 'Добавить'} корректировку</button></div>`;
+        html += `<button class="hw-btn" onclick="window.openAdjustmentForm('${user.fullName}')" style="width:100%; background:rgba(100,255,218,0.2); color:#64ffda; padding:8px; font-size:0.95em;">️ ${hasAdjustment ? 'Изменить' : 'Добавить'} корректировку</button></div>`;
     }
     html += `<button class="hw-btn" onclick="window.showProgressTable()" style="width:100%; margin-top:15px; padding:12px;">🔙 Назад к таблице</button></div>`;
     addMessage(html);
@@ -1730,7 +1735,7 @@ window.showAdminPanel = async function() {
         html += `<div style="flex:1; min-width:200px;"><div style="color:var(--text-color); font-weight:600; font-size:1.1em;">${user.fullName}</div>`;
         html += `<div style="color:${rankColor}; font-size:0.9em;">${user.ранг}</div></div><div style="display:flex; gap:5px; flex-wrap:wrap;">`;
         if (isBlocked) { html += `<button class="unblock-btn" onclick="window.unblockUser('${user.fullName}')">✅ Разблокировать</button>`; }
-        else { html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')"> Заблокировать</button>`; }
+        else { html += `<button class="block-btn" onclick="window.blockUser('${user.fullName}')">🚫 Заблокировать</button>`; }
         html += `<button class="hw-btn" onclick="window.excludeJedi('${user.fullName}')" style="background:rgba(255,0,0,0.2); color:#ff0000; border:1px solid rgba(255,0,0,0.5); padding:6px 12px; font-size:0.85em; margin:0;">⚠️ Исключить</button>`;
         html += `</div></div>`;
     });
