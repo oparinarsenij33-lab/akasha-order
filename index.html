@@ -27,7 +27,7 @@
             <div id="season-indicator" class="season-indicator"></div>
         </header>
         
-        <button class="logout-btn" onclick="handleLogout()" style="display:none;">🚪 Выйти</button>
+        <button class="logout-btn" onclick="handleLogout()" style="display:none;"> Выйти</button>
         
         <div id="chat-container" class="chat-container"></div>
         
@@ -38,7 +38,7 @@
             <!-- Кнопки управления (вне клавиатуры!) -->
             <div class="toolbar" style="margin-bottom:5px;">
                 <button class="toolbar-btn" onclick="toggleKeyboardVisibility()" style="background:rgba(255,215,0,0.2); color:#ffd700; border-color:rgba(255,215,0,0.5); min-width:50px;" title="Скрыть/показать клавиатуру">⌨️</button>
-                <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить шрифт">🔍</button>
+                <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить шрифт"></button>
                 <div style="flex:1;"></div>
                 <button class="toolbar-btn lang-btn" id="lang-toggle-btn" onclick="toggleLanguage()">RU</button>
                 <button class="toolbar-btn send-btn" onclick="handleSend()">Отправить</button>
@@ -48,14 +48,26 @@
             <div id="custom-keyboard" class="custom-keyboard"></div>
         </div>
         
+        <!-- ===== ЧАТ С МАСТЕРОМ (Ученик ↔ Учитель) ===== -->
         <div class="master-chat-wrapper" id="master-chat-wrapper" style="display:none;">
             <div class="chat-header">💬 Личный чат с Мастером</div>
             <div id="master-chat-container" class="chat-messages"></div>
             <div class="chat-input-area">
                 <input type="text" id="master-chat-input" class="chat-input" placeholder="Напиши Мастеру..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text">
-                <button class="chat-send-btn" onclick="sendMasterChatMessage()"></button>
+                <button class="chat-send-btn" onclick="sendMasterChatMessage()">📤</button>
             </div>
             <button class="hw-btn" onclick="closeMasterChat()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>
+        </div>
+        
+        <!-- ===== ЧАТ С АРХИВАРИУСОМ (отдельный библиотечный чат) ===== -->
+        <div class="archivist-chat-wrapper" id="archivist-chat-wrapper" style="display:none;">
+            <div class="chat-header">📚 Чат с Архивариусом</div>
+            <div id="archivist-chat-container" class="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="archivist-chat-input" class="chat-input" placeholder="Спросить о книге..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text">
+                <button class="chat-send-btn" onclick="sendArchivistChatMessage()">📤</button>
+            </div>
+            <button class="hw-btn" onclick="closeArchivistChat()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в Библиотеку</button>
         </div>
     </div>
     
@@ -90,7 +102,7 @@
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')
                 .then(reg => console.log('✅ Service Worker зарегистрирован:', reg))
-                .catch(err => console.log(' Ошибка регистрации Service Worker:', err));
+                .catch(err => console.log('❌ Ошибка регистрации Service Worker:', err));
         });
     }
     </script>
