@@ -1,3 +1,4 @@
+// ===================== ЧАСТЬ 1/4 — НАЧАЛО ФАЙЛА =====================
 // ===== FIREBASE CONFIG =====
 const firebaseConfig = {
     apiKey: "AIzaSyCwTw-52bQ_MxtdFAT3s9pkEN9rQ2qiMEE",
@@ -116,7 +117,7 @@ function clearHistory() { if (LOCAL_STORAGE_AVAILABLE) localStorage.removeItem(S
 function saveUserToStorage() { if (!LOCAL_STORAGE_AVAILABLE) return; if (currentUser) localStorage.setItem(USER_KEY, JSON.stringify(currentUser)); else localStorage.removeItem(USER_KEY); }
 function loadUserFromStorage() { if (!LOCAL_STORAGE_AVAILABLE) return; try { const u = JSON.parse(localStorage.getItem(USER_KEY)); if (u) { currentUser = u; updateLogoutButton(); loadLessonsFromFirebase(); loadAssignments(); loadSubmissions(); loadScheduleFromFirebase(); loadSectionsFromFirebase(); loadLibraryFromFirebase(); loadOnlineStatuses(); registerUserIfNeeded(); } } catch (e) { console.error(e); } }
 
-// ===== ДИНАМИЧЕСКАЯ ПОДГРУЗКА FIREBASE STORAGE (без правки index.html) =====
+// ===== ДИНАМИЧЕСКАЯ ПОДГРУЗКА FIREBASE STORAGE (чинит "firebase.storage is not a function") =====
 function loadFirebaseStorageSDK() {
     return new Promise((resolve, reject) => {
         if (typeof firebase !== 'undefined' && firebase.storage) { resolve(); return; }
@@ -127,17 +128,14 @@ function loadFirebaseStorageSDK() {
         document.head.appendChild(s);
     });
 }
-
 async function initFirebaseStorage() {
     try {
         await loadFirebaseStorageSDK();
-        if (typeof firebase !== 'undefined' && firebase.storage) {
-            storageRef = firebase.storage().ref();
-            console.log('✅ Firebase Storage готов');
-        }
+        if (typeof firebase !== 'undefined' && firebase.storage) { storageRef = firebase.storage().ref(); console.log('✅ Firebase Storage готов'); }
     } catch (e) { console.error('Storage init error:', e); }
 }
 
+// ===== РАЗДЕЛЫ ОГЛАВЛЕНИЯ =====
 async function loadSectionsFromFirebase() {
     sectionsList = [];
     if (LOCAL_STORAGE_AVAILABLE) { try { const s = localStorage.getItem('akasha_sections'); if (s) sectionsList = JSON.parse(s); } catch (e) {} }
@@ -188,8 +186,9 @@ window.deleteSection = async function(id, nm) {
     if (ok) { showAlert('Успех', `Раздел "${nm}" удалён!`); const s = sectionsList.find(x => x.id === id); if (s) window.showYearSections(s.year); else showTOC(); }
     else showAlert('Ошибка', 'Не удалось удалить.');
 };
-
-// ===== LIBRARY =====
+// ===================== КОНЕЦ ЧАСТИ 1/4 =====================
+// ===================== ЧАСТЬ 2 — БИБЛИОТЕКА / АРХИВАРИУС / CRUD =====================
+// ===== БИБЛИОТЕКА =====
 async function loadLibraryFromFirebase() {
     libraryDepartments = []; libraryBooks = [];
     if (LOCAL_STORAGE_AVAILABLE) { try { const d = localStorage.getItem('akasha_library_departments'); const b = localStorage.getItem('akasha_library_books'); if (d) libraryDepartments = JSON.parse(d); if (b) libraryBooks = JSON.parse(b); } catch (e) {} }
@@ -253,7 +252,7 @@ window.uploadBookFile = function(target) {
         const file = e.target.files[0];
         if (!file) return;
         if (!storageRef) {
-            addMessage('<p>❌ Хранилище ещё не готово. Подождите пару секунд и попробуйте снова, либо вставьте прямую ссылку (URL).</p>');
+            addMessage('<p>❌ Хранилище ещё не готово. Подождите пару секунд и попробуйте снова, либо вставьте прямую ссылку (URL) вместо слова "файл".</p>');
             return;
         }
         try {
@@ -276,7 +275,7 @@ window.uploadBookFile = function(target) {
     fi.click();
 };
 
-// ===== ARCHIVIST CHAT =====
+// ===== ЧАТ С АРХИВАРИУСОМ =====
 window.openArchivistChat = async function() {
     const an = 'Далисса Иденааль Вестуро';
     chatContainer.classList.add('chat-open');
@@ -345,6 +344,7 @@ async function getUnreadArchivistMessages() {
     } catch (e) { return 0; }
 }
 
+// ===== UI БИБЛИОТЕКИ =====
 window.showLibrary = async function() {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     await loadLibraryFromFirebase();
@@ -370,8 +370,7 @@ window.showLibrary = async function() {
 window.showLibraryDepartment = async function(id) {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     await loadLibraryFromFirebase();
-    const d = libraryDepartments.find(x => x.id === id);
-    if (!d) { addMessage('<p>❌ Отдел не найден!</p>'); return; }
+    const d = libraryDepartments.find(x => x.id === id); if (!d) { addMessage('<p>❌ Отдел не найден!</p>'); return; }
     const bd = libraryBooks.filter(b => b.departmentId === id);
     let h = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
     h += `<h3 style="color:#64ffda; margin-bottom:10px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">📚 ${d.name}</h3>`;
@@ -415,9 +414,8 @@ window.showBookDetails = function(id) {
     h += `<p style="color:#8bc34a; text-align:center; margin:8px 0;">✍️ ${b.author}</p>`;
     if (d) h += `<p style="color:var(--text-secondary); text-align:center; font-style:italic;">Отдел: ${d.name}</p>`;
     if (b.description) h += `<div style="background:rgba(0,0,0,0.2); border-radius:8px; padding:15px; margin:15px 0;"><p style="color:var(--text-color); line-height:1.6;">${b.description}</p></div>`;
-    if (b.fileUrl) {
-        h += `<div style="margin:15px 0; text-align:center;"><a href="${b.fileUrl}" target="_blank" style="display:inline-block; background:rgba(100,255,218,0.2); color:#64ffda; padding:12px 24px; border-radius:10px; text-decoration:none; border:1px solid rgba(100,255,218,0.4); font-size:1.1em;">📥 Открыть / скачать книгу</a></div>`;
-    } else h += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Файл книги не прикреплён.</p>`;
+    if (b.fileUrl) h += `<div style="margin:15px 0; text-align:center;"><a href="${b.fileUrl}" target="_blank" style="display:inline-block; background:rgba(100,255,218,0.2); color:#64ffda; padding:12px 24px; border-radius:10px; text-decoration:none; border:1px solid rgba(100,255,218,0.4); font-size:1.1em;">📥 Открыть / скачать книгу</a></div>`;
+    else h += `<p style="color:#6b5f4a; text-align:center; font-style:italic;">Файл книги не прикреплён.</p>`;
     h += `<button class="hw-btn" onclick="window.showLibraryDepartment('${b.departmentId}')" style="width:100%; margin-top:15px; padding:12px;">🔙 Назад к отделу</button></div>`;
     addRawHTML(h);
 };
@@ -490,7 +488,7 @@ window.deleteBook = async function(id, t) {
     else showAlert('Ошибка', 'Не удалось удалить.');
 };
 
-// ===== ONLINE STATUS =====
+// ===== ОНЛАЙН-СТАТУСЫ =====
 async function loadOnlineStatuses() { if (!windowDb) return; try { const s = await windowDb.collection('online_status').get(); onlineStatuses = {}; s.forEach(d => onlineStatuses[d.id] = d.data()); } catch (e) { console.error(e); } }
 async function updateOnlineStatus() { if (!windowDb || !currentUser) return; try { const n = firebase.firestore.Timestamp.fromDate(new Date()); await windowDb.collection('online_status').doc(currentUser.name).set({ lastSeen: n, online: true, updatedAt: n }, { merge: true }); onlineStatuses[currentUser.name] = { lastSeen: n, online: true, updatedAt: n }; } catch (e) { console.error(e); } }
 async function sendOfflineStatus() { if (!windowDb || !currentUser) return; try { const n = firebase.firestore.Timestamp.fromDate(new Date()); await windowDb.collection('online_status').doc(currentUser.name).update({ online: false, updatedAt: n }); } catch (e) { console.error(e); } }
@@ -499,6 +497,7 @@ function formatOnlineStatus(n) { const s = onlineStatuses[n]; if (!s || !s.lastS
 async function loadUsersFromFirebase() { if (!windowDb) return; try { const s = await windowDb.collection('users').get(); s.forEach(d => { const data = d.data(); const k = d.id; if (!usersDatabase[k]) usersDatabase[k] = { fullName: data.fullName, ранг: data.rank, учитель: data.teacher, пароль: data.password, specialTitle: data.specialTitle || '', description: data.description || '', статусы: data.статусы || [], звания: data.звания || [] }; }); } catch (e) { console.error(e); } }
 async function loadScheduleFromFirebase() { if (!windowDb) return; try { const s = await windowDb.collection('schedule').orderBy('dateTime', 'asc').get(); scheduleList = []; s.forEach(d => scheduleList.push({ id: d.id, ...d.data() })); } catch (e) { console.error(e); } }
 
+// ===== СООБЩЕНИЯ =====
 function addMessage(text, isUser = false, save = true) {
     const c = document.getElementById('chat-container'); if (!c) return;
     const m = document.createElement('div'); m.className = `message ${isUser ? 'user-message' : 'akasha-message'}`;
@@ -521,6 +520,7 @@ function parseMarkdown(t) {
     return t;
 }
 
+// ===== УРОКИ / ДЗ / КОММЕНТАРИИ / РАСПИСАНИЕ (загрузка + CRUD) =====
 async function loadLessonsFromFirebase() { if (!windowDb) return; try { const s = await windowDb.collection('lessons').get(); knowledgeBase = {}; lessonsById = {}; s.forEach(d => { const data = d.data(); const id = d.id; lessonsById[id] = { id, ...data }; if (!knowledgeBase[data.category]) knowledgeBase[data.category] = []; knowledgeBase[data.category].push({ id, ...data }); }); } catch (e) { console.error(e); } }
 async function loadAssignments() { if (!windowDb) return; try { const s = await windowDb.collection('homework_assignments').get(); assignmentsList = []; s.forEach(d => assignmentsList.push({ id: d.id, ...d.data() })); assignmentsList.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)); } catch (e) {} }
 async function loadSubmissions() { if (!windowDb) return; try { const s = await windowDb.collection('homework_submissions').get(); submissionsList = []; s.forEach(d => submissionsList.push({ id: d.id, ...d.data() })); } catch (e) {} }
@@ -538,7 +538,9 @@ async function addScheduleToFirebase(dt, t, m, te) { if (!windowDb) return false
 async function updateScheduleInFirebase(id, u) { if (!windowDb || !id) return false; try { await windowDb.collection('schedule').doc(id).update(u); return true; } catch (e) { return false; } }
 async function deleteScheduleFromFirebase(id) { if (!windowDb || !id) return false; try { await windowDb.collection('schedule').doc(id).delete(); return true; } catch (e) { return false; } }
 function formatDateTimeMSK(s) { if (!s) return '—'; const d = new Date(s); return d.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (МСК)'; }
-
+// ===================== КОНЕЦ ЧАСТИ 2 =====================
+// ===================== ЧАСТЬ 3 — UI: РАСПИСАНИЕ / ЧАТЫ / МЕНЮ / ОГЛАВЛЕНИЕ / ДЗ / УРОКИ =====================
+// ===== РАСПИСАНИЕ (UI) =====
 window.showSchedule = async function() {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     await loadScheduleFromFirebase();
@@ -564,6 +566,7 @@ window.startAddSchedule = function() { addMessage(`<p>📅 <strong>Добавл�
 window.editScheduleItem = function(id) { const it = scheduleList.find(s => s.id === id); if (!it) { showAlert('Ошибка', 'Не найдено!'); return; } addMessage(`<p>✏️ <strong>Редактирование</strong></p><p>📅 ${it.dateTime || '—'}</p><p>📚 ${it.topic || '—'}</p><p>📦 ${it.materials || '—'}</p><p>👤 ${it.teacher || '—'}</p><p>Что менять? <em>"дата"</em>, <em>"тема"</em>, <em>"материалы"</em>, <em>"учитель"</em>, <em>"всё"</em> или <em>"отмена"</em></p>`); addLessonState = { step: 'edit_schedule_choose', scheduleId: id, currentData: it }; };
 window.deleteScheduleItem = async function(id) { const it = scheduleList.find(s => s.id === id); if (!it) return; const c = await askConfirm('⚠️ ВНИМАНИЕ!', `Удалить занятие "${it.topic}"?`); if (!c) return; const ok = await deleteScheduleFromFirebase(id); if (ok) { showAlert('Успех', 'Удалено!'); window.showSchedule(); } else showAlert('Ошибка', 'Не удалось.'); };
 
+// ===== ЧАТЫ МАСТЕРА =====
 async function sendMessageToMaster(t) { if (!windowDb || !currentUser) return false; const mn = currentUser.учитель; if (!mn || mn === 'отсутствует') { addMessage('<p>❌ Нет назначенного Мастера!</p>'); return false; } try { await windowDb.collection('messages').add({ from: currentUser.name, to: mn, text: t, timestamp: firebase.firestore.Timestamp.fromDate(new Date()), read: false }); return true; } catch (e) { addMessage(`<p>❌ ${e.message}</p>`); return false; } }
 async function loadChatWith(p) { if (!windowDb || !currentUser) return []; try { const s1 = await windowDb.collection('messages').where('from', '==', currentUser.name).where('to', '==', p).get(); const s2 = await windowDb.collection('messages').where('from', '==', p).where('to', '==', currentUser.name).get(); const m = []; s1.forEach(d => m.push({ id: d.id, ...d.data() })); s2.forEach(d => m.push({ id: d.id, ...d.data() })); m.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0)); return m; } catch (e) { return []; } }
 async function markAsRead(f) { if (!windowDb || !currentUser) return; try { const s = await windowDb.collection('messages').where('from', '==', f).where('to', '==', currentUser.name).where('read', '==', false).get(); const b = windowDb.batch(); s.forEach(d => b.update(d.ref, { read: true })); await b.commit(); } catch (e) {} }
@@ -628,6 +631,7 @@ window.sendMasterChatMessage = async function() {
 };
 window.closeMasterChat = function() { chatContainer.classList.remove('chat-open'); document.getElementById('main-input-wrapper').style.display = 'block'; document.getElementById('master-chat-wrapper').style.display = 'none'; window.currentChatPartner = null; showMainMenu(); };
 
+// ===== ВСПОМОГАТЕЛЬНЫЕ =====
 function parseUserInput(t) {
     const d = { name: '', ранг: '', учитель: '', пароль: '' };
     const p = t.split(',');
@@ -639,6 +643,7 @@ function parseUserInput(t) {
 }
 function checkAccess(t) { const a = { 'ганн': ['адепт','юнлинг','падаван','старший падаван','рыцарь','мастер','магистр','верховный магистр','старейшина'], 'берг': ['падаван','старший падаван','рыцарь','мастер','магистр','верховный магистр','старейшина'], 'катарн': ['рыцарь','мастер','магистр','верховный магистр','старейшина'], 'крайт': ['мастер','магистр','верховный магистр','старейшина'] }; return a[t].includes(currentUser.ранг); }
 
+// ===== ГЛАВНОЕ МЕНЮ =====
 function showMainMenu() {
     const c = document.getElementById('chat-container'); if (!c) return; c.innerHTML = '';
     let h = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;">`;
@@ -657,6 +662,7 @@ function showMainMenu() {
     setTimeout(() => { c.scrollTop = c.scrollHeight; }, 50);
 }
 
+// ===== ОГЛАВЛЕНИЕ (ГОД -> РАЗДЕЛ -> УРОК) =====
 window.showTOC = async function() {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     await loadSectionsFromFirebase();
@@ -698,6 +704,7 @@ window.startAddYear = function() { addMessage(`<p>📅 <strong>Новый год
 window.startAddSection = function(y) { addMessage(`<p>📖 <strong>Раздел в ${y} год</strong></p><p>Ранг раздела: <em>адепт, юнлинг, падаван, старший падаван, рыцарь, мастер</em> или <em>"отмена"</em></p>`); addLessonState = { step: 'add_section_rank', year: y }; };
 window.startAddLessonToSection = function(id) { const s = sectionsList.find(x => x.id === id); if (!s) { addMessage('<p>❌ Раздел не найден!</p>'); return; } addMessage(`<p>📚 <strong>Урок в "${s.name}"</strong></p><p>Название урока или <em>"отмена"</em>:</p>`); addLessonState = { step: 'add_lesson_title', sectionId: id, section: s }; };
 
+// ===== ДОМАШНИЕ ЗАДАНИЯ (UI) =====
 window.showHomeworkBoard = async function() {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     await loadAssignments(); await loadSubmissions();
@@ -773,6 +780,7 @@ window.deleteAssignment = async function(id, t) {
     } catch (e) { showAlert('Ошибка', e.message); }
 };
 
+// ===== УРОКИ (UI) + КОММЕНТАРИИ =====
 async function showLessonContentWithReadButton(id) {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     if (!id) { addMessage('<p>❌ Нет ID!</p>'); return; }
@@ -812,15 +820,17 @@ window.deleteComment = async function(id, lid) { const ok = await deleteCommentF
 window.editLesson = function(id) { const l = lessonsById[id]; if (!l) return; addMessage(`<div style="background:rgba(100,255,218,0.1); border:1px solid rgba(100,255,218,0.3); border-radius:10px; padding:15px; margin:10px 0;"><p style="color:#64ffda; font-weight:bold; margin-bottom:10px;">⚠️ РЕДАКТИРОВАНИЕ</p><p><strong>Название:</strong> ${l.title}</p><p><strong>Текст:</strong> ${l.content.substring(0, 100)}${l.content.length > 100 ? '...' : ''}</p><p><strong>Медиа:</strong> ${l.mediaUrl || 'нет'}</p></div><p>Что менять? <em>"название"</em>, <em>"текст"</em>, <em>"медиа"</em>, <em>"всё"</em> или <em>"отмена"</em></p>`); addLessonState = { step: 'edit_choose', lessonId: id, currentData: l }; };
 window.confirmDeleteLesson = async function(id) { const l = lessonsById[id]; if (!l) return; addMessage(`<p>⚠️ Удалить "<strong>${l.title}</strong>"?<br><em>"да, удалить"</em> или <em>"отмена"</em></p>`); addLessonState = { step: 'confirm_delete', lessonId: id, lessonTitle: l.title }; };
 function startAddLesson() { addMessage('<p>📝 <strong>Новый урок</strong></p><p>Ранг: <em>адепт, юнлинг, падаван, рыцарь, мастер, магистр</em></p>'); addLessonState = { step: 'category' }; }
-
+// ===================== КОНЕЦ ЧАСТИ 3 =====================
+// ===================== ЧАСТЬ 4 (ПОСЛЕДНЯЯ) — findAnswer / клавиатура / модалки / админка / init / export =====================
+// ===== FIND ANSWER (все шаги) =====
 async function findAnswer(question) {
     const q = question.toLowerCase().trim();
-    // Книга
+    // Книга (5 шагов) -> делегируем в handleBookCreation (часть 2)
     if (addLessonState && ['add_book_cover','add_book_cover_upload','add_book_title','add_book_author','add_book_desc','add_book_file','add_book_file_upload'].includes(addLessonState.step)) return handleBookCreation(question);
-    // Отдел
+    // Отдел библиотеки
     if (addLessonState && addLessonState.step === 'add_department_name') { if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; } addLessonState = { step: 'add_department_desc', name: question }; return '<p><strong>Описание отдела</strong> (или <em>"нет"</em> / <em>"отмена"</em>):</p>'; }
     if (addLessonState && addLessonState.step === 'add_department_desc') { if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; } const d = q === 'нет' ? '' : question; const ok = await addDepartmentToFirebase(addLessonState.name, d); if (ok) { addMessage(`<p>✅ Отдел "<strong>${addLessonState.name}</strong>" создан!</p>`); await loadLibraryFromFirebase(); window.showLibrary(); } else addMessage('<p>❌ Ошибка.</p>'); addLessonState = null; return ''; }
-    // Год/раздел/урок
+    // Год / раздел / урок оглавления
     if (addLessonState && addLessonState.step === 'add_year') { if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; } const y = parseInt(q); if (isNaN(y) || y < 2020 || y > 2100) return '<p>❌ Год от 2020 до 2100.</p>'; addLessonState = { step: 'add_section_rank', year: y }; return `<p>Ранг раздела (${y}): <em>адепт, юнлинг, падаван, старший падаван, рыцарь, мастер</em> или <em>"отмена"</em></p>`; }
     if (addLessonState && addLessonState.step === 'add_section_rank') { if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; } const vr = ['адепт','юнлинг','падаван','старший падаван','рыцарь','мастер']; if (!vr.includes(q)) return `<p>❌ Выберите: ${vr.join(', ')}</p>`; addLessonState = { step: 'add_section_name', year: addLessonState.year, rank: q }; return `<p>Название раздела или <em>"отмена"</em>:</p>`; }
     if (addLessonState && addLessonState.step === 'add_section_name') { if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; } const y = addLessonState.year, r = addLessonState.rank, n = question, o = sectionsList.filter(s => s.year === y).length + 1; const ok = await addSectionToFirebase(y, r, n, o); if (ok) { addMessage(`<p>✅ Раздел "${n}" добавлен в ${y}!</p>`); await loadSectionsFromFirebase(); window.showYearSections(y); } else addMessage('<p>❌ Ошибка.</p>'); addLessonState = null; return ''; }
@@ -894,7 +904,7 @@ async function handleSend() { const t = customTextarea.innerText.trim(); if (!t)
 function handleLogout() { sendOfflineStatus(); currentUser = null; saveUserToStorage(); updateLogoutButton(); chatContainer.innerHTML = ''; addMessage('<p>👋 До встречи.</p>'); }
 function updateLogoutButton() { const b = document.querySelector('.logout-btn'); if (b) b.style.display = currentUser ? 'block' : 'none'; }
 
-// ===== KEYBOARD =====
+// ===== КЛАВИАТУРА =====
 const layouts = {
     ru: [['й','ц','у','к','е','н','г','ш','щ','з','х','ъ'], ['ф','ы','в','а','п','р','о','л','д','ж','э'], ['shift','я','ч','с','м','и','т','ь','б','ю','backspace'], ['123', ',', 'enter', 'space']],
     en: [['q','w','e','r','t','y','u','i','o','p'], ['a','s','d','f','g','h','j','k','l'], ['shift','z','x','c','v','b','n','m','backspace'], ['123', ',', 'enter', 'space']],
@@ -959,6 +969,7 @@ if (customTextarea) {
     customTextarea.addEventListener('input', () => { customTextarea.scrollTop = customTextarea.scrollHeight; });
 }
 
+// 🔥 Переключение кастомной клавиатуры + блокировка системной, когда кастомная активна
 function toggleKeyboardVisibility() {
     const k = document.getElementById('custom-keyboard'); const iw = document.getElementById('main-input-wrapper'); const ta = document.getElementById('custom-textarea');
     if (k.style.display === 'none') { k.style.display = 'flex'; iw.classList.remove('keyboard-hidden'); localStorage.setItem('akasha-keyboard-visible', 'true'); isCustomKeyboardActive = true; if (ta) { ta.setAttribute('readonly', 'true'); ta.setAttribute('inputmode', 'none'); } }
@@ -968,6 +979,7 @@ function restoreKeyboardState() { const v = localStorage.getItem('akasha-keyboar
 function toggleLargeText() { document.body.classList.toggle('keyboard-large-text'); localStorage.setItem('akasha-large-text', document.body.classList.contains('keyboard-large-text') ? 'true' : 'false'); }
 function restoreLargeTextPreference() { if (localStorage.getItem('akasha-large-text') === 'true') document.body.classList.add('keyboard-large-text'); }
 
+// ===== МОДАЛКИ =====
 function showCustomModal(title, body, buttons) {
     const m = document.getElementById('custom-modal'), mt = document.getElementById('modal-title'), mb = document.getElementById('modal-body'), mf = document.getElementById('modal-footer');
     if (!m || !mt || !mb || !mf) return;
@@ -981,6 +993,7 @@ function askPrompt(title, msg, def = '') { return new Promise(r => { currentModa
 function askConfirm(title, msg) { return new Promise(r => { currentModalResolve = r; showCustomModal(title, `<p>${msg}</p>`, [{ text: 'Отмена', class: 'hw-btn', action: () => r(false) }, { text: 'Подтвердить', class: 'hw-btn', style: 'background:rgba(255,80,80,0.3); color:#ff6b6b;', action: () => r(true) }]); }); }
 function showAlert(title, msg) { return new Promise(r => { showCustomModal(title, `<p>${msg}</p>`, [{ text: 'OK', class: 'hw-btn', action: () => r() }]); }); }
 
+// ===== БЛОКИРОВКИ / ЧТЕНИЯ / РЕГУЛИРОВКИ / РЕГИСТРАЦИЯ =====
 async function isUserBlocked(n) { if (!windowDb) return false; try { const d = await windowDb.collection('blocked_users').doc(n).get(); return d.exists && d.data().blocked === true; } catch (e) { return false; } }
 async function blockUserInDb(n, r) { if (!windowDb) return false; try { await windowDb.collection('blocked_users').doc(n).set({ blocked: true, reason: r, blockedBy: currentUser.name, blockedAt: firebase.firestore.Timestamp.fromDate(new Date()) }, { merge: true }); return true; } catch (e) { return false; } }
 async function unblockUserInDb(n) { if (!windowDb) return false; try { await windowDb.collection('blocked_users').doc(n).update({ blocked: false, unblockedAt: firebase.firestore.Timestamp.fromDate(new Date()) }); return true; } catch (e) { return false; } }
@@ -995,6 +1008,7 @@ function calculateGrade(lr, hd, tl, th, al, ah) { const rs = lr + hd, as = rs + 
 function formatTimeInAkasha(d) { const n = new Date(), df = n - d, dy = Math.floor(df / 86400000), h = Math.floor((df % 86400000) / 3600000); if (dy > 0) return `${dy} дн. ${h} ч.`; if (h > 0) return `${h} ч.`; return 'только что'; }
 async function registerUserIfNeeded() { if (!currentUser || !windowDb) return; try { const d = await windowDb.collection('user_registrations').doc(currentUser.name).get(); if (!d.exists) await windowDb.collection('user_registrations').doc(currentUser.name).set({ userName: currentUser.name, userRank: currentUser.ранг, registeredAt: firebase.firestore.Timestamp.fromDate(new Date()) }); } catch (e) {} }
 
+// ===== ДЗ / АДМИН window-функции =====
 window.deleteMySubmission = async function(id, aid) { const c = await askConfirm('Подтверждение', '⚠️ Удалить ваш ответ?'); if (!c) return; try { await windowDb.collection('homework_submissions').doc(id).delete(); showAlert('Успех', 'Удалено!'); window.showHomeworkBoard(); } catch (e) { showAlert('Ошибка', e.message); } };
 window.gradeSubmission = async function(id, aid, st) { const fb = await askPrompt('Комментарий', 'Комментарий (можно пусто):', ''); if (fb === null) return; const ok = await updateSubmissionStatus(id, st, fb); if (ok) { showAlert('Успех', 'Обновлено!'); window.reviewSubmissions(aid); } else showAlert('Ошибка', 'Ошибка.'); };
 window.addFeedback = async function(id, aid) { const fb = await askPrompt('Комментарий Мастера', 'Комментарий:', ''); if (!fb) return; const s = submissionsList.find(x => x.id === id); const cf = s.masterFeedback || ''; const nf = cf ? cf + '\n\n' + fb : fb; const ok = await updateSubmissionStatus(id, s.status, nf); if (ok) { showAlert('Успех', 'Добавлено!'); window.reviewSubmissions(aid); } else showAlert('Ошибка', 'Ошибка.'); };
@@ -1004,6 +1018,7 @@ window.openAdjustmentForm = async function(n) { if (!windowDb) return showAlert(
 window.addNewMember = async function() { if (!windowDb) return showAlert('Ошибка', 'База не подключена!'); if (!isAdmin()) return showAlert('Доступ запрещён', 'Только Магистрам.'); const n = await askPrompt('Новый член', 'Полное имя:'); if (!n) return; const r = await askPrompt('Ранг', 'Ранг:'); if (!r) return; const t = await askPrompt('Учитель', 'Учитель (или "нет"):', 'нет'); if (!t) return; const p = await askPrompt('Пароль', 'Пароль (мин. 6):'); if (!p || p.length < 6) return showAlert('Ошибка', 'Пароль мин. 6 символов!'); const st = await askPrompt('Спец. звание', 'Спец. звание (можно пусто):', ''); const d = await askPrompt('Описание', 'Описание (можно пусто):', ''); try { const nn = n.toLowerCase().trim(); if (usersDatabase[nn]) return showAlert('Ошибка', 'Уже существует!'); await windowDb.collection('users').doc(nn).set({ fullName: n, rank: r.toLowerCase().trim(), teacher: (t.toLowerCase().trim() === 'нет' || t.toLowerCase().trim() === 'отсутствует') ? 'отсутствует' : t, password: p, specialTitle: st || '', description: d || '', статусы: [], звания: [], createdAt: firebase.firestore.Timestamp.fromDate(new Date()), createdBy: currentUser.name }); usersDatabase[nn] = { fullName: n, ранг: r.toLowerCase().trim(), учитель: (t.toLowerCase().trim() === 'нет' || t.toLowerCase().trim() === 'отсутствует') ? 'отсутствует' : t, пароль: p, specialTitle: st || '', description: d || '', статусы: [], звания: [] }; showAlert('Успех', `${n} добавлен!`); window.showAdminPanel(); } catch (e) { showAlert('Ошибка', e.message); } };
 window.excludeJedi = async function(n) { if (!windowDb) return showAlert('Ошибка', 'База не подключена!'); if (!isAdmin()) return showAlert('Доступ запрещён', 'Только Магистрам.'); const c = await askConfirm('⚠️ ВНИМАНИЕ!', `ИСКЛЮЧИТЬ ${n}?\nНЕОБРАТИМО!`); if (!c) return; const ct = await askPrompt('Подтверждение', 'Напишите "ИСКЛЮЧИТЬ":'); if (ct !== 'ИСКЛЮЧИТЬ') return showAlert('Отменено', 'Отменено.'); try { const nn = n.toLowerCase().trim(); await windowDb.collection('users').doc(nn).delete(); const rs = await windowDb.collection('lesson_reads').where('userId', '==', n).get(); if (!rs.empty) { const b = windowDb.batch(); rs.forEach(d => b.delete(d.ref)); await b.commit(); } const ss = await windowDb.collection('homework_submissions').where('studentName', '==', n).get(); if (!ss.empty) { const b = windowDb.batch(); ss.forEach(d => b.delete(d.ref)); await b.commit(); } const cs = await windowDb.collection('comments').where('authorName', '==', n).get(); if (!cs.empty) { const b = windowDb.batch(); cs.forEach(d => b.delete(d.ref)); await b.commit(); } delete usersDatabase[nn]; showAlert('Успех', `${n} исключён.`); window.showAdminPanel(); } catch (e) { showAlert('Ошибка', e.message); } };
 
+// ===== СОВЕТ / ЧЛЕНЫ / УСПЕВАЕМОСТЬ =====
 window.showCouncilOfMasters = async function() {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     const bu = await getBlockedUsers(); const bn = bu.map(u => u.id);
@@ -1019,10 +1034,10 @@ window.showMembersList = async function() {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     const bu = await getBlockedUsers(); const bn = bu.map(u => u.id);
     let h = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;"><h3 style="color:#64ffda; margin-bottom:25px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">👥 Члены Ордена</h3><p style="color:var(--text-secondary); text-align:center; margin-bottom:20px; font-style:italic;">От Адепта до Старейшины</p>`;
-    ['старейшина','верховный магистр','магистр','мастер','рыцарь','старший падаван','падаван','юнлинг','адепт'].forEach(r => {
+    for (const r of ['старейшина','верховный магистр','магистр','мастер','рыцарь','старший падаван','падаван','юнлинг','адепт']) {
         const m = Object.values(usersDatabase).filter(u => u.ранг === r);
-        if (m.length > 0) { h += `<div style="margin:20px 0;"><h4 style="color:var(--accent-color); font-family:'Playfair Display',serif; font-size:1.3em; margin-bottom:10px; border-bottom:2px solid var(--border-color); padding-bottom:8px;">${r}</h4>`; m.forEach(mb => { const ib = bn.includes(mb.fullName); const tn = mb.учитель && mb.учитель !== 'отсутствует' ? mb.учитель : 'нет'; const rd = await getUserRegistrationDate(mb.fullName); const ta = rd ? formatTimeInAkasha(rd) : '—'; h += `<div class="member-card"><div style="flex:1;"><div class="member-name">${mb.fullName} ${formatOnlineStatus(mb.fullName)}</div><div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙‍♂️ Учитель: ${tn}</div><div style="color:var(--text-secondary); font-size:0.85em; margin-top:2px;">⏱️ В Акаше: ${ta}</div></div><div class="member-status ${ib ? 'status-blocked' : 'status-active'}">${ib ? '🚫 Заблок.' : '✅ Активен'}</div></div>`; }); h += `</div>`; }
-    });
+        if (m.length > 0) { h += `<div style="margin:20px 0;"><h4 style="color:var(--accent-color); font-family:'Playfair Display',serif; font-size:1.3em; margin-bottom:10px; border-bottom:2px solid var(--border-color); padding-bottom:8px;">${r}</h4>`; for (const mb of m) { const ib = bn.includes(mb.fullName); const tn = mb.учитель && mb.учитель !== 'отсутствует' ? mb.учитель : 'нет'; const rd = await getUserRegistrationDate(mb.fullName); const ta = rd ? formatTimeInAkasha(rd) : '—'; h += `<div class="member-card"><div style="flex:1;"><div class="member-name">${mb.fullName} ${formatOnlineStatus(mb.fullName)}</div><div style="color:var(--text-secondary); font-size:0.9em; margin-top:3px;">🧙‍♂️ Учитель: ${tn}</div><div style="color:var(--text-secondary); font-size:0.85em; margin-top:2px;">⏱️ В Акаше: ${ta}</div></div><div class="member-status ${ib ? 'status-blocked' : 'status-active'}">${ib ? '🚫 Заблок.' : '✅ Активен'}</div></div>`; } h += `</div>`; }
+    }
     h += `<button class="hw-btn" onclick="showMainMenu()" style="width:100%; margin-top:15px; padding:12px;">🔙 Вернуться в меню</button></div>`;
     addRawHTML(h);
 };
@@ -1054,6 +1069,8 @@ window.showDetailedProgress = async function() {
     h += `<button class="hw-btn" onclick="window.showProgressTable()" style="width:100%; margin-top:15px; padding:12px;">🔙 Назад</button></div>`;
     addRawHTML(h);
 };
+
+// ===== АДМИН-ПАНЕЛЬ =====
 window.showAdminPanel = async function() {
     const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     if (!isAdmin()) { addMessage('<p>❌ Запрещено.</p>'); return; }
@@ -1064,9 +1081,10 @@ window.showAdminPanel = async function() {
     addRawHTML(h);
 };
 
-// 🔥 ГЛАВНОЕ ИСПРАВЛЕНИЕ: очистка контейнера в начале (иначе блоки копились и select ломался)
+// 🔥🔥🔥 ГЛАВНЫЙ ФИКС БАГА «Выберите статус/звание»: очистка контейнера в начале,
+// чтобы блоки «Управление кадрами» не наслаивались и select читался верно.
 window.manageUserRanks = async function(userKey) {
-    const c = document.getElementById('chat-container'); if (c) c.innerHTML = ''; // 🔥 ОЧИСТКА
+    const c = document.getElementById('chat-container'); if (c) c.innerHTML = '';
     const u = usersDatabase[userKey];
     if (!u) { showAlert('Ошибка', 'Пользователь не найден!'); return; }
     let h = `<div style="background:rgba(13,31,15,0.5); border:1px solid var(--border-color); border-radius:15px; padding:25px; margin:15px 0;"><h3 style="color:#64ffda; margin-bottom:20px; font-family:'Playfair Display',serif; text-align:center; font-size:1.8em;">🎖️ Управление кадрами</h3>`;
@@ -1091,6 +1109,8 @@ window.manageUserRanks = async function(userKey) {
 window.handleRankChange = function() {};
 window.handleStatusChange = function() { const s = document.getElementById('status-select'); const ci = document.getElementById('council-input-wrapper'); const cu = document.getElementById('custom-status-input-wrapper'); if (!s) return; if (s.value === 'Член Совета') { ci.style.display = 'block'; cu.style.display = 'none'; } else if (s.value === 'Другие') { ci.style.display = 'none'; cu.style.display = 'block'; } else { ci.style.display = 'none'; cu.style.display = 'none'; } };
 window.handleTitleChange = function() { const s = document.getElementById('title-select'); const ci = document.getElementById('title-clarification-input-wrapper'); if (!s) return; ci.style.display = ['Рыцарь','Мастер','Предвестник','Вестник','Лорд','Леди'].includes(s.value) ? 'block' : 'none'; };
+
+// 🔥 Ранг: создаёт документ, если его нет в Firestore (иначе update падает)
 window.changeUserRank = async function(k) {
     const s = document.getElementById('rank-select'); if (!s) { showAlert('Ошибка', 'Список не найден.'); return; }
     const nr = s.value; let ti = '';
@@ -1104,6 +1124,7 @@ window.changeUserRank = async function(k) {
         showAlert('Успех', `Ранг → "${nr}"!`); window.manageUserRanks(k);
     } catch (e) { showAlert('Ошибка', e.message); }
 };
+// 🔥 Статус: проверка «ничего не выбрано» + создание дока при отсутствии + fallback на usersDatabase
 window.addUserStatus = async function(k) {
     const s = document.getElementById('status-select'); if (!s) { showAlert('Ошибка', 'Список не найден. Обновите страницу.'); return; }
     const ci = document.getElementById('council-name-input'); const cu = document.getElementById('custom-status-input');
@@ -1131,6 +1152,7 @@ window.removeUserStatus = async function(k, i) {
         usersDatabase[k].статусы = nn; showAlert('Успех', 'Удалено!'); window.manageUserRanks(k);
     } catch (e) { showAlert('Ошибка', e.message); }
 };
+// 🔥 Звание: проверка «ничего не выбрано» + создание дока при отсутствии + fallback
 window.addUserTitle = async function(k) {
     const s = document.getElementById('title-select'); if (!s) { showAlert('Ошибка', 'Список не найден. Обновите страницу.'); return; }
     const ci = document.getElementById('title-clarification-input');
@@ -1159,7 +1181,7 @@ window.removeUserTitle = async function(k, i) {
     } catch (e) { showAlert('Ошибка', e.message); }
 };
 
-// ===== INIT =====
+// ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', async () => {
     if (isInitialized) return; isInitialized = true;
     applySeasonTheme(); renderKeyboard();
@@ -1180,5 +1202,6 @@ window.addEventListener('beforeunload', () => { sendOfflineStatus(); if (heartbe
 window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { sendOfflineStatus(); if (heartbeatTimer) clearInterval(heartbeatTimer); } else if (currentUser) { updateOnlineStatus(); heartbeatTimer = setInterval(updateOnlineStatus, 30000); } });
 window.addEventListener('resize', () => { if (window.visualViewport) { const kh = window.innerHeight - window.visualViewport.height; document.body.style.paddingBottom = kh > 150 ? '350px' : '300px'; } });
 
-// ===== EXPORT =====
+// ===== ЭКСПОРТ ВСЕХ window-ФУНКЦИЙ =====
 window.showLessonContent = showLessonContent; window.startAddLesson = startAddLesson; window.editLesson = editLesson; window.confirmDeleteLesson = confirmDeleteLesson; window.startAddComment = startAddComment; window.editComment = editComment; window.deleteComment = deleteComment; window.showHomeworkBoard = window.showHomeworkBoard; window.startCreateAssignment = startCreateAssignment; window.submitHomework = submitHomework; window.deleteMySubmission = window.deleteMySubmission; window.deleteAssignment = window.deleteAssignment; window.openMasterChat = window.openMasterChat; window.closeMasterChat = window.closeMasterChat; window.openChatWithStudent = window.openChatWithStudent; window.reviewSubmissions = window.reviewSubmissions; window.gradeSubmission = window.gradeSubmission; window.addFeedback = window.addFeedback; window.sendMasterChatMessage = window.sendMasterChatMessage; window.showMembersList = window.showMembersList; window.showProgressTable = window.showProgressTable; window.showAdjustmentPanel = window.showAdjustmentPanel; window.openAdjustmentForm = window.openAdjustmentForm; window.showDetailedProgress = window.showDetailedProgress; window.showAdminPanel = window.showAdminPanel; window.blockUser = window.blockUser; window.unblockUser = window.unblockUser; window.markLessonRead = window.markLessonRead; window.showCouncilOfMasters = window.showCouncilOfMasters; window.addNewMember = window.addNewMember; window.excludeJedi = window.excludeJedi; window.toggleKeyboardVisibility = toggleKeyboardVisibility; window.toggleLargeText = toggleLargeText; window.showSchedule = window.showSchedule; window.manageUserRanks = window.manageUserRanks; window.handleStatusChange = window.handleStatusChange; window.handleTitleChange = window.handleTitleChange; window.changeUserRank = window.changeUserRank; window.addUserStatus = window.addUserStatus; window.removeUserStatus = window.removeUserStatus; window.addUserTitle = window.addUserTitle; window.removeUserTitle = window.removeUserTitle; window.editScheduleItem = window.editScheduleItem; window.deleteScheduleItem = window.deleteScheduleItem; window.startAddSchedule = window.startAddSchedule; window.handleRankChange = window.handleRankChange; window.showTOC = window.showTOC; window.showYearSections = window.showYearSections; window.showSectionLessons = window.showSectionLessons; window.startAddYear = window.startAddYear; window.startAddSection = window.startAddSection; window.startAddLessonToSection = window.startAddLessonToSection; window.editSection = window.editSection; window.deleteSection = window.deleteSection; window.showLibrary = window.showLibrary; window.showLibraryDepartment = window.showLibraryDepartment; window.showBookDetails = window.showBookDetails; window.startAddDepartment = window.startAddDepartment; window.startAddBook = window.startAddBook; window.deleteDepartment = window.deleteDepartment; window.deleteBook = window.deleteBook; window.openArchivistChat = window.openArchivistChat; window.sendArchivistChatMessage = window.sendArchivistChatMessage; window.closeArchivistChat = window.closeArchivistChat; window.uploadBookFile = window.uploadBookFile;
+// ===================== ЭТО ПОСЛЕДНЯЯ ЧАСТЬ — ФАЙЛ СОБРАН ЦЕЛИКОМ =====================
