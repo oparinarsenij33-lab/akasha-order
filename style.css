@@ -150,8 +150,8 @@ h1 {
     font-family: 'Cormorant Garamond', serif;
     font-weight: 400;
     letter-spacing: 0.5px;
-    user-select: none;
-    -webkit-user-select: none;
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 /* ФОРМАТИРОВАНИЕ АБЗАЦЕВ */
@@ -1092,3 +1092,8 @@ h1 {
     .chat-container { max-height: calc(100vh - 400px) !important; }
     .key { height: 42px; font-size: 1.5em; }
 }
+
+/* ===== ИСПРАВЛЕНИЕ ДЛЯ Safari ===== */
+.custom-textarea::-webkit-scrollbar { width: 8px; }
+.custom-textarea::-webkit-scrollbar-track { background: rgba(13, 31, 15, 0.3); }
+.custom-textarea::-webkit-scrollbar-thumb { background: var(--accent-color); }
