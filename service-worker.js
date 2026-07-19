@@ -43,15 +43,24 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Перехват запросов
+//  ИСПРАВЛЕНИЕ: Перехват запросов — НЕ КЭШИРУЕМ HTML
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
+    // НЕ кэшируем HTML — всегда берём свежий с сервера
+    if (event.request.url.endsWith('.html') || 
+        event.request.url.endsWith('/') || 
+        event.request.url.includes('index.html')) {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+    
+    // Остальное (CSS, JS, картинки, шрифты) — из кэша
+    event.respondWith(
+        caches.match(event.request)
+            .then(response => {
+                if (response) {
+                    return response;
+                }
+                return fetch(event.request);
+            })
+    );
 });
