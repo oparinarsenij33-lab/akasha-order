@@ -2811,3 +2811,120 @@ window.findAnswer = async function (question) {
   });
 })();
 // =========================================================
+// =========================================================
+// 📚 УМНАЯ ЗАГРУЗКА КНИГ/ОБЛОЖЕК: сжатие обложек + терпеливые повторы + тип файла
+// (перекрывает старую window.uploadBookFile — старую не удаляем)
+// =========================================================
+window.__storageRetrySet = window.__storageRetrySet || false;
+function tuneStorageRetries() {
+  if (window.__storageRetrySet) return;
+  try {
+    if (typeof firebase !== 'undefined' && firebase.storage) {
+      var st = firebase.storage();
+      if (st) { st.maxUploadRetryTime = 15 * 60 * 1000; st.maxOperationRetryTime = 5 * 60 * 1000; }
+      window.__storageRetrySet = true;
+    }
+  } catch (e) {}
+}
+
+function compressImageForUpload(file) {
+  return new Promise(function (resolve) {
+    try {
+      if (!file || !file.type || file.type.indexOf('image/') !== 0) { resolve(file); return; }
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        try {
+          var MAX = 1200;
+          var w = img.width, h = img.height;
+          if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob(function (blob) {
+            URL.revokeObjectURL(url);
+            if (!blob || blob.size >= file.size) { resolve(file); return; } // если сжатие не помогло — шлём оригинал
+            resolve(new File([blob], (file.name || 'cover.jpg').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.82);
+        } catch (e) { URL.revokeObjectURL(url); resolve(file); }
+      };
+      img.onerror = function () { try { URL.revokeObjectURL(url); } catch (e) {} resolve(file); };
+      img.src = url;
+    } catch (e) { resolve(file); }
+  });
+}
+
+window.uploadBookFile = function (target) {
+  tuneStorageRetries();
+  var fi = document.createElement('input');
+  fi.type = 'file';
+  fi.accept = target === 'cover' ? 'image/*' : '.pdf,.epub,.fb2,.txt,.doc,.docx,application/pdf,application/epub+zip,text/plain';
+  fi.onchange = async function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    if (!storageRef) { addMessage('<p>❌ Хранилище не готово. Подождите 5 секунд и попробуйте снова.</p>'); return; }
+    // обложки жмём на устройстве ДО загрузки (8 МБ с камеры -> ~150 КБ)
+    if (target === 'cover') {
+      try { addMessage('<p>🖼️ Подготовка обложки…</p>'); file = await compressImageForUpload(file); } catch (e) {}
+    }
+    try {
+      var path = (target === 'cover' ? 'library/covers/' : 'library/books/') + Date.now() + '_' + file.name;
+      var ref = storageRef.child(path);
+      var progressId = 'upload-' + Date.now();
+      var sizeKb = Math.round(file.size / 1024);
+      var sizeLabel = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' МБ' : sizeKb + ' КБ';
+      addMessage('<div id="' + progressId + '" style="background:rgba(0,0,0,0.4);border-radius:10px;padding:15px;margin:10px 0;border:1px solid var(--border-color);"><p style="color:#64ffda;margin:0 0 10px 0;font-weight:bold;">📥 Загружаю "' + file.name + '" (' + sizeLabel + ')…</p><div style="background:rgba(255,255,255,0.1);border-radius:10px;height:25px;overflow:hidden;position:relative;"><div id="bar-' + progressId + '" style="background:linear-gradient(90deg,#64ffda 0%,#8bc34a 100%);height:100%;width:0%;transition:width 0.5s ease;display:flex;align-items:center;justify-content:center;min-width:30px;"><span id="pct-' + progressId + '" style="color:#0d1f0f;font-weight:bold;font-size:0.85em;">0%</span></div></div><p id="status-' + progressId + '" style="color:#a89b7e;margin:8px 0 0 0;font-size:0.9em;">⏳ Соединение с хранилищем…</p></div>');
+      var uploadTask = ref.put(file, { contentType: file.type || 'application/octet-stream' });
+      var t15 = setTimeout(function () {
+        var s = document.getElementById('status-' + progressId);
+        if (s) s.innerHTML = '⏳ Загрузка идёт, канал медленный…<br><small style="color:#6b5f4a;">Для больших книг на мобильном интернете это нормально (минуту-две). <b>Не закрывайте страницу.</b></small>';
+      }, 15000);
+      var t45 = setTimeout(function () {
+        var s = document.getElementById('status-' + progressId);
+        if (s) s.innerHTML = '⏳ Канал очень медленный, но загрузка <b>не остановилась</b>.<br><small style="color:#6b5f4a;">Держим соединение, повторяем попытки. Просто подождите — не закрывайте вкладку.</small>';
+      }, 45000);
+      uploadTask.on('state_changed',
+        function (snapshot) {
+          var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          var bar = document.getElementById('bar-' + progressId);
+          var pct = document.getElementById('pct-' + progressId);
+          var status = document.getElementById('status-' + progressId);
+          if (bar && pct && status) {
+            var rounded = Math.round(progress);
+            bar.style.width = rounded + '%'; pct.textContent = rounded + '%';
+            if (rounded < 25) status.textContent = '📤 Загрузка… (' + rounded + '%)';
+            else if (rounded < 50) status.textContent = '🔄 Продолжается… (' + rounded + '%)';
+            else if (rounded < 75) status.textContent = '💪 Больше половины! (' + rounded + '%)';
+            else if (rounded < 100) status.textContent = '✨ Почти готово! (' + rounded + '%)';
+            else status.textContent = '✅ Завершено!';
+          }
+        },
+        function (error) {
+          clearTimeout(t15); clearTimeout(t45);
+          console.error('❌ Ошибка загрузки:', error);
+          var c = document.getElementById(progressId);
+          if (c) c.innerHTML = '<p style="color:#ff6b6b;margin:0;">❌ Ошибка: ' + error.message + '</p><p style="color:#a89b7e;margin:10px 0 0 0;font-size:0.9em;">💡 Канал оборвался. Напишите <em>"файл"</em> ещё раз — повторим. Для больших книг попробуйте Wi‑Fi.</p>';
+        },
+        async function () {
+          clearTimeout(t15); clearTimeout(t45);
+          try {
+            var downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+            var c = document.getElementById(progressId);
+            if (c) c.innerHTML = '<p style="color:#4caf50;margin:0;font-weight:bold;">✅ Загружено!</p><p style="color:#a89b7e;margin:5px 0 0 0;font-size:0.9em;">Файл сохранён в хранилище Firebase.</p>';
+            if (target === 'cover') { addLessonState.coverUrl = downloadURL; addMessage('<p>✅ Обложка загружена! Напишите <em>"готово"</em> для продолжения или <em>"отмена"</em>.</p>'); }
+            else { addLessonState.fileUrl = downloadURL; addMessage('<p>✅ Файл книги загружен! Напишите <em>"готово"</em> для сохранения книги или <em>"отмена"</em>.</p>'); }
+          } catch (err) {
+            var c2 = document.getElementById(progressId);
+            if (c2) c2.innerHTML = '<p style="color:#ff6b6b;margin:0;">❌ Ошибка: ' + err.message + '</p>';
+          }
+        }
+      );
+    } catch (err) {
+      console.error('Критическая ошибка:', err);
+      addMessage('<p>❌ Ошибка: ' + err.message + '</p>');
+    }
+  };
+  fi.click();
+};
+// =========================================================
