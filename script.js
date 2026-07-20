@@ -32,7 +32,13 @@ function isSameOrHigherRank(a, b) { return getRankLevel(a) >= getRankLevel(b); }
 function hasStatus(u, s) { return !!(u.статусы) && u.статусы.some(x => typeof x === 'string' && x.toLowerCase() === s.toLowerCase()); }
 function hasTitle(u, t) { return !!(u.звания) && u.звания.some(x => typeof x === 'object' && x.звание.toLowerCase() === t.toLowerCase()); }
 function canEditSchedule() { return !!currentUser && getRankLevel(currentUser.ранг) >= getRankLevel('старший падаван'); }
-function isArchivist() { return currentUser && (hasStatus(currentUser, 'Архивариус') || currentUser.fullName === 'Далисса Иденааль Вестуро'); }
+function isArchivist() {
+  if (!currentUser) return false;
+  const me = Object.values(usersDatabase).find(x => x.fullName === currentUser.name);
+  if (me) { if (hasStatus(me, 'Архивариус') || hasTitle(me, 'Архивариус') || me.fullName === 'Далисса Иденааль Вестуро') return true; }
+  if (currentUser.fullName === 'Далисса Иденааль Вестуро') return true;
+  return false;
+}
 function isAdmin() { return currentUser && ['магистр', 'верховный магистр', 'старейшина'].includes(currentUser.ранг); }
 function isMaster() { return currentUser && ['мастер', 'магистр', 'верховный магистр', 'старейшина'].includes(currentUser.ранг); }
 const accessLevels = {
