@@ -2776,3 +2776,37 @@ window.findAnswer = async function (question) {
   return _prevFindAnswerForChapter.call(this, question);
 };
 // =========================================================
+// =========================================================
+// 📦 РЕГИСТРАЦИЯ SERVICE WORKER + визуальный статус (без консоли)
+// =========================================================
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  var helloKey = 'akasha_sw_ready_day';
+  var today = function () { return new Date().toDateString(); };
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').then(function (reg) {
+      try { if (typeof showAkashaToast === 'function') showAkashaToast('📦 Приложение обновляется', 'Кэш оболочки ставится на планшет…'); } catch (e) {}
+      // новый SW пришёл — скажем, что со следующего открытия оффлайн заработает
+      var onNew = function () { try { if (typeof showAkashaToast === 'function') showAkashaToast('✅ Обновление готово', 'Закрой и открой Акашу заново — и она будет работать даже без сети.'); } catch (e) {} };
+      if (reg.waiting) { onNew(); return; }
+      if (reg.installing) { reg.installing.addEventListener('statechange', function () { if (this.state === 'installed' && navigator.serviceWorker.controller) onNew(); }); }
+      reg.addEventListener && reg.addEventListener('updatefound', function () {
+        var nw = reg.installing; if (!nw) return;
+        nw.addEventListener('statechange', function () { if (this.state === 'installed' && navigator.serviceWorker.controller) onNew(); });
+      });
+    }).catch(function (err) {
+      try { if (typeof showAkashaToast === 'function') showAkashaToast('⚠️ SW не встал', String(err && err.message || err)); } catch (e) {}
+      console.error('SW register error', err);
+    });
+    // когда SW взял контроль — один раз в день покажем «готово оффлайн»
+    navigator.serviceWorker.ready.then(function () {
+      try {
+        if (localStorage.getItem(helloKey) !== today()) {
+          localStorage.setItem(helloKey, today());
+          if (typeof showAkashaToast === 'function') showAkashaToast('✅ Акаша готова к оффлайну', 'Оболочка в кэше. При обрыве связи интерфейс останется на месте.');
+        }
+      } catch (e) {}
+    }).catch(function () {});
+  });
+})();
+// =========================================================
