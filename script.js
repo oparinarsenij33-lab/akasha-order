@@ -1871,10 +1871,7 @@ console.log('✅ Firebase и Storage инициализированы');
 setTimeout(async () => {
 if (windowDb) {
 loadUserFromStorage();
-await loadUsersFromFirebase();
-await loadOnlineStatuses();
-await loadSectionsFromFirebase();
-await loadLibraryFromFirebase();
+await Promise.all([loadUsersFromFirebase(), loadOnlineStatuses(), loadSectionsFromFirebase(), loadLibraryFromFirebase()]);
 loadHistoryFromStorage();
 const container = document.getElementById('chat-container');
 if (container) container.innerHTML = '';
