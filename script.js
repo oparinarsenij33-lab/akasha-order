@@ -2534,3 +2534,193 @@ async function loadUsersFromFirebase() {
   } catch (error) { console.error('Ошибка загрузки пользователей:', error); }
 }
 // =========================================================
+// =========================================================
+// 📑 ГЛАВЫ / ТЕМЫ в оглавлении (Год → Раздел → Глава → Уроки)
+// =========================================================
+let chaptersList = [];
+
+async function loadChaptersFromFirebase(sectionId) {
+  if (!windowDb) return [];
+  try {
+    const snap = await windowDb.collection('chapters').where('sectionId', '==', sectionId).get();
+    const arr = [];
+    snap.forEach(function (d) { arr.push({ id: d.id, ...d.data() }); });
+    arr.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+    return arr;
+  } catch (e) { console.error('Ошибка загрузки глав:', e); return []; }
+}
+
+async function addChapterToFirebase(sectionId, name) {
+  if (!windowDb) return false;
+  try {
+    const cur = await loadChaptersFromFirebase(sectionId);
+    const order = cur.length + 1;
+    const docRef = await windowDb.collection('chapters').add({
+      sectionId: sectionId, name: name, order: order,
+      createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
+      createdBy: currentUser.name
+    });
+    return docRef.id;
+  } catch (e) { console.error('Ошибка создания главы:', e); return false; }
+}
+
+async function renameChapterInFirebase(chapterId, newName) {
+  if (!windowDb || !chapterId) return false;
+  try { await windowDb.collection('chapters').doc(chapterId).update({ name: newName }); return true; }
+  catch (e) { console.error('Ошибка переименования главы:', e); return false; }
+}
+
+async function deleteChapterFromFirebase(chapterId, sectionId) {
+  if (!windowDb || !chapterId) return false;
+  try {
+    await windowDb.collection('chapters').doc(chapterId).delete();
+    // уроки из удалённой главы возвращаем в "без главы", чтобы не пропали
+    const orphans = Object.values(lessonsById).filter(function (l) { return l.chapterId === chapterId; });
+    for (const l of orphans) { await updateLessonInFirebase(l.id, { chapterId: '' }); }
+    await loadLessonsFromFirebase();
+    return true;
+  } catch (e) { console.error('Ошибка удаления главы:', e); return false; }
+}
+
+// выбор главы для урока (перенос / "без главы")
+window.showChapterPicker = async function (lessonId) {
+  const lesson = lessonsById[lessonId];
+  if (!lesson) { showAlert('Ошибка', 'Урок не найден.'); return; }
+  const chapters = await loadChaptersFromFirebase(lesson.sectionId);
+  if (chapters.length === 0) { showAlert('Нет глав', 'Сначала создайте хотя бы одну главу/тему в этом разделе.'); return; }
+  const safeTitle = (lesson.title || '').replace(/</g, '&lt;');
+  const buttons = chapters.map(function (c) {
+    return { text: '📑 ' + c.name, class: 'hw-btn', style: 'background:rgba(139,195,74,0.25);color:#8bc34a;width:100%;margin:4px 0;', action: function () { window.moveLessonToChapter(lessonId, c.id, lesson.sectionId); } };
+  });
+  buttons.push({ text: '📄 Без главы', class: 'hw-btn', style: 'background:rgba(100,255,218,0.2);color:#64ffda;width:100%;margin:4px 0;', action: function () { window.moveLessonToChapter(lessonId, '', lesson.sectionId); } });
+  buttons.push({ text: 'Отмена', class: 'hw-btn', action: function () {} });
+  showCustomModal('📦 Перенос урока', '<p>Куда перенести урок <strong>«' + safeTitle + '»</strong>?</p>', buttons);
+};
+
+window.moveLessonToChapter = async function (lessonId, chapterId, sectionId) {
+  const ok = await updateLessonInFirebase(lessonId, { chapterId: chapterId || '' });
+  if (ok) { await loadLessonsFromFirebase(); showAlert('Успех', chapterId ? 'Урок перенесён в главу.' : 'Урок возвращён в „Уроки без главы“.'); }
+  else { showAlert('Ошибка', 'Не удалось перенести урок.'); }
+  window.showSectionLessons(sectionId);
+};
+
+window.startAddChapter = function (sectionId) {
+  addMessage('<p>📑 <strong>Создание новой Главы/Темы</strong></p><p>Введите <strong>название главы/темы</strong> (или <em>"отмена"</em>):</p>');
+  addLessonState = { step: 'add_chapter_name', sectionId: sectionId };
+};
+
+window.editChapter = async function (chapterId, sectionId) {
+  const ch = chaptersList.find(function (c) { return c.id === chapterId; });
+  if (!ch) { showAlert('Ошибка', 'Глава не найдена.'); return; }
+  const newName = await askPrompt('Переименование главы', 'Текущее название: "' + ch.name + '"\n\nНовое название:', ch.name);
+  if (!newName || newName.trim() === '') return;
+  const ok = await renameChapterInFirebase(chapterId, newName.trim());
+  if (ok) { showAlert('Успех', 'Глава переименована.'); window.showSectionLessons(sectionId); }
+  else { showAlert('Ошибка', 'Не удалось переименовать.'); }
+};
+
+window.deleteChapter = async function (chapterId, chapterName, sectionId) {
+  const confirmed = await askConfirm('⚠️ ВНИМАНИЕ!', 'Удалить главу «' + chapterName + '»?\n\nУроки из неё НЕ удалятся — они вернутся в „Уроки без главы“.');
+  if (!confirmed) return;
+  const ok = await deleteChapterFromFirebase(chapterId, sectionId);
+  if (ok) { showAlert('Успех', 'Глава удалена.'); window.showSectionLessons(sectionId); }
+  else { showAlert('Ошибка', 'Не удалось удалить главу.'); }
+};
+
+// экран уроков ВНУТРИ главы
+window.showChapterLessons = async function (chapterId, sectionId) {
+  const container = document.getElementById('chat-container');
+  if (container) container.innerHTML = '';
+  await loadLessonsFromFirebase();
+  const chapter = chaptersList.find(function (c) { return c.id === chapterId; });
+  const section = sectionsList.find(function (s) { return s.id === sectionId; });
+  if (!chapter) { addMessage('<p>❌ Глава не найдена.</p>'); return; }
+  const chLessons = Object.values(lessonsById).filter(function (l) { return l.chapterId === chapterId; });
+  let html = '<div style="background:rgba(13,31,15,0.5);border:1px solid var(--border-color);border-radius:15px;padding:25px;margin:15px 0;">';
+  html += '<h3 style="color:#64ffda;margin-bottom:8px;font-family:\'Playfair Display\',serif;text-align:center;font-size:1.7em;">📑 ' + chapter.name + '</h3>';
+  if (section) html += '<p style="color:var(--text-secondary);text-align:center;font-style:italic;margin-bottom:20px;">' + section.name + ' (' + section.year + ')</p>';
+  if (chLessons.length === 0) {
+    html += '<p style="color:#6b5f4a;text-align:center;font-style:italic;font-size:1.05em;">В этой главе пока нет уроков.</p>';
+    html += '<p style="color:#a89b7e;text-align:center;font-size:0.9em;margin-top:8px;">💡 Создайте урок в разделе — он появится в „Уроки без главы“, затем перенесите его сюда кнопкой 📦.</p>';
+  } else {
+    html += '<div style="margin-bottom:20px;">';
+    chLessons.forEach(function (lesson) {
+      html += '<div style="display:flex;gap:8px;align-items:center;margin:5px 0;">';
+      html += '<div class="toc-lesson-link" onclick="window.showLessonContent(\'' + lesson.id + '\')" style="flex:1;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;font-size:1.1em;cursor:pointer;">📚 ' + lesson.title + '</div>';
+      if (isMaster()) html += '<button onclick="window.showChapterPicker(\'' + lesson.id + '\')" style="background:rgba(100,255,218,0.2);color:#64ffda;border:1px solid rgba(100,255,218,0.4);padding:10px;border-radius:8px;font-size:0.9em;min-width:46px;">📦</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  if (isMaster()) html += '<button class="hw-btn" onclick="window.startAddLessonToSection(\'' + sectionId + '\')" style="width:100%;margin-top:15px;background:rgba(76,175,80,0.3);color:#4caf50;font-size:1.05em;">➕ Создать урок в разделе (потом перенести сюда)</button>';
+  html += '<button class="hw-btn" onclick="window.showSectionLessons(\'' + sectionId + '\')" style="width:100%;margin-top:12px;padding:12px;font-size:1.1em;">🔙 Назад к главам</button></div>';
+  addRawHTML(html);
+};
+
+// ПЕРЕКРЫВАЕМ экран раздела: теперь сначала главы, потом "уроки без главы"
+window.showSectionLessons = async function (sectionId) {
+  const container = document.getElementById('chat-container');
+  if (container) container.innerHTML = '';
+  await loadLessonsFromFirebase();
+  chaptersList = await loadChaptersFromFirebase(sectionId);
+  const section = sectionsList.find(function (s) { return s.id === sectionId; });
+  if (!section) { addMessage('<p>❌ Раздел не найден!</p>'); return; }
+  const noChapterLessons = Object.values(lessonsById).filter(function (l) { return l.sectionId === sectionId && (!l.chapterId || l.chapterId === ''); });
+  let html = '<div style="background:rgba(13,31,15,0.5);border:1px solid var(--border-color);border-radius:15px;padding:25px;margin:15px 0;">';
+  html += '<h3 style="color:#64ffda;margin-bottom:25px;font-family:\'Playfair Display\',serif;text-align:center;font-size:1.8em;">📖 ' + section.name + ' (' + section.year + ')</h3>';
+
+  // --- главы ---
+  html += '<h4 style="color:#8bc34a;font-family:\'Playfair Display\',serif;margin:0 0 12px 0;">📑 Главы / Темы</h4>';
+  if (chaptersList.length === 0) {
+    html += '<p style="color:#6b5f4a;font-style:italic;margin:0 0 15px 0;">Глав пока нет. Создайте первую главу/тему.</p>';
+  } else {
+    html += '<div style="margin-bottom:15px;">';
+    chaptersList.forEach(function (ch) {
+      const cnt = Object.values(lessonsById).filter(function (l) { return l.chapterId === ch.id; }).length;
+      html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">';
+      html += '<button onclick="window.showChapterLessons(\'' + ch.id + '\',\'' + sectionId + '\')" style="flex:1;background:rgba(139,195,74,0.2);color:var(--accent-color);font-size:1.1em;padding:12px;border-radius:8px;border:1px solid rgba(139,195,74,0.4);text-align:left;">📑 ' + ch.name + ' <span style="color:#6b5f4a;font-size:0.85em;">(' + cnt + ')</span></button>';
+      if (isMaster()) {
+        html += '<button onclick="window.editChapter(\'' + ch.id + '\',\'' + sectionId + '\')" style="background:rgba(100,255,218,0.2);color:#64ffda;border:1px solid rgba(100,255,218,0.4);padding:12px;border-radius:8px;min-width:46px;">✏️</button>';
+        html += '<button onclick="window.deleteChapter(\'' + ch.id + '\',\'' + ch.name.replace(/'/g, "\\'") + '\',\'' + sectionId + '\')" style="background:rgba(255,80,80,0.2);color:#ff6b6b;border:1px solid rgba(255,80,80,0.4);padding:12px;border-radius:8px;min-width:46px;">🗑️</button>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  if (isMaster()) html += '<button class="hw-btn" onclick="window.startAddChapter(\'' + sectionId + '\')" style="width:100%;margin-bottom:20px;background:rgba(76,175,80,0.3);color:#4caf50;font-size:1.05em;">➕ Создать новую Главу/Тему</button>';
+
+  // --- уроки без главы (старые + новые неприкреплённые) ---
+  html += '<h4 style="color:#a89b7e;font-family:\'Playfair Display\',serif;margin:10px 0 12px 0;border-top:1px solid var(--border-color);padding-top:15px;">📄 Уроки без главы</h4>';
+  if (noChapterLessons.length === 0) {
+    html += '<p style="color:#6b5f4a;font-style:italic;margin:0 0 15px 0;">Все уроки распределены по главам. ✨</p>';
+  } else {
+    html += '<div style="margin-bottom:15px;">';
+    noChapterLessons.forEach(function (lesson) {
+      html += '<div style="display:flex;gap:8px;align-items:center;margin:5px 0;">';
+      html += '<div class="toc-lesson-link" onclick="window.showLessonContent(\'' + lesson.id + '\')" style="flex:1;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;font-size:1.05em;cursor:pointer;">📚 ' + lesson.title + '</div>';
+      if (isMaster()) html += '<button onclick="window.showChapterPicker(\'' + lesson.id + '\')" title="Перенести в главу" style="background:rgba(100,255,218,0.2);color:#64ffda;border:1px solid rgba(100,255,218,0.4);padding:10px;border-radius:8px;font-size:0.9em;min-width:46px;">📦</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  if (isMaster()) html += '<button class="hw-btn" onclick="window.startAddLessonToSection(\'' + sectionId + '\')" style="width:100%;margin-top:10px;background:rgba(76,175,80,0.3);color:#4caf50;font-size:1.05em;">➕ Добавить урок в раздел</button>';
+  html += '<button class="hw-btn" onclick="window.showYearSections(' + section.year + ')" style="width:100%;margin-top:12px;padding:12px;font-size:1.1em;">🔙 Назад к разделам</button></div>';
+  addRawHTML(html);
+};
+
+// обработка ввода имени новой главы
+const _origFindAnswerChapter = window.findAnswer || findAnswer;
+window.findAnswer = async function (question) {
+  const q = (question || '').toLowerCase().trim();
+  if (addLessonState && addLessonState.step === 'add_chapter_name') {
+    if (q === 'отмена') { addLessonState = null; return '<p>❌ Отменено.</p>'; }
+    const sid = addLessonState.sectionId;
+    addLessonState = null;
+    const id = await addChapterToFirebase(sid, question);
+    if (id) { addMessage('<p>✅ Глава/тема «<strong>' + question + '</strong>» создана!</p>'); await loadLessonsFromFirebase(); window.showSectionLessons(sid); }
+    else { addMessage('<p>❌ Ошибка создания главы.</p>'); }
+    return '';
+  }
+  return _origFindAnswerChapter.call(this, question);
+};
+// =========================================================
