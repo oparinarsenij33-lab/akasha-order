@@ -3090,3 +3090,59 @@ var AK_FMT=[['Ж','**','**'],['К','*','*'],['Ц','[center]','[/center]'],['←'
 function buildFmt(){if(document.getElementById('ak-fmt-toggle'))return;var tb=document.querySelector('.toolbar');if(!tb)return;var p=document.createElement('div');p.id='ak-fmt-panel';p.style.cssText='display:none;flex-wrap:wrap;gap:5px;margin-bottom:6px;';AK_FMT.forEach(function(b){var btn=document.createElement('button');btn.type='button';btn.textContent=b[0];btn.style.cssText='min-width:40px;padding:8px 6px;border-radius:8px;border:1px solid rgba(100,255,218,0.4);background:rgba(100,255,218,0.15);color:#64ffda;font-weight:700;cursor:pointer;';var h=function(ev){ev.preventDefault();akFmtWrap(b[1],b[2]);};btn.addEventListener('touchstart',h,{passive:false});btn.addEventListener('mousedown',h);p.appendChild(btn);});var tg=document.createElement('button');tg.type='button';tg.id='ak-fmt-toggle';tg.className='toolbar-btn';tg.textContent='✍️';tg.style.cssText='background:rgba(139,195,74,0.2);color:#8bc34a;';var f=function(ev){if(ev)ev.preventDefault();p.style.display=(p.style.display==='none'?'flex':'none');};tg.addEventListener('touchstart',f,{passive:false});tg.addEventListener('click',f);tb.parentNode.insertBefore(p,tb);tb.insertBefore(tg,tb.firstChild);}
 (function(){var g=function(){try{buildFmt();}catch(e){}};g();document.addEventListener('DOMContentLoaded',g);window.addEventListener('load',g);var n=0,t=setInterval(function(){n++;g();if(document.getElementById('ak-fmt-toggle')||n>100)clearInterval(t);},300);})();
 // ak-fmt-A-end
+// =========================================================
+// ✍️ ПРОСТОЙ ПУТЬ: кнопка в HTML -> окно с инструментами
+// =========================================================
+window.fmtApply = function (open, close) {
+  var ta = document.getElementById('custom-textarea');
+  var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
+  if (!ta) return;
+  ta.focus();
+  var sel = window.getSelection();
+  var range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
+  var inside = range && ta.contains(range.commonAncestorContainer);
+  try {
+    if (inside && range.toString().length > 0) {
+      var txt = range.toString(); range.deleteContents();
+      var node = document.createTextNode(open + txt + close); range.insertNode(node);
+      var r = document.createRange(); r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+    } else if (inside) {
+      var n2 = document.createTextNode(open + close); range.insertNode(n2);
+      var r2 = document.createRange(); r2.setStart(n2, open.length); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
+    } else {
+      ta.appendChild(document.createTextNode(open + close));
+      var last = ta.lastChild; try { var r3 = document.createRange(); r3.setStart(last, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3); } catch (e) {}
+    }
+  } catch (e) { try { ta.appendChild(document.createTextNode(open + close)); } catch (e2) {} }
+  try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+};
+
+window.openFmtModal = function () {
+  var old = document.getElementById('fmt-overlay'); if (old) old.remove();
+  var tools = [['Жирный','**','**'],['Курсив','*','*'],['По центру','[center]','[/center]'],['Слева','[left]','[/left]'],['Справа','[right]','[/right]'],['По ширине','[justify]','[/justify]'],['Заголовок 1','[h1]','[/h1]'],['Заголовок 2','[h2]','[/h2]'],['Цитата','[quote]','[/quote]'],['Красная строка','[indent]','[/indent]']];
+  var ov = document.createElement('div'); ov.id = 'fmt-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999998;display:flex;align-items:center;justify-content:center;padding:15px;';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:rgba(13,31,15,0.98);border:1px solid #64ffda;border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
+  var h = document.createElement('div'); h.textContent = '✍️ Форматирование'; h.style.cssText = "color:#64ffda;font-family:'Playfair Display',serif;font-size:1.3em;text-align:center;margin-bottom:6px;";
+  var hint = document.createElement('div'); hint.innerHTML = 'Выдели текст пальцем — тапни инструмент (обернёт выделение).<br>Не выделял — тапни инструмент, потом печатай <b>между</b> скобок.'; hint.style.cssText = 'color:#a89b7e;font-size:0.85em;text-align:center;margin-bottom:12px;line-height:1.4;';
+  var grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+  tools.forEach(function (t) {
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = t[0];
+    b.style.cssText = 'padding:12px 8px;border-radius:9px;border:1px solid rgba(100,255,218,0.4);background:rgba(100,255,218,0.15);color:#64ffda;font-weight:700;font-size:0.95em;cursor:pointer;';
+    var fire = function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } window.fmtApply(t[1], t[2]); };
+    b.addEventListener('touchstart', fire, { passive: false });
+    b.addEventListener('click', function (ev) { ev.preventDefault(); window.fmtApply(t[1], t[2]); });
+    grid.appendChild(b);
+  });
+  var close = document.createElement('button'); close.type = 'button'; close.textContent = '✖ Закрыть';
+  close.style.cssText = 'width:100%;margin-top:12px;padding:12px;border-radius:9px;border:1px solid rgba(255,80,80,0.4);background:rgba(255,80,80,0.2);color:#ff6b6b;font-weight:700;cursor:pointer;';
+  var closeFire = function (ev) { if (ev) ev.preventDefault(); ov.remove(); };
+  close.addEventListener('touchstart', closeFire, { passive: false });
+  close.addEventListener('click', function (ev) { ev.preventDefault(); ov.remove(); });
+  box.appendChild(h); box.appendChild(hint); box.appendChild(grid); box.appendChild(close); ov.appendChild(box);
+  ov.addEventListener('touchstart', function (ev) { if (ev.target === ov) { ev.preventDefault(); ov.remove(); } }, { passive: false });
+  ov.addEventListener('click', function (ev) { if (ev.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
+};
+// fmt-simple-end
