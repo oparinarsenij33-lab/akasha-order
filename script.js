@@ -1946,7 +1946,7 @@ window.confirmSendMedia = async function() {
   try {
     const fileName = `chat_${Date.now()}_${file.name}`;
     const ref = storageRef.child('chat_media/' + fileName);
-    await ref.put(file);
+    await ref.put(file, { contentType: file.type || 'application/octet-stream' });
     const downloadURL = await ref.getDownloadURL();
     preview.remove();
     await sendMediaToChat(downloadURL, type, file.name);
@@ -2024,8 +2024,9 @@ async function sendVoiceMessage(audioBlob) {
   if (!storageRef) { showAlert('Ошибка', 'Хранилище не готово.'); return; }
   try {
     const fileName = `voice_${Date.now()}.webm`;
+    if (!audioBlob || audioBlob.size === 0) { showAlert('Ошибка', '🎤 Микрофон ничего не записал. Попробуй ещё раз (говори чуть громче/дольше).'); return; }
     const ref = storageRef.child('voice_messages/' + fileName);
-    await ref.put(audioBlob);
+    await ref.put(audioBlob, { contentType: 'audio/webm' });
     const downloadURL = await ref.getDownloadURL();
     await sendMediaToChat(downloadURL, 'voice', fileName);
   } catch (error) {
@@ -2095,4 +2096,115 @@ window.openChatWithStudent = async function(name) {
 };
 // =========================================================
 // 🔥 КОНЕЦ БЛОКА МЕДИА
+// =========================================================
+// =========================================================
+// 🔔 ПУШ-УВЕДОМЛЕНИЯ (работают, пока вкладка Акаши открыта)
+// =========================================================
+let pushStarted = false;
+let pushUnsubs = [];
+
+function playNotificationSound() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    if (ctx.state === 'suspended') ctx.resume();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.setValueAtTime(660, ctx.currentTime + 0.12);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.36);
+  } catch (e) { console.warn('sound err', e); }
+}
+
+function showAkashaNotification(title, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(title, { body: body || '', tag: 'akasha-' + Date.now() });
+    n.onclick = function () { try { window.focus(); } catch (e) {} };
+  } catch (e) { console.warn('notif err', e); }
+}
+
+function askNotificationPermissionOnce() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+  const handler = function () {
+    try { Notification.requestPermission(); } catch (e) {}
+    document.removeEventListener('click', handler);
+    document.removeEventListener('touchstart', handler);
+  };
+  document.addEventListener('click', handler);
+  document.addEventListener('touchstart', handler);
+}
+
+function startPushSubscriptions() {
+  if (pushStarted) return;
+  if (!windowDb || !currentUser) return;
+  pushStarted = true;
+  askNotificationPermissionOnce();
+  const myName = currentUser.name;
+
+  // 1) Новые входящие сообщения
+  let firstMsg = true;
+  try {
+    const u1 = windowDb.collection('messages')
+      .where('to', '==', myName)
+      .onSnapshot(function (snap) {
+        if (!currentUser) return;
+        if (firstMsg) { firstMsg = false; return; }
+        snap.docChanges().forEach(function (ch) {
+          if (ch.type !== 'added') return;
+          const d = ch.doc.data();
+          if (d.from === myName) return;
+          playNotificationSound();
+          const preview = d.text ? d.text.slice(0, 60) : (d.mediaType === 'photo' ? '📸 Фото' : d.mediaType === 'video' ? '🎥 Видео' : d.mediaType === 'voice' ? '🎤 Голосовое' : 'Новое сообщение');
+          showAkashaNotification('💬 ' + (d.from || 'Сообщение'), preview);
+        });
+      });
+    pushUnsubs.push(u1);
+  } catch (e) { console.error('push messages err', e); }
+
+  // 2) Новые домашние задания
+  let firstHw = true;
+  try {
+    const u2 = windowDb.collection('homework_assignments')
+      .onSnapshot(function (snap) {
+        if (!currentUser) return;
+        if (firstHw) { firstHw = false; return; }
+        snap.docChanges().forEach(function (ch) {
+          if (ch.type !== 'added') return;
+          const d = ch.doc.data();
+          playNotificationSound();
+          showAkashaNotification('📝 Новое задание', d.title || 'Проверь домашние задания');
+        });
+      });
+    pushUnsubs.push(u2);
+  } catch (e) { console.error('push hw err', e); }
+
+  // 3) Проверили твою домашку
+  let firstSub = true;
+  try {
+    const u3 = windowDb.collection('homework_submissions')
+      .where('studentName', '==', myName)
+      .onSnapshot(function (snap) {
+        if (!currentUser) return;
+        if (firstSub) { firstSub = false; return; }
+        snap.docChanges().forEach(function (ch) {
+          if (ch.type !== 'modified') return;
+          const d = ch.doc.data();
+          if (d.status === 'approved') { playNotificationSound(); showAkashaNotification('✅ Задание одобрено!', 'Мастер проверил твою работу'); }
+          else if (d.status === 'needs_revision') { playNotificationSound(); showAkashaNotification('⚠️ На доработку', 'Мастер вернул задание с комментарием'); }
+        });
+      });
+    pushUnsubs.push(u3);
+  } catch (e) { console.error('push sub err', e); }
+
+  console.log('🔔 Пуш-подписки запущены для', myName);
+}
 // =========================================================
