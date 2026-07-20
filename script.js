@@ -2928,3 +2928,107 @@ window.uploadBookFile = function (target) {
   fi.click();
 };
 // =========================================================
+// =========================================================
+// ✍️ ФОРМАТИРОВАНИЕ УРОКОВ: кнопки как в Word (теги руками НЕ пишем)
+// =========================================================
+function formatLessonHTML(text) {
+  if (!text) return '';
+  var s = String(text);
+  s = s.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, function (_, x) { return '<div class="ak-bl" style="text-align:center;margin:14px 0;">' + x + '</div>'; });
+  s = s.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, function (_, x) { return '<div class="ak-bl" style="text-align:right;margin:14px 0;">' + x + '</div>'; });
+  s = s.replace(/\[left\]([\s\S]*?)\[\/left\]/gi, function (_, x) { return '<div class="ak-bl" style="text-align:left;margin:14px 0;">' + x + '</div>'; });
+  s = s.replace(/\[justify\]([\s\S]*?)\[\/justify\]/gi, function (_, x) { return '<div class="ak-bl" style="text-align:justify;margin:14px 0;">' + x + '</div>'; });
+  s = s.replace(/\[indent\]([\s\S]*?)\[\/indent\]/gi, function (_, x) { return '<div class="ak-bl" style="text-indent:1.5em;margin:10px 0;">' + x + '</div>'; });
+  s = s.replace(/\[noindent\]([\s\S]*?)\[\/noindent\]/gi, function (_, x) { return '<div class="ak-bl" style="text-indent:0;margin:10px 0;">' + x + '</div>'; });
+  s = s.replace(/\[h1\]([\s\S]*?)\[\/h1\]/gi, function (_, x) { return '<h2 class="ak-bl" style="color:#64ffda;font-family:\'Playfair Display\',serif;text-align:center;margin:18px 0 10px 0;">' + x + '</h2>'; });
+  s = s.replace(/\[h2\]([\s\S]*?)\[\/h2\]/gi, function (_, x) { return '<h3 class="ak-bl" style="color:#8bc34a;font-family:\'Playfair Display\',serif;text-align:center;margin:16px 0 8px 0;">' + x + '</h3>'; });
+  s = s.replace(/\[h3\]([\s\S]*?)\[\/h3\]/gi, function (_, x) { return '<h4 class="ak-bl" style="color:#a89b7e;font-family:\'Playfair Display\',serif;margin:14px 0 6px 0;">' + x + '</h4>'; });
+  s = s.replace(/\[title\]([\s\S]*?)\[\/title\]/gi, function (_, x) { return '<h3 class="ak-bl" style="color:#64ffda;font-family:\'Playfair Display\',serif;text-align:center;font-size:1.4em;margin:18px 0 12px 0;">' + x + '</h3>'; });
+  s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, function (_, x) { return '<blockquote class="ak-bl" style="border-left:3px solid #64ffda;margin:14px 0;padding:8px 14px;color:#cfe8d4;font-style:italic;background:rgba(100,255,218,0.06);border-radius:0 8px 8px 0;">' + x + '</blockquote>'; });
+  s = s.replace(/\*\*\*([\s\S]+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  s = s.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+  var blocks = s.split(/\n[ \t]*\n/);
+  var isBlock = /^\s*<(div|h\d|blockquote|ul|ol|table|pre|hr|p\b|img|video|iframe|figure)/i;
+  var out = [];
+  for (var i = 0; i < blocks.length; i++) {
+    var b = blocks[i].replace(/^\s+|\s+$/g, '');
+    if (!b) continue;
+    if (isBlock.test(b)) out.push(b.replace(/\n/g, '<br>'));
+    else out.push('<p style="text-indent:1.5em;margin:0 0 14px 0;text-align:justify;line-height:1.85;">' + b.replace(/\n/g, '<br>') + '</p>');
+  }
+  return out.join('');
+}
+
+// вставка пары маркеров вокруг выделения ИЛИ в курсор (выделение НЕ слетает на таче)
+function akInsertWrap(openTag, closeTag) {
+  var ta = document.getElementById('custom-textarea');
+  if (!ta) return;
+  ta.focus();
+  var sel = window.getSelection();
+  if (!sel) return;
+  var range = sel.rangeCount ? sel.getRangeAt(0) : null;
+  if (!range || !ta.contains(range.commonAncestorContainer)) {
+    range = document.createRange(); range.selectNodeContents(ta); range.collapse(false);
+    sel.removeAllRanges(); sel.addRange(range);
+  }
+  try {
+    if (range.toString().length > 0) {
+      var txt = range.toString(); range.deleteContents();
+      var wrapped = document.createTextNode(openTag + txt + closeTag);
+      range.insertNode(wrapped);
+      var r2 = document.createRange(); r2.setStartAfter(wrapped); r2.collapse(true);
+      sel.removeAllRanges(); sel.addRange(r2);
+    } else {
+      var node = document.createTextNode(openTag + closeTag);
+      range.insertNode(node);
+      var r3 = document.createRange(); r3.setStart(node, openTag.length); r3.collapse(true);
+      sel.removeAllRanges(); sel.addRange(r3);
+    }
+  } catch (e) { console.warn('wrap err', e); }
+  try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+}
+
+var AK_FMT_BUTTONS = [
+  ['Ж', '**', '**'], ['К', '*', '*'],
+  ['Ц', '[center]', '[/center]'], ['←', '[left]', '[/left]'],
+  ['→', '[right]', '[/right]'], ['↔', '[justify]', '[/justify]'],
+  ['H1', '[h1]', '[/h1]'], ['H2', '[h2]', '[/h2]'],
+  ['❝', '[quote]', '[/quote]'], ['¶', '[indent]', '[/indent]']
+];
+
+function buildFormatPanel() {
+  if (document.getElementById('ak-fmt-toggle')) return;
+  var toolbar = document.querySelector('.toolbar');
+  if (!toolbar) return;
+  var panel = document.createElement('div');
+  panel.id = 'ak-fmt-panel';
+  panel.style.cssText = 'display:none;flex-wrap:wrap;gap:5px;margin-bottom:6px;';
+  AK_FMT_BUTTONS.forEach(function (b) {
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = b[0];
+    btn.style.cssText = 'min-width:40px;padding:8px 6px;border-radius:8px;border:1px solid rgba(100,255,218,0.4);background:rgba(100,255,218,0.15);color:#64ffda;font-weight:700;cursor:pointer;font-size:0.95em;';
+    var handler = function (ev) { ev.preventDefault(); akInsertWrap(b[1], b[2]); };
+    btn.addEventListener('touchstart', handler, { passive: false });
+    btn.addEventListener('mousedown', handler);
+    panel.appendChild(btn);
+  });
+  var toggle = document.createElement('button');
+  toggle.type = 'button'; toggle.id = 'ak-fmt-toggle'; toggle.className = 'toolbar-btn';
+  toggle.textContent = '✍️'; toggle.title = 'Форматирование текста';
+  toggle.style.cssText = 'background:rgba(139,195,74,0.2);color:#8bc34a;';
+  var flip = function (ev) { if (ev) ev.preventDefault(); panel.style.display = (panel.style.display === 'none' ? 'flex' : 'none'); };
+  toggle.addEventListener('touchstart', flip, { passive: false });
+  toggle.addEventListener('click', flip);
+  toolbar.parentNode.insertBefore(panel, toolbar);
+  toolbar.insertBefore(toggle, toolbar.firstChild);
+}
+(function () {
+  var tries = 0;
+  var t = setInterval(function () {
+    tries++;
+    if (document.querySelector('.toolbar')) { clearInterval(t); buildFormatPanel(); }
+    else if (tries > 50) clearInterval(t);
+  }, 200);
+})();
+// =========================================================
