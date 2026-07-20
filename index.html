@@ -112,5 +112,15 @@
         });
     }
     </script>
+    <!-- 🔔 регистрация service worker (PWA-склад) -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js')
+      .then(function (r) { console.log('✅ SW зарегистрирован:', r.scope); })
+      .catch(function (e) { console.error('❌ Ошибка SW:', e); });
+  });
+}
+</script>
 </body>
 </html>
