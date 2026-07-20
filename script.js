@@ -2212,3 +2212,56 @@ setInterval(function () {
 }, 1000);
 }
 // =========================================================
+// =========================================================
+// 🔧 РАБОЧИЙ АВТОЗАПУСК ПУШЕЙ (снаружи функции — ловит любой логин)
+// =========================================================
+setInterval(function () {
+  try { if (windowDb && currentUser && !pushStarted) startPushSubscriptions(); } catch (e) {}
+}, 1000);
+
+// =========================================================
+// 🔔 ЗЕЛЁНЫЙ ТОСТ ВНУТРИ СТРАНИЦЫ (видно на ЛЮБОМ браузере, даже Huawei, без разрешений)
+// =========================================================
+function showAkashaToast(title, body) {
+  try {
+    var stack = document.getElementById('akasha-toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.id = 'akasha-toast-stack';
+      stack.style.cssText = 'position:fixed;top:10px;left:10px;right:10px;z-index:999999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;';
+      document.body.appendChild(stack);
+    }
+    var t = document.createElement('div');
+    t.style.cssText = 'pointer-events:auto;max-width:420px;width:100%;background:rgba(13,31,15,0.97);border:1px solid #64ffda;border-radius:12px;padding:12px 16px;box-shadow:0 6px 24px rgba(0,0,0,0.5),0 0 14px rgba(100,255,218,0.35);color:#e8f5e9;font-family:"Cormorant Garamond",serif;cursor:pointer;transform:translateY(-160%);opacity:0;transition:transform .35s ease,opacity .35s ease;';
+    t.innerHTML = '<div style="color:#64ffda;font-weight:700;font-size:1.05em;margin-bottom:3px;">' + (title || '') + '</div>' + (body ? '<div style="color:#cfe8d4;font-size:0.95em;line-height:1.35;">' + body + '</div>' : '');
+    stack.appendChild(t);
+    requestAnimationFrame(function(){ t.style.transform = 'translateY(0)'; t.style.opacity = '1'; });
+    var kill = function(){ t.style.transform = 'translateY(-160%)'; t.style.opacity = '0'; setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 400); };
+    t.onclick = kill;
+    setTimeout(kill, 5000);
+  } catch (e) { console.warn('toast err', e); }
+}
+
+// каждый пуш теперь = зелёный тост внутри страницы (+ системный баннер бонусом, если браузер вдруг покажет)
+showAkashaNotification = function(title, body) {
+  showAkashaToast(title, body);
+  try { if (typeof Notification !== 'undefined' && Notification.permission === 'granted') { new Notification(title, { body: body || '' }); } } catch (e) {}
+};
+
+// приветственный тост раз в день — доказательство, что уведомления живые
+(function(){
+  try {
+    var today = new Date().toDateString();
+    if (localStorage.getItem('akasha_push_hello_day') !== today) {
+      var wait = setInterval(function(){
+        if (typeof currentUser !== 'undefined' && currentUser) {
+          clearInterval(wait);
+          localStorage.setItem('akasha_push_hello_day', today);
+          setTimeout(function(){ showAkashaToast('🔔 Уведомления Акаши активны', 'События Ордена теперь всплывают прямо здесь — на любом браузере.'); }, 1200);
+        }
+      }, 800);
+      setTimeout(function(){ clearInterval(wait); }, 20000);
+    }
+  } catch (e) {}
+})();
+// =========================================================
