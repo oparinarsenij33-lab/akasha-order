@@ -3032,3 +3032,55 @@ function buildFormatPanel() {
   }, 200);
 })();
 // =========================================================
+// =========================================================
+// ✍️ СТРАХОВКА ПАНЕЛИ ФОРМАТИРОВАНИЯ (безопасна при дубле, ловит тулбар настойчиво)
+// =========================================================
+var AK_FMT_BUTTONS = [
+  ['Ж', '**', '**'], ['К', '*', '*'],
+  ['Ц', '[center]', '[/center]'], ['←', '[left]', '[/left]'],
+  ['→', '[right]', '[/right]'], ['↔', '[justify]', '[/justify]'],
+  ['H1', '[h1]', '[/h1]'], ['H2', '[h2]', '[/h2]'],
+  ['❝', '[quote]', '[/quote]'], ['¶', '[indent]', '[/indent]']
+];
+
+function buildFormatPanel() {
+  if (document.getElementById('ak-fmt-toggle')) return; // защита от дубля кнопки
+  var toolbar = document.querySelector('.toolbar');
+  if (!toolbar) return;
+  var panel = document.createElement('div');
+  panel.id = 'ak-fmt-panel';
+  panel.style.cssText = 'display:none;flex-wrap:wrap;gap:5px;margin-bottom:6px;';
+  AK_FMT_BUTTONS.forEach(function (b) {
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = b[0];
+    btn.style.cssText = 'min-width:40px;padding:8px 6px;border-radius:8px;border:1px solid rgba(100,255,218,0.4);background:rgba(100,255,218,0.15);color:#64ffda;font-weight:700;cursor:pointer;font-size:0.95em;';
+    var handler = function (ev) { ev.preventDefault(); if (typeof akInsertWrap === 'function') akInsertWrap(b[1], b[2]); };
+    btn.addEventListener('touchstart', handler, { passive: false });
+    btn.addEventListener('mousedown', handler);
+    panel.appendChild(btn);
+  });
+  var toggle = document.createElement('button');
+  toggle.type = 'button'; toggle.id = 'ak-fmt-toggle'; toggle.className = 'toolbar-btn';
+  toggle.textContent = '✍️'; toggle.title = 'Форматирование текста';
+  toggle.style.cssText = 'background:rgba(139,195,74,0.2);color:#8bc34a;';
+  var flip = function (ev) { if (ev) ev.preventDefault(); panel.style.display = (panel.style.display === 'none' ? 'flex' : 'none'); };
+  toggle.addEventListener('touchstart', flip, { passive: false });
+  toggle.addEventListener('click', flip);
+  toolbar.parentNode.insertBefore(panel, toolbar);
+  toolbar.insertBefore(toggle, toolbar.firstChild);
+}
+
+// настойчивый запуск: ловим тулбар любым путём (защита от дубля внутри buildFormatPanel)
+(function () {
+  var go = function () { try { buildFormatPanel(); } catch (e) {} };
+  go(); // сразу
+  document.addEventListener('DOMContentLoaded', go);
+  window.addEventListener('load', go);
+  var tries = 0;
+  var t = setInterval(function () {
+    tries++;
+    go();
+    if (document.getElementById('ak-fmt-toggle') || tries > 100) clearInterval(t);
+  }, 300);
+})();
+// =========================================================
