@@ -2277,3 +2277,123 @@ showAkashaNotification = function(title, body) {
   } catch (e) {}
 })();
 // =========================================================
+// =========================================================
+// 📚 ЧАТ АРХИВАРИУСА — режим «я архивариус, мне пишут ученики»
+// (ученикам ничего не ломает: для них всё работает как раньше)
+// =========================================================
+function archBubble(msg, myName) {
+  const isMine = msg.from === myName;
+  const time = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '';
+  const safe = (msg.text || '').replace(/</g, '&lt;');
+  return '<div class="chat-bubble ' + (isMine ? 'mine' : 'theirs') + '"><div class="bubble-text">' + safe + '</div><div class="bubble-time">' + time + '</div></div>';
+}
+
+async function showArchivistDashboard() {
+  const my = currentUser.name;
+  const cont = document.getElementById('chat-container');
+  if (cont) cont.innerHTML = '';
+  const aw = document.getElementById('archivist-chat-wrapper'); if (aw) aw.style.display = 'none';
+  const mw = document.getElementById('main-input-wrapper'); if (mw) mw.style.display = 'block';
+  window.currentChatPartner = null;
+  const sIn = await windowDb.collection('archivist_messages').where('to', '==', my).get();
+  const sOut = await windowDb.collection('archivist_messages').where('from', '==', my).get();
+  const map = new Map();
+  const addDoc = function (d) {
+    const data = d.data();
+    const other = (data.from === my) ? data.to : data.from;
+    if (!other || other === my) return;
+    const ts = data.timestamp ? data.timestamp.seconds : 0;
+    const unread = (data.to === my && data.read === false) ? 1 : 0;
+    const cur = map.get(other);
+    if (!cur) { map.set(other, { name: other, last: data.text || '', ts: ts, unread: unread }); }
+    else { if (ts > cur.ts) { cur.last = data.text || ''; cur.ts = ts; } cur.unread += unread; }
+  };
+  sIn.forEach(addDoc); sOut.forEach(addDoc);
+  const list = Array.from(map.values()).sort(function (a, b) { return b.ts - a.ts; });
+  let html = '<div style="background:rgba(13,31,15,0.5);border:1px solid var(--border-color);border-radius:15px;padding:25px;margin:15px 0;">';
+  html += '<h3 style="color:#64ffda;margin-bottom:20px;font-family:\'Playfair Display\',serif;text-align:center;font-size:1.6em;">📚 Вопросы учеников о книгах</h3>';
+  if (list.length === 0) {
+    html += '<p style="color:#6b5f4a;text-align:center;font-style:italic;">Пока никто не писал тебе о книгах.</p>';
+  } else {
+    list.forEach(function (s) {
+      const time = s.ts ? new Date(s.ts * 1000).toLocaleString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '';
+      const badge = s.unread > 0 ? '<span style="background:#ff6b6b;color:white;padding:2px 8px;border-radius:10px;font-size:0.8em;margin-left:8px;">' + s.unread + '</span>' : '';
+      const esc = s.name.replace(/'/g, "\\'");
+      const last = (s.last || '');
+      html += '<div style="background:rgba(100,255,218,0.1);border:1px solid rgba(100,255,218,0.3);border-radius:10px;padding:15px;margin:10px 0;cursor:pointer;" onclick="window.openArchivistChatWithStudent(\'' + esc + '\')">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:1.1em;color:#64ffda;font-weight:bold;">👤 ' + s.name + badge + '</div><div style="color:#6b5f4a;font-size:0.9em;">' + time + '</div></div>';
+      html += '<div style="color:#a89b7e;margin-top:8px;font-style:italic;">"' + last.substring(0, 50) + (last.length > 50 ? '...' : '') + '"</div></div>';
+    });
+  }
+  html += '<button class="hw-btn" onclick="window.showLibrary()" style="width:100%;margin-top:15px;padding:12px;">🔙 Вернуться в Библиотеку</button></div>';
+  addRawHTML(html);
+}
+
+window.openArchivistChatWithStudent = async function (studentName) {
+  const my = currentUser.name;
+  chatContainer.classList.add('chat-open');
+  const mw = document.getElementById('main-input-wrapper'); if (mw) mw.style.display = 'none';
+  const aw = document.getElementById('archivist-chat-wrapper'); if (aw) aw.style.display = 'block';
+  const container = document.getElementById('archivist-chat-container');
+  if (!container) return;
+  container.innerHTML = '<p style="color:#6b5f4a;text-align:center;">Загрузка...</p>';
+  try {
+    const s1 = await windowDb.collection('archivist_messages').where('from', '==', my).where('to', '==', studentName).get();
+    const s2 = await windowDb.collection('archivist_messages').where('from', '==', studentName).where('to', '==', my).get();
+    const msgs = [];
+    s1.forEach(function (d) { msgs.push(d.data()); });
+    s2.forEach(function (d) { msgs.push(d.data()); });
+    msgs.sort(function (a, b) { return (a.timestamp ? a.timestamp.seconds : 0) - (b.timestamp ? b.timestamp.seconds : 0); });
+    container.innerHTML = '';
+    if (msgs.length === 0) {
+      container.innerHTML = '<p style="color:#6b5f4a;text-align:center;font-style:italic;">Пока нет переписки с ' + studentName + '</p>';
+    } else {
+      msgs.forEach(function (m) { container.insertAdjacentHTML('beforeend', archBubble(m, my)); });
+      container.scrollTop = container.scrollHeight;
+    }
+    const sUnread = await windowDb.collection('archivist_messages').where('from', '==', studentName).where('to', '==', my).where('read', '==', false).get();
+    if (!sUnread.empty) { const batch = windowDb.batch(); sUnread.forEach(function (d) { batch.update(d.ref, { read: true }); }); await batch.commit(); }
+    window.currentChatPartner = studentName;
+  } catch (e) { console.error('archivist chat err', e); container.innerHTML = '<p>❌ Ошибка загрузки переписки.</p>'; }
+};
+
+// ---- обёртки: для архивариуса — новый путь, для ученика — старый (нетронуто) ----
+const _origOpenArchivist = window.openArchivistChat;
+window.openArchivistChat = async function () {
+  if (isArchivist()) { try { await showArchivistDashboard(); } catch (e) { console.error('archivist dashboard err', e); } return; }
+  return _origOpenArchivist.apply(this, arguments);
+};
+
+const _origSendArchivist = window.sendArchivistChatMessage;
+window.sendArchivistChatMessage = async function () {
+  const my = currentUser.name;
+  const partner = window.currentChatPartner;
+  const archName = 'Далисса Иденааль Вестуро';
+  if (isArchivist() && partner && partner !== my && partner !== archName) {
+    const input = document.getElementById('archivist-chat-input');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    try {
+      await windowDb.collection('archivist_messages').add({ from: my, to: partner, text: text, timestamp: firebase.firestore.Timestamp.fromDate(new Date()), read: false });
+      input.value = '';
+      await window.openArchivistChatWithStudent(partner);
+    } catch (e) { console.error('archivist send err', e); }
+    return;
+  }
+  return _origSendArchivist.apply(this, arguments);
+};
+
+const _origCloseArchivist = window.closeArchivistChat;
+window.closeArchivistChat = function () {
+  if (isArchivist()) {
+    const aw = document.getElementById('archivist-chat-wrapper'); if (aw) aw.style.display = 'none';
+    const mw = document.getElementById('main-input-wrapper'); if (mw) mw.style.display = 'block';
+    chatContainer.classList.remove('chat-open');
+    window.currentChatPartner = null;
+    showArchivistDashboard();
+    return;
+  }
+  return _origCloseArchivist.apply(this, arguments);
+};
+// =========================================================
