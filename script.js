@@ -733,10 +733,10 @@ async function deleteCommentFromFirebase(commentId) {
 if (!windowDb || !commentId) return false;
 try { await windowDb.collection('comments').doc(commentId).delete(); return true; } catch (error) { return false; }
 }
-async function addLessonToFirebase(category, title, content, mediaUrl = '', year = '', sectionId = '') {
+async function addLessonToFirebase(category, title, content, mediaUrl = '', year = '', sectionId = '', chapterId = '') {
 if (!windowDb) return false;
 try {
-await windowDb.collection('lessons').add({ category, title, content, mediaUrl, year, sectionId, createdAt: new Date(), addedBy: currentUser.name });
+await windowDb.collection('lessons').add({ category, title, content, mediaUrl, year, sectionId, chapterId: chapterId || '', createdAt: new Date(), addedBy: currentUser.name });
 return true;
 } catch (error) { return false; }
 }
@@ -2722,5 +2722,57 @@ window.findAnswer = async function (question) {
     return '';
   }
   return _origFindAnswerChapter.call(this, question);
+};
+// =========================================================
+// =========================================================
+// 📑 СОЗДАНИЕ УРОКА СРАЗУ В ГЛАВУ (чтобы не разгребать вручную)
+// =========================================================
+const _prevFindAnswerForChapter = window.findAnswer || findAnswer;
+window.findAnswer = async function (question) {
+  const q = (question || '').toLowerCase().trim();
+
+  // перехватываем шаг "медиа" — НЕ даём оригиналу записать урок без главы
+  if (addLessonState && addLessonState.step === 'add_lesson_media') {
+    if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание урока отменено.</p>'; }
+    const mediaUrl = (q === 'нет' || q === '') ? '' : question;
+    addLessonState.lessonMediaUrl = mediaUrl;
+    const sid = addLessonState.sectionId;
+    let chapters = [];
+    try { if (typeof loadChaptersFromFirebase === 'function') chapters = await loadChaptersFromFirebase(sid); } catch (e) {}
+    addLessonState._chapters = chapters;
+    addLessonState.step = 'add_lesson_chapter';
+    if (chapters.length === 0) {
+      return '<p>📑 В этом разделе пока нет глав/тем.</p><p>Урок будет создан <strong>без главы</strong> — введите <em>0</em> (или <em>да</em>), либо <em>отмена</em>, чтобы не создавать.</p><p style="color:#a89b7e;font-size:0.9em;">💡 Совет: сначала создайте главы кнопкой «➕ Создать новую Главу/Тему» — тогда здесь появится нумерованный выбор.</p>';
+    }
+    let list = '<p>📑 <strong>В какую главу/тему поместить урок?</strong> Введите номер:</p><ul style="color:var(--text-color);line-height:1.7;">';
+    chapters.forEach(function (c, i) { list += '<li><strong>' + (i + 1) + '</strong> — ' + c.name + '</li>'; });
+    list += '</ul><p>Введите <em>0</em> — создать без главы, <em>отмена</em> — не создавать.</p>';
+    return list;
+  }
+
+  // новый шаг — выбор главы по номеру и финальная запись
+  if (addLessonState && addLessonState.step === 'add_lesson_chapter') {
+    if (q === 'отмена') { addLessonState = null; return '<p>❌ Создание урока отменено.</p>'; }
+    const chapters = addLessonState._chapters || [];
+    let chapterId = '';
+    const n = parseInt(q, 10);
+    if (!isNaN(n) && n >= 1 && n <= chapters.length) chapterId = chapters[n - 1].id;
+    const section = addLessonState.section;
+    const sid = addLessonState.sectionId;
+    const title = addLessonState.lessonTitle;
+    const content = addLessonState.lessonContent;
+    const mediaUrl = addLessonState.lessonMediaUrl || '';
+    addLessonState = null;
+    const ok = await addLessonToFirebase(section.rank, title, content, mediaUrl, section.year, sid, chapterId);
+    if (ok) {
+      try { await loadLessonsFromFirebase(); } catch (e) {}
+      const where = chapterId ? 'в главу' : 'без главы';
+      return '<p>✅ Урок «<strong>' + title + '</strong>» создан (' + where + ')!</p>';
+    }
+    return '<p>❌ Ошибка создания урока.</p>';
+  }
+
+  // всё остальное — как раньше
+  return _prevFindAnswerForChapter.call(this, question);
 };
 // =========================================================
