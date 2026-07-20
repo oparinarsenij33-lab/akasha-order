@@ -851,7 +851,13 @@ await batch.commit();
 window.openMasterChat = async function() {
 if (!currentUser) return;
 chatContainer.classList.add('chat-open');
-if (!currentUser.учитель || currentUser.учитель === 'отсутствует') { await showMasterDashboard(); }
+if (!currentUser.учитель || currentUser.учитель === 'отсутствует') {
+if (isMaster()) { await showMasterDashboard(); }
+else {
+document.getElementById('main-input-wrapper').style.display = 'none';
+addMessage(`<div style="background:rgba(13,31,15,0.5);border:1px solid var(--border-color);border-radius:15px;padding:25px;margin:15px 0;"><h3 style="color:#64ffda;font-family:'Playfair Display',serif;text-align:center;font-size:1.5em;">✉️ Написать Мастеру</h3><p style="color:var(--text-color);line-height:1.8;text-align:center;margin-top:10px;">У тебя пока <strong>нет назначенного Мастера</strong>, поэтому личный чат закрыт.</p><p style="color:#a89b7e;text-align:center;font-style:italic;margin-top:10px;">Обратись к Верховному Магистру или наставнику, чтобы тебе назначили Мастера — после этого здесь откроется переписка один на один.</p><button class="hw-btn" onclick="document.getElementById('main-input-wrapper').style.display='block';showMainMenu()" style="width:100%;margin-top:15px;">🔙 Вернуться в меню</button></div>`);
+}
+}
 else {
 document.getElementById('main-input-wrapper').style.display = 'none';
 document.getElementById('master-chat-wrapper').style.display = 'block';
