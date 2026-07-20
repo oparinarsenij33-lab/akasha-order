@@ -2434,3 +2434,59 @@ window.openMasterChat = async function () {
   if (typeof addMediaButtonsToChat === 'function') addMediaButtonsToChat();
 };
 // =========================================================
+// =========================================================
+// 🧙‍️ ФИКС: учитель сохраняется у ВСЕХ рангов (не только у падаванов)
+// =========================================================
+// поле учителя теперь видно всегда (раньше пряталось для юнлингов и др.)
+window.handleRankChange = function () {
+  var w = document.getElementById('teacher-input-wrapper');
+  if (w) w.style.display = 'block';
+};
+
+// сохраняем учителя всегда, когда поле заполнено (раньше читалось только для падаван/старший падаван)
+window.changeUserRank = async function (userKey) {
+  var select = document.getElementById('rank-select');
+  if (!select) { showAlert('Ошибка', 'Элемент не найден. Обновите страницу.'); return; }
+  var newRank = select.value;
+  var teacherField = document.getElementById('teacher-input-field');
+  var teacherInput = teacherField ? teacherField.value.trim() : '';
+  var needTeacher = (newRank === 'падаван' || newRank === 'старший падаван');
+  if (needTeacher && !teacherInput) { showAlert('Ошибка', 'Для ранга Падаван или Старший Падаван необходимо указать Учителя!'); return; }
+  try {
+    var userRef = windowDb.collection('users').doc(userKey);
+    var userDoc = await userRef.get();
+    var updates = { rank: newRank };
+    if (teacherInput) updates.teacher = (teacherInput.toLowerCase() === 'нет' || teacherInput.toLowerCase() === 'отсутствует') ? 'отсутствует' : teacherInput;
+    if (!userDoc.exists) {
+      var u = usersDatabase[userKey];
+      await userRef.set({
+        fullName: u.fullName, rank: newRank,
+        teacher: (teacherInput || u.учитель || 'отсутствует'),
+        password: u.пароль || '', specialTitle: u.specialTitle || '',
+        description: u.description || '',
+        статусы: u.статусы || [], звания: u.звания || [],
+        createdAt: firebase.firestore.Timestamp.fromDate(new Date()),
+        createdBy: currentUser.name
+      });
+    } else {
+      await userRef.update(updates);
+    }
+    usersDatabase[userKey].ранг = newRank;
+    if (teacherInput) usersDatabase[userKey].учитель = (teacherInput.toLowerCase() === 'нет' || teacherInput.toLowerCase() === 'отсутствует') ? 'отсутствует' : teacherInput;
+    showAlert('Успех', 'Ранг' + (teacherInput ? ' и Учитель' : '') + ' сохранены!');
+    window.manageUserRanks(userKey);
+  } catch (error) {
+    showAlert('Ошибка', 'Не удалось сохранить: ' + error.message);
+  }
+};
+
+// после отрисовки формы — принудительно показываем поле учителя (для любого ранга)
+var _origManageUserRanks = window.manageUserRanks;
+window.manageUserRanks = async function (userKey) {
+  await _origManageUserRanks.call(this, userKey);
+  setTimeout(function () {
+    var w = document.getElementById('teacher-input-wrapper');
+    if (w) w.style.display = 'block';
+  }, 250);
+};
+// =========================================================
