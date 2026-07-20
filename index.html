@@ -7,8 +7,8 @@
     
     <!-- Шрифты -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     
     <!-- Стили -->
@@ -35,23 +35,23 @@
         <div id="chat-container" class="chat-container"></div>
         
         <div class="input-wrapper" id="main-input-wrapper">
-            <!-- 🔥 ЗАМЕНЕНО textarea НА div С contenteditable -->
             <div id="custom-textarea" class="custom-textarea" contenteditable="true" placeholder="Задай вопрос Акаше..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
             
-            <!-- Кнопки управления (вне клавиатуры!) -->
+            <!-- Кнопки управления -->
             <div class="toolbar" style="margin-bottom:5px;">
                 <button class="toolbar-btn" onclick="toggleKeyboardVisibility()" style="background:rgba(255,215,0,0.2); color:#ffd700; border-color:rgba(255,215,0,0.5); min-width:50px;" title="Скрыть/показать клавиатуру">⌨️</button>
                 <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить шрифт">🔍</button>
+                <!-- ✍️ НОВАЯ КНОПКА ФОРМАТИРОВАНИЯ -->
+                <button class="toolbar-btn" onclick="openFmtModal()" style="background:rgba(139,195,74,0.2); color:#8bc34a; border-color:rgba(139,195,74,0.5); min-width:50px; margin-left:5px;" title="Форматирование текста">✍️</button>
                 <div style="flex:1;"></div>
                 <button class="toolbar-btn lang-btn" id="lang-toggle-btn" onclick="toggleLanguage()">RU</button>
                 <button class="toolbar-btn send-btn" onclick="handleSend()">Отправить</button>
             </div>
             
-            <!-- Сама клавиатура (можно скрыть) -->
             <div id="custom-keyboard" class="custom-keyboard"></div>
         </div>
         
-        <!-- ===== ЧАТ С МАСТЕРОМ (Ученик ↔ Учитель) ===== -->
+        <!-- ===== ЧАТ С МАСТЕРОМ ===== -->
         <div class="master-chat-wrapper" id="master-chat-wrapper" style="display:none;">
             <div class="chat-header">💬 Личный чат с Мастером</div>
             <div id="master-chat-container" class="chat-messages"></div>
@@ -62,7 +62,7 @@
             <button class="hw-btn" onclick="closeMasterChat()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>
         </div>
         
-        <!-- ===== ЧАТ С АРХИВАРИУСОМ (отдельный библиотечный чат) ===== -->
+        <!-- ===== ЧАТ С АРХИВАРИУСОМ ===== -->
         <div class="archivist-chat-wrapper" id="archivist-chat-wrapper" style="display:none;">
             <div class="chat-header">📚 Чат с Архивариусом</div>
             <div id="archivist-chat-container" class="chat-messages"></div>
@@ -91,36 +91,128 @@
         <div class="particle"></div><div class="particle"></div><div class="particle"></div>
     </div>
 
-    <!-- Меню форматирования текста -->
-    <div id="format-menu" style="display:none;"></div>
-
-    <!-- Firebase (ДОБАВЛЕН STORAGE ДЛЯ ЗАГРУЗКИ ФАЙЛОВ) -->
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
-    <!-- ОБНОВЛЕНА ВЕРСИЯ ДЛЯ СБРОСА КЭША БРАУЗЕРА -->
-    <script src="script.js?v=6"></script>
+    <script src="script.js?v=7"></script>
 
-    <!-- Регистрация Service Worker для PWA (ИСПРАВЛЕН ПУТЬ НА ОТНОСИТЕЛЬНЫЙ) -->
+    <!-- Регистрация Service Worker (PWA) -->
     <script>
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./service-worker.js')
-                .then(reg => console.log('✅ Service Worker зарегистрирован:', reg))
-                .catch(err => console.log('❌ Ошибка регистрации Service Worker:', err));
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js')
+                .then(function (r) { console.log('✅ SW зарегистрирован:', r.scope); })
+                .catch(function (e) { console.error('❌ Ошибка SW:', e); });
         });
     }
     </script>
-    <!-- 🔔 регистрация service worker (PWA-склад) -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js')
-      .then(function (r) { console.log('✅ SW зарегистрирован:', r.scope); })
-      .catch(function (e) { console.error('❌ Ошибка SW:', e); });
-  });
-}
-</script>
+
+    <!-- =========================================================
+         ✍️ ФОРМАТИРОВАНИЕ ТЕКСТА (кнопка + окно + превращение маркеров)
+         Всё самодостаточно, script.js не трогаем
+         ========================================================= -->
+    <script>
+    // превращает маркеры [center] и т.д. в красивый HTML
+    function formatLessonHTML(text) {
+        if (!text) return text;
+        var s = String(text);
+        s = s.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, function (_, x) { return '<div style="text-align:center;margin:14px 0;">' + x + '</div>'; });
+        s = s.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, function (_, x) { return '<div style="text-align:right;margin:14px 0;">' + x + '</div>'; });
+        s = s.replace(/\[left\]([\s\S]*?)\[\/left\]/gi, function (_, x) { return '<div style="text-align:left;margin:14px 0;">' + x + '</div>'; });
+        s = s.replace(/\[justify\]([\s\S]*?)\[\/justify\]/gi, function (_, x) { return '<div style="text-align:justify;margin:14px 0;">' + x + '</div>'; });
+        s = s.replace(/\[indent\]([\s\S]*?)\[\/indent\]/gi, function (_, x) { return '<div style="text-indent:1.5em;margin:10px 0;">' + x + '</div>'; });
+        s = s.replace(/\[noindent\]([\s\S]*?)\[\/noindent\]/gi, function (_, x) { return '<div style="text-indent:0;margin:10px 0;">' + x + '</div>'; });
+        s = s.replace(/\[title\]([\s\S]*?)\[\/title\]/gi, function (_, x) { return '<h3 style="color:#64ffda;font-family:\'Playfair Display\',serif;text-align:center;font-size:1.4em;margin:18px 0 12px 0;">' + x + '</h3>'; });
+        s = s.replace(/\[h1\]([\s\S]*?)\[\/h1\]/gi, function (_, x) { return '<h2 style="color:#64ffda;font-family:\'Playfair Display\',serif;text-align:center;margin:18px 0 10px 0;">' + x + '</h2>'; });
+        s = s.replace(/\[h2\]([\s\S]*?)\[\/h2\]/gi, function (_, x) { return '<h3 style="color:#8bc34a;font-family:\'Playfair Display\',serif;text-align:center;margin:16px 0 8px 0;">' + x + '</h3>'; });
+        s = s.replace(/\[h3\]([\s\S]*?)\[\/h3\]/gi, function (_, x) { return '<h4 style="color:#a89b7e;font-family:\'Playfair Display\',serif;margin:14px 0 6px 0;">' + x + '</h4>'; });
+        s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, function (_, x) { return '<blockquote style="border-left:3px solid #64ffda;margin:14px 0;padding:8px 14px;color:#cfe8d4;font-style:italic;background:rgba(100,255,218,0.06);border-radius:0 8px 8px 0;">' + x + '</blockquote>'; });
+        return s;
+    }
+
+    // вставка пары маркеров в поле (в выделение / в курсор / в конец)
+    function fmtApply(open, close) {
+        var ta = document.getElementById('custom-textarea');
+        var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
+        if (!ta) return;
+        ta.focus();
+        var sel = window.getSelection();
+        var range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
+        var inside = range && ta.contains(range.commonAncestorContainer);
+        try {
+            if (inside && range.toString().length > 0) {
+                var txt = range.toString(); range.deleteContents();
+                var node = document.createTextNode(open + txt + close); range.insertNode(node);
+                var r = document.createRange(); r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+            } else if (inside) {
+                var n2 = document.createTextNode(open + close); range.insertNode(n2);
+                var r2 = document.createRange(); r2.setStart(n2, open.length); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
+            } else {
+                ta.appendChild(document.createTextNode(open + close));
+                var last = ta.lastChild; try { var r3 = document.createRange(); r3.setStart(last, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3); } catch (e) {}
+            }
+        } catch (e) { try { ta.appendChild(document.createTextNode(open + close)); } catch (e2) {} }
+        try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    }
+
+    // окно с инструментами
+    function openFmtModal() {
+        var old = document.getElementById('fmt-overlay'); if (old) old.remove();
+        var tools = [['Жирный','**','**'],['Курсив','*','*'],['По центру','[center]','[/center]'],['Слева','[left]','[/left]'],['Справа','[right]','[/right]'],['По ширине','[justify]','[/justify]'],['Заголовок 1','[h1]','[/h1]'],['Заголовок 2','[h2]','[/h2]'],['Цитата','[quote]','[/quote]'],['Красная строка','[indent]','[/indent]']];
+        var ov = document.createElement('div'); ov.id = 'fmt-overlay';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999998;display:flex;align-items:center;justify-content:center;padding:15px;';
+        var box = document.createElement('div');
+        box.style.cssText = 'background:rgba(13,31,15,0.98);border:1px solid #64ffda;border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
+        var h = document.createElement('div'); h.textContent = '✍️ Форматирование'; h.style.cssText = "color:#64ffda;font-family:'Playfair Display',serif;font-size:1.3em;text-align:center;margin-bottom:6px;";
+        var hint = document.createElement('div'); hint.innerHTML = 'Выдели текст пальцем — тапни инструмент (обернёт выделение).<br>Не выделял — тапни инструмент, потом печатай <b>между</b> скобок.'; hint.style.cssText = 'color:#a89b7e;font-size:0.85em;text-align:center;margin-bottom:12px;line-height:1.4;';
+        var grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+        tools.forEach(function (t) {
+            var b = document.createElement('button'); b.type = 'button'; b.textContent = t[0];
+            b.style.cssText = 'padding:12px 8px;border-radius:9px;border:1px solid rgba(100,255,218,0.4);background:rgba(100,255,218,0.15);color:#64ffda;font-weight:700;font-size:0.95em;cursor:pointer;';
+            var fire = function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } fmtApply(t[1], t[2]); };
+            b.addEventListener('touchstart', fire, { passive: false });
+            b.addEventListener('click', function (ev) { ev.preventDefault(); fmtApply(t[1], t[2]); });
+            grid.appendChild(b);
+        });
+        var close = document.createElement('button'); close.type = 'button'; close.textContent = '✖ Закрыть';
+        close.style.cssText = 'width:100%;margin-top:12px;padding:12px;border-radius:9px;border:1px solid rgba(255,80,80,0.4);background:rgba(255,80,80,0.2);color:#ff6b6b;font-weight:700;cursor:pointer;';
+        var closeFire = function (ev) { if (ev) ev.preventDefault(); ov.remove(); };
+        close.addEventListener('touchstart', closeFire, { passive: false });
+        close.addEventListener('click', function (ev) { ev.preventDefault(); ov.remove(); });
+        box.appendChild(h); box.appendChild(hint); box.appendChild(grid); box.appendChild(close); ov.appendChild(box);
+        ov.addEventListener('touchstart', function (ev) { if (ev.target === ov) { ev.preventDefault(); ov.remove(); } }, { passive: false });
+        ov.addEventListener('click', function (ev) { if (ev.target === ov) ov.remove(); });
+        document.body.appendChild(ov);
+    }
+
+    // наблюдатель: как только на экране появляется текст с маркерами — превращает их в красоту
+    (function () {
+        function scan() {
+            var container = document.getElementById('chat-container');
+            if (!container) return;
+            var nodes = container.querySelectorAll('div, p, .message-content, .bubble-text');
+            for (var i = 0; i < nodes.length; i++) {
+                var el = nodes[i];
+                if (el.getAttribute('data-ak-fmt')) continue;
+                var html = el.innerHTML || '';
+                if (/\[(center|left|right|justify|indent|noindent|h1|h2|h3|title|quote)\]/i.test(html)) {
+                    el.setAttribute('data-ak-fmt', '1');
+                    el.innerHTML = formatLessonHTML(html);
+                }
+            }
+        }
+        function start() {
+            try {
+                var obs = new MutationObserver(function () { scan(); });
+                obs.observe(document.body, { childList: true, subtree: true });
+                scan();
+            } catch (e) { setInterval(scan, 1000); }
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+        else start();
+    })();
+    </script>
 </body>
 </html>
