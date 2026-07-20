@@ -1097,3 +1097,18 @@ h1 {
 .custom-textarea::-webkit-scrollbar { width: 8px; }
 .custom-textarea::-webkit-scrollbar-track { background: rgba(13, 31, 15, 0.3); }
 .custom-textarea::-webkit-scrollbar-thumb { background: var(--accent-color); }
+/* === 📱 АДАПТИВ ПОД ТЕЛЕФОН: клавиатура влезает, контент во всю ширину === */
+#custom-keyboard{width:100%;max-width:100vw;box-sizing:border-box;overflow-x:hidden;left:0;right:0;transform:none!important;margin-left:0!important;margin-right:0!important;}
+.keyboard-row{display:flex;flex-wrap:nowrap;width:100%;box-sizing:border-box;gap:3px;}
+.keyboard-row .key{flex:1 1 0;min-width:0;width:auto;box-sizing:border-box;padding:8px 2px;font-size:clamp(13px,3.6vw,20px);line-height:1.1;overflow:hidden;}
+.keyboard-row .key.space{flex:3 1 0;}
+.keyboard-row .key.enter{flex:2 1 0;}
+.keyboard-row .key.special{flex:1.4 1 0;}
+@media (max-width:600px){
+  body{padding-left:4px!important;padding-right:4px!important;margin:0!important;}
+  #chat-container,.message,.message-content,.homework-board,.homework-card,.hw-card{max-width:100%!important;width:100%!important;margin-left:0!important;margin-right:0!important;box-sizing:border-box;}
+  .message{padding:6px 4px!important;}
+  .message-content{padding:8px!important;}
+  .progress-table{font-size:0.78em;}
+  .progress-table th,.progress-table td{padding:6px 5px!important;}
+}
