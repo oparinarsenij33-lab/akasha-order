@@ -2397,3 +2397,40 @@ window.closeArchivistChat = function () {
   return _origCloseArchivist.apply(this, arguments);
 };
 // =========================================================
+// =========================================================
+// ✉️ ЧАТ С МАСТЕРОМ = общий канал связи с Верховным Магистром
+// (доступен ВСЕМ, независимо от ранга/звания/статуса/учителя)
+// =========================================================
+function getSupremeMasterName() {
+  try {
+    var sm = Object.values(usersDatabase).find(function (u) { return u && u.ранг === 'верховный магистр'; });
+    if (sm && sm.fullName) return sm.fullName;
+  } catch (e) {}
+  return 'Аранэль Хальдарон';
+}
+
+window.openMasterChat = async function () {
+  if (!currentUser) return;
+  chatContainer.classList.add('chat-open');
+  var supreme = getSupremeMasterName();
+
+  // Верховный Магистр видит входящие от всех
+  if (currentUser.name === supreme) {
+    try { await showMasterDashboard(); } catch (e) { console.error('dashboard err', e); }
+    return;
+  }
+
+  // Все остальные — личный канал с Верховным Магистром
+  var mw = document.getElementById('main-input-wrapper'); if (mw) mw.style.display = 'none';
+  var cw = document.getElementById('master-chat-wrapper'); if (cw) cw.style.display = 'block';
+  window.currentChatPartner = supreme;
+  var container = document.getElementById('master-chat-container');
+  if (container) container.innerHTML = '<p style="color:#6b5f4a;text-align:center;">Загрузка...</p>';
+  try { if (typeof rerenderMasterChatWithMedia === 'function') { await rerenderMasterChatWithMedia(); } } catch (e) { console.error('rerender err', e); }
+  if (container && container.innerHTML.trim() === '') {
+    container.innerHTML = '<p style="color:#6b5f4a;text-align:center;font-style:italic;">Пока нет сообщений. Напиши Верховному Магистру первым!</p>';
+  }
+  try { await markAsRead(supreme); } catch (e) {}
+  if (typeof addMediaButtonsToChat === 'function') addMediaButtonsToChat();
+};
+// =========================================================
