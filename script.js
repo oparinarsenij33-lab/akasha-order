@@ -2206,5 +2206,9 @@ function startPushSubscriptions() {
   } catch (e) { console.error('push sub err', e); }
 
   console.log('🔔 Пуш-подписки запущены для', myName);
+  // автозапуск пушей после входа (любым путём — авто или ручной логин)
+setInterval(function () {
+  try { if (windowDb && currentUser && !pushStarted) startPushSubscriptions(); } catch (e) {}
+}, 1000);
 }
 // =========================================================
