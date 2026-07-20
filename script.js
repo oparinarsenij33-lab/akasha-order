@@ -1191,7 +1191,7 @@ if (!lesson) { addMessage('<p>❌ Урок не найден.</p>'); return; }
 const isRead = await isLessonRead(lessonId);
 let html = `<h3 style="color:#64ffda;font-family:'Playfair Display',serif;">📖 ${lesson.title}</h3>`;
 html += `<p style="color:#a89b7e;font-size:0.9em;margin-bottom:15px;">Категория: <em>${lesson.category}</em></p>`;
-html += `<div style="line-height:1.9;">${lesson.content}</div>`;
+html += `<div style="line-height:1.9;">${formatLessonHTML(lesson.content)}</div>`;
 if (lesson.mediaUrl) {
 html += `<div style="margin-top:20px;">`;
 if (lesson.mediaUrl.includes('youtube.com') || lesson.mediaUrl.includes('rutube.ru')) html += `<iframe width="100%" height="315" src="${lesson.mediaUrl}" frameborder="0" allowfullscreen style="border-radius:10px;"></iframe>`;
