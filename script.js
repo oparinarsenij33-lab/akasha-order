@@ -2490,3 +2490,50 @@ window.manageUserRanks = async function (userKey) {
   }, 250);
 };
 // =========================================================
+// =========================================================
+// 🔄 ФИКС: ранг/учитель/звания ВСЕГДА тянутся из Firebase поверх прошитого списка
+// (читаем с сервера в обход кэша + убираем дубли по имени)
+// =========================================================
+async function loadUsersFromFirebase() {
+  if (!windowDb) return;
+  try {
+    var snap;
+    try { snap = await windowDb.collection('users').get({ source: 'server' }); }
+    catch (e) { snap = await windowDb.collection('users').get(); }
+    var norm = function (x) { return String(x || '').toLowerCase().trim(); };
+    snap.forEach(function (doc) {
+      var data = doc.data() || {};
+      var fbKey = doc.id;
+      var fbName = norm(data.fullName);
+      // каноническая запись: сначала ищем по совпадению имени (прошитую), иначе по ключу
+      var canonKey = null;
+      var keys = Object.keys(usersDatabase);
+      for (var i = 0; i < keys.length; i++) {
+        if (keys[i] !== fbKey && norm(usersDatabase[keys[i]].fullName) === fbName) { canonKey = keys[i]; break; }
+      }
+      if (!canonKey) canonKey = usersDatabase[fbKey] ? fbKey : null;
+      var rec = canonKey ? usersDatabase[canonKey] : null;
+      if (!rec) {
+        rec = {
+          fullName: data.fullName, ранг: data.rank, учитель: data.teacher, пароль: data.password,
+          specialTitle: data.specialTitle || '', description: data.description || '',
+          статусы: data.статусы || [], звания: data.звания || []
+        };
+        usersDatabase[fbKey] = rec;
+        canonKey = fbKey;
+      } else {
+        rec.ранг = data.rank;
+        if (data.teacher !== undefined) rec.учитель = data.teacher;
+        rec.статусы = data.статусы || rec.статусы || [];
+        rec.звания = data.звания || rec.звания || [];
+        if (data.specialTitle) rec.specialTitle = data.specialTitle;
+        if (data.description) rec.description = data.description;
+        if (data.fullName) rec.fullName = data.fullName;
+      }
+      // если про одного человека лежал дубль под другим ключом — убираем лишний
+      if (canonKey !== fbKey && usersDatabase[fbKey]) delete usersDatabase[fbKey];
+    });
+    console.log('✅ loadUsersFromFirebase (server) обновил ранги/учителей из базы:', Object.keys(usersDatabase).length, 'записей');
+  } catch (error) { console.error('Ошибка загрузки пользователей:', error); }
+}
+// =========================================================
