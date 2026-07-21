@@ -3162,23 +3162,6 @@ function formatOnlineStatus(userName) {
   return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffDays + ' дн.' + (h ? ' ' + h + ' ч.' : '') + ' назад</span>';
 }
 // fmt-online-fix-end
-// =========================================================
-// ⏱️ ФИКС ВРЕМЕНИ «был в сети»: минуты → часы → дни (перекрывает старую)
-// =========================================================
-function formatOnlineStatus(userName) {
-  var status = onlineStatuses[userName];
-  if (!status || !status.lastSeen) return '<span style="color:#6b5f4a;font-size:0.85em;">⚫ Не в сети</span>';
-  var lastSeenDate = status.lastSeen.toDate();
-  var now = new Date();
-  var diffMins = Math.floor((now - lastSeenDate) / 60000);
-  if (diffMins < 2) return '<span style="color:#4caf50;font-size:0.85em;">🟢 Онлайн</span>';
-  if (diffMins < 60) return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffMins + ' мин. назад</span>';
-  var diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) { var m = diffMins % 60; return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffHours + ' ч.' + (m ? ' ' + m + ' мин.' : '') + ' назад</span>'; }
-  var diffDays = Math.floor(diffHours / 24); var h = diffHours % 24;
-  return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffDays + ' дн.' + (h ? ' ' + h + ' ч.' : '') + ' назад</span>';
-}
-// fmt-time-fix2-end
 // === 🔄 АВТО-ОБНОВЛЕНИЕ ЭКРАНА ПОСЛЕ УДАЛЕНИЯ УРОКА ===
 const _prevFindAnswerDelete = window.findAnswer;
 window.findAnswer = async function (question) {
