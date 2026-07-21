@@ -3180,3 +3180,30 @@ function formatOnlineStatus(userName) {
   return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffDays + ' дн.' + (h ? ' ' + h + ' ч.' : '') + ' назад</span>';
 }
 // fmt-time-fix2-end
+// === 🔄 АВТО-ОБНОВЛЕНИЕ ЭКРАНА ПОСЛЕ УДАЛЕНИЯ УРОКА ===
+const _prevFindAnswerDelete = window.findAnswer;
+window.findAnswer = async function (question) {
+  var q = (question || '').toLowerCase().trim();
+  if (addLessonState && addLessonState.step === 'confirm_delete') {
+    var lid = addLessonState.lessonId;
+    var lesson = lessonsById[lid];
+    var secId = lesson ? (lesson.sectionId || '') : '';
+    var chId = lesson ? (lesson.chapterId || '') : '';
+    addLessonState = null;
+    if (q === 'да, удалить' || q === 'да' || q === 'удалить') {
+      var ok = await deleteLesson(lid);
+      if (ok) {
+        addMessage('<p>✅ Урок удалён!</p>');
+        try { await loadLessonsFromFirebase(); } catch (e) {}
+        try {
+          if (chId && secId) window.showChapterLessons(chId, secId);
+          else if (secId) window.showSectionLessons(secId);
+          else showMainMenu();
+        } catch (e) {}
+      } else { addMessage('<p>❌ Ошибка удаления.</p>'); }
+    } else { addMessage('<p>❌ Отменено.</p>'); }
+    return '';
+  }
+  return _prevFindAnswerDelete.call(this, question);
+};
+// akasha-live-del-end
