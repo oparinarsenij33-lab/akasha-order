@@ -8,13 +8,22 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a3a1a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Акаша">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <!-- 🔠 РАЗМЕР ТЕКСТА УРОКОВ: крупный по умолчанию, кнопки ➕➖ меняют через переменную (кэш не ест) -->
+    <style>
+        :root { --ak-read-fs: 1.25rem; }
+        .message-content, .message-content p, .message-content .ak-bl, .message-content blockquote { font-size: var(--ak-read-fs) !important; line-height: 1.8; }
+        .message-content h2 { font-size: calc(var(--ak-read-fs) + 0.4rem) !important; line-height: 1.3; }
+        .message-content h3 { font-size: calc(var(--ak-read-fs) + 0.25rem) !important; line-height: 1.3; }
+        .message-content h4 { font-size: calc(var(--ak-read-fs) + 0.1rem) !important; line-height: 1.3; }
+        body.keyboard-large-text .message-content, body.keyboard-large-text .message-content p, body.keyboard-large-text .message-content .ak-bl, body.keyboard-large-text .message-content blockquote { font-size: var(--ak-read-fs) !important; }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -29,8 +38,10 @@
             <div id="custom-textarea" class="custom-textarea" contenteditable="true" placeholder="Задай вопрос Акаше..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
             <div class="toolbar" style="margin-bottom:5px;">
                 <button class="toolbar-btn" onclick="toggleKeyboardVisibility()" style="background:rgba(255,215,0,0.2); color:#ffd700; border-color:rgba(255,215,0,0.5); min-width:50px;" title="Скрыть/показать клавиатуру">⌨️</button>
-                <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить шрифт">🔍</button>
                 <button class="toolbar-btn" onclick="openFmtModal()" style="background:rgba(139,195,74,0.2); color:#8bc34a; border-color:rgba(139,195,74,0.5); min-width:50px; margin-left:5px;" title="Форматирование текста">✍️</button>
+                <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить/уменьшить текст клавиатуры">🔍</button>
+                <button class="toolbar-btn" onclick="akZoom(-0.1)" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:46px; margin-left:5px;" title="Уменьшить текст уроков">➖</button>
+                <button class="toolbar-btn" onclick="akZoom(0.1)" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:46px; margin-left:5px;" title="Увеличить текст уроков">➕</button>
                 <div style="flex:1;"></div>
                 <button class="toolbar-btn lang-btn" id="lang-toggle-btn" onclick="toggleLanguage()">RU</button>
                 <button class="toolbar-btn send-btn" onclick="handleSend()">Отправить</button>
@@ -74,7 +85,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-    <script src="script.js?v=8"></script>
+    <script src="script.js?v=9"></script>
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
@@ -86,10 +97,42 @@
     </script>
 
     <!-- =========================================================
-         ✍️ ФОРМАТИРОВАНИЕ (ИСПРАВЛЕНО: без фокуса = без скачка вниз,
-         помнит выделение, возвращает прокрутку)
+         🔠➕➖ РАЗМЕР ТЕКСТА + 🔄 ОСВЕЖЕНИЕ СЧЁТЧИКОВ + ✍️ ФОРМАТИРОВАНИЕ
+         Всё инлайн в html — service worker это НЕ кэширует, встанет с первого раза.
          ========================================================= -->
     <script>
+    // --- 🔠 размер текста уроков: ➕/➖ с шагом, запоминается ---
+    function akApplyZoom(v) {
+        document.documentElement.style.setProperty('--ak-read-fs', v.toFixed(2) + 'rem');
+        try { localStorage.setItem('ak-read-fs', v.toFixed(2)); } catch (e) {}
+    }
+    window.akZoom = function (delta) {
+        var cur = parseFloat(localStorage.getItem('ak-read-fs') || '1.25');
+        if (isNaN(cur)) cur = 1.25;
+        cur = Math.min(2.0, Math.max(1.0, cur + delta));
+        akApplyZoom(cur);
+    };
+    (function () {
+        var v = parseFloat(localStorage.getItem('ak-read-fs') || '1.25');
+        if (isNaN(v)) v = 1.25;
+        akApplyZoom(v);
+    })();
+
+    // --- 🔄 страховка: экраны со счётчиками всегда тянут свежую базу (чинит «не обновляется») ---
+    (function () {
+        function wrap(fn) {
+            var orig = window[fn];
+            if (typeof orig !== 'function') return;
+            window[fn] = async function () {
+                try { if (typeof loadLessonsFromFirebase === 'function') await loadLessonsFromFirebase(); } catch (e) {}
+                try { if (typeof loadSectionsFromFirebase === 'function') await loadSectionsFromFirebase(); } catch (e) {}
+                return orig.apply(this, arguments);
+            };
+        }
+        ['showTOC', 'showYearSections', 'showSectionLessons', 'showChapterLessons', 'showProgressTable', 'showDetailedProgress'].forEach(wrap);
+    })();
+
+    // --- ✍️ форматирование: превращатель маркеров в красоту ---
     function formatLessonHTML(text) {
         if (!text) return text;
         var s = String(text);
@@ -107,7 +150,7 @@
         return s;
     }
 
-    // запоминаем выделение в момент, когда ты его сделал (до тапа по ✍️)
+    // --- ✍️ запоминание выделения + вставка маркеров БЕЗ скачка экрана ---
     window._akLastRange = null;
     document.addEventListener('selectionchange', function () {
         try {
@@ -118,8 +161,6 @@
             if (ta.contains(r.commonAncestorContainer)) window._akLastRange = r.cloneRange();
         } catch (e) {}
     });
-
-    // вставка маркеров БЕЗ focus (экран не скачет) + возврат прокрутки
     function fmtApply(open, close) {
         var ta = document.getElementById('custom-textarea');
         var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
@@ -152,9 +193,10 @@
         try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
         window.scrollTo(0, sy);
         setTimeout(function () { window.scrollTo(0, sy); }, 0);
-        setTimeout(function () { window.scrollTo(0, sy); }, 60);
+        setTimeout(function () { window.scrollTo(0, sy); }, 80);
     }
 
+    // --- ✍️ окно с инструментами ---
     function openFmtModal() {
         var old = document.getElementById('fmt-overlay'); if (old) old.remove();
         var tools = [['Жирный','**','**'],['Курсив','*','*'],['По центру','[center]','[/center]'],['Слева','[left]','[/left]'],['Справа','[right]','[/right]'],['По ширине','[justify]','[/justify]'],['Заголовок 1','[h1]','[/h1]'],['Заголовок 2','[h2]','[/h2]'],['Цитата','[quote]','[/quote]'],['Красная строка','[indent]','[/indent]']];
@@ -163,7 +205,7 @@
         var box = document.createElement('div');
         box.style.cssText = 'background:rgba(13,31,15,0.98);border:1px solid #64ffda;border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
         var h = document.createElement('div'); h.textContent = '✍️ Форматирование'; h.style.cssText = "color:#64ffda;font-family:'Playfair Display',serif;font-size:1.3em;text-align:center;margin-bottom:6px;";
-        var hint = document.createElement('div'); hint.innerHTML = 'Выдели текст пальцем — тапни ✍️ — тапни инструмент (обернёт именно выделение).<br>Экран вниз больше не уезжает.'; hint.style.cssText = 'color:#a89b7e;font-size:0.85em;text-align:center;margin-bottom:12px;line-height:1.4;';
+        var hint = document.createElement('div'); hint.innerHTML = 'Выдели текст пальцем — тапни ✍️ — тапни инструмент (обернёт именно выделение).<br>Размер текста уроков меняй кнопками ➕ и ➖ в тулбаре.'; hint.style.cssText = 'color:#a89b7e;font-size:0.85em;text-align:center;margin-bottom:12px;line-height:1.4;';
         var grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
         tools.forEach(function (t) {
             var b = document.createElement('button'); b.type = 'button'; b.textContent = t[0];
@@ -184,7 +226,7 @@
         document.body.appendChild(ov);
     }
 
-    // наблюдатель: маркеры в тексте урока → красота при чтении
+    // --- ✍️ наблюдатель: маркеры в тексте урока → красота при чтении ---
     (function () {
         function scan() {
             var container = document.getElementById('chat-container');
@@ -211,109 +253,6 @@
         else start();
     })();
     </script>
-<!-- fmt-final-end -->
-    <!-- =========================================================
-     🛠 ВСЁ-В-ОДНОМ: время (часы/дни) + скролл при форматировании + авто-обновление после удаления
-     Лежит в index.html НАРОЧНО — чтобы кэш service worker'а не съедал (script.js он кэширует, html — нет).
-     Перекрывает старые функции поверх кэшированного script.js. script.js НЕ трогаем.
-     ========================================================= -->
-<script>
-// --- 1) ВРЕМЯ: минуты -> часы -> дни (перекрывает старую formatOnlineStatus из script.js) ---
-function formatOnlineStatus(userName) {
-  var status = (typeof onlineStatuses !== 'undefined') ? onlineStatuses[userName] : null;
-  if (!status || !status.lastSeen) return '<span style="color:#6b5f4a;font-size:0.85em;">⚫ Не в сети</span>';
-  var lastSeenDate = status.lastSeen.toDate();
-  var diffMins = Math.floor((new Date() - lastSeenDate) / 60000);
-  if (diffMins < 2) return '<span style="color:#4caf50;font-size:0.85em;">🟢 Онлайн</span>';
-  if (diffMins < 60) return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffMins + ' мин. назад</span>';
-  var diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) { var m = diffMins % 60; return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffHours + ' ч.' + (m ? ' ' + m + ' мин.' : '') + ' назад</span>'; }
-  var diffDays = Math.floor(diffHours / 24); var h = diffHours % 24;
-  return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffDays + ' дн.' + (h ? ' ' + h + ' ч.' : '') + ' назад</span>';
-}
-
-// --- 2) СКРОЛЛ: запоминаем выделение + вставка БЕЗ focus (экран не дёргается) ---
-window._akLastRange = null;
-document.addEventListener('selectionchange', function () {
-  try {
-    var ta = document.getElementById('custom-textarea');
-    var sel = window.getSelection();
-    if (!ta || !sel || !sel.rangeCount) return;
-    var r = sel.getRangeAt(0);
-    if (ta.contains(r.commonAncestorContainer)) window._akLastRange = r.cloneRange();
-  } catch (e) {}
-});
-function _akInsert(open, close) {
-  var ta = document.getElementById('custom-textarea');
-  var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
-  if (!ta) return;
-  var sy = window.scrollY || window.pageYOffset || 0;   // запоминаем, где экран
-  var sel = window.getSelection();
-  var range = null;
-  if (window._akLastRange && ta.contains(window._akLastRange.commonAncestorContainer)) {
-    try { sel.removeAllRanges(); sel.addRange(window._akLastRange); range = window._akLastRange; } catch (e) {}
-  }
-  if (!range) range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
-  var inside = range && ta.contains(range.commonAncestorContainer);
-  try {
-    if (inside && range.toString().length > 0) {
-      var txt = range.toString(); range.deleteContents();
-      var node = document.createTextNode(open + txt + close); range.insertNode(node);
-      var r = document.createRange(); r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
-      window._akLastRange = r.cloneRange();
-    } else if (inside) {
-      var n2 = document.createTextNode(open + close); range.insertNode(n2);
-      var r2 = document.createRange(); r2.setStart(n2, open.length); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
-      window._akLastRange = r2.cloneRange();
-    } else {
-      var end = document.createRange(); end.selectNodeContents(ta); end.collapse(false);
-      var n3 = document.createTextNode(open + close); end.insertNode(n3);
-      var r3 = document.createRange(); r3.setStart(n3, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3);
-      window._akLastRange = r3.cloneRange();
-    }
-  } catch (e) {}
-  try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
-  window.scrollTo(0, sy);                                   // возвращаем экран туда, где был
-  setTimeout(function () { window.scrollTo(0, sy); }, 0);
-  setTimeout(function () { window.scrollTo(0, sy); }, 80);
-}
-function fmtApply(open, close) { _akInsert(open, close); }      // модалка
-function akFmtWrap(open, close) { _akInsert(open, close); }     // быстрый ряд Ж К Ц
-
-// --- 3) АВТО-ОБНОВЛЕНИЕ после удаления урока (перерисовывает список сам) ---
-try {
-  var _oldFA = window.findAnswer;
-  if (typeof _oldFA === 'function') {
-    window.findAnswer = async function (q) {
-      var st = null, lid = null, secId = '', chId = '';
-      try {
-        if (typeof addLessonState !== 'undefined' && addLessonState) {
-          st = addLessonState.step; lid = addLessonState.lessonId;
-          if (lid && typeof lessonsById !== 'undefined' && lessonsById[lid]) { secId = lessonsById[lid].sectionId || ''; chId = lessonsById[lid].chapterId || ''; }
-        }
-      } catch (e) {}
-      var r;
-      try { r = await _oldFA.apply(this, arguments); }
-      finally {
-        try {
-          if (st === 'confirm_delete') {
-            var qq = (q || '').toLowerCase().trim();
-            if (qq === 'да, удалить' || qq === 'да' || qq === 'удалить') {
-              try { await loadLessonsFromFirebase(); } catch (e) {}
-              try {
-                if (chId && secId && typeof window.showChapterLessons === 'function') window.showChapterLessons(chId, secId);
-                else if (secId && typeof window.showSectionLessons === 'function') window.showSectionLessons(secId);
-                else if (typeof showMainMenu === 'function') showMainMenu();
-              } catch (e) {}
-            }
-          }
-        } catch (e) {}
-      }
-      return r;
-    };
-  }
-} catch (e) {}
-</script>
-<!-- akasha-allfix-end -->
+<!-- akasha-zoom-clean-end -->
 </body>
 </html>
