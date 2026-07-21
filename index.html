@@ -212,5 +212,108 @@
     })();
     </script>
 <!-- fmt-final-end -->
+    <!-- =========================================================
+     🛠 ВСЁ-В-ОДНОМ: время (часы/дни) + скролл при форматировании + авто-обновление после удаления
+     Лежит в index.html НАРОЧНО — чтобы кэш service worker'а не съедал (script.js он кэширует, html — нет).
+     Перекрывает старые функции поверх кэшированного script.js. script.js НЕ трогаем.
+     ========================================================= -->
+<script>
+// --- 1) ВРЕМЯ: минуты -> часы -> дни (перекрывает старую formatOnlineStatus из script.js) ---
+function formatOnlineStatus(userName) {
+  var status = (typeof onlineStatuses !== 'undefined') ? onlineStatuses[userName] : null;
+  if (!status || !status.lastSeen) return '<span style="color:#6b5f4a;font-size:0.85em;">⚫ Не в сети</span>';
+  var lastSeenDate = status.lastSeen.toDate();
+  var diffMins = Math.floor((new Date() - lastSeenDate) / 60000);
+  if (diffMins < 2) return '<span style="color:#4caf50;font-size:0.85em;">🟢 Онлайн</span>';
+  if (diffMins < 60) return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffMins + ' мин. назад</span>';
+  var diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) { var m = diffMins % 60; return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffHours + ' ч.' + (m ? ' ' + m + ' мин.' : '') + ' назад</span>'; }
+  var diffDays = Math.floor(diffHours / 24); var h = diffHours % 24;
+  return '<span style="color:#ff9800;font-size:0.85em;">⚪ Был в сети ' + diffDays + ' дн.' + (h ? ' ' + h + ' ч.' : '') + ' назад</span>';
+}
+
+// --- 2) СКРОЛЛ: запоминаем выделение + вставка БЕЗ focus (экран не дёргается) ---
+window._akLastRange = null;
+document.addEventListener('selectionchange', function () {
+  try {
+    var ta = document.getElementById('custom-textarea');
+    var sel = window.getSelection();
+    if (!ta || !sel || !sel.rangeCount) return;
+    var r = sel.getRangeAt(0);
+    if (ta.contains(r.commonAncestorContainer)) window._akLastRange = r.cloneRange();
+  } catch (e) {}
+});
+function _akInsert(open, close) {
+  var ta = document.getElementById('custom-textarea');
+  var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
+  if (!ta) return;
+  var sy = window.scrollY || window.pageYOffset || 0;   // запоминаем, где экран
+  var sel = window.getSelection();
+  var range = null;
+  if (window._akLastRange && ta.contains(window._akLastRange.commonAncestorContainer)) {
+    try { sel.removeAllRanges(); sel.addRange(window._akLastRange); range = window._akLastRange; } catch (e) {}
+  }
+  if (!range) range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
+  var inside = range && ta.contains(range.commonAncestorContainer);
+  try {
+    if (inside && range.toString().length > 0) {
+      var txt = range.toString(); range.deleteContents();
+      var node = document.createTextNode(open + txt + close); range.insertNode(node);
+      var r = document.createRange(); r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+      window._akLastRange = r.cloneRange();
+    } else if (inside) {
+      var n2 = document.createTextNode(open + close); range.insertNode(n2);
+      var r2 = document.createRange(); r2.setStart(n2, open.length); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
+      window._akLastRange = r2.cloneRange();
+    } else {
+      var end = document.createRange(); end.selectNodeContents(ta); end.collapse(false);
+      var n3 = document.createTextNode(open + close); end.insertNode(n3);
+      var r3 = document.createRange(); r3.setStart(n3, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3);
+      window._akLastRange = r3.cloneRange();
+    }
+  } catch (e) {}
+  try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+  window.scrollTo(0, sy);                                   // возвращаем экран туда, где был
+  setTimeout(function () { window.scrollTo(0, sy); }, 0);
+  setTimeout(function () { window.scrollTo(0, sy); }, 80);
+}
+function fmtApply(open, close) { _akInsert(open, close); }      // модалка
+function akFmtWrap(open, close) { _akInsert(open, close); }     // быстрый ряд Ж К Ц
+
+// --- 3) АВТО-ОБНОВЛЕНИЕ после удаления урока (перерисовывает список сам) ---
+try {
+  var _oldFA = window.findAnswer;
+  if (typeof _oldFA === 'function') {
+    window.findAnswer = async function (q) {
+      var st = null, lid = null, secId = '', chId = '';
+      try {
+        if (typeof addLessonState !== 'undefined' && addLessonState) {
+          st = addLessonState.step; lid = addLessonState.lessonId;
+          if (lid && typeof lessonsById !== 'undefined' && lessonsById[lid]) { secId = lessonsById[lid].sectionId || ''; chId = lessonsById[lid].chapterId || ''; }
+        }
+      } catch (e) {}
+      var r;
+      try { r = await _oldFA.apply(this, arguments); }
+      finally {
+        try {
+          if (st === 'confirm_delete') {
+            var qq = (q || '').toLowerCase().trim();
+            if (qq === 'да, удалить' || qq === 'да' || qq === 'удалить') {
+              try { await loadLessonsFromFirebase(); } catch (e) {}
+              try {
+                if (chId && secId && typeof window.showChapterLessons === 'function') window.showChapterLessons(chId, secId);
+                else if (secId && typeof window.showSectionLessons === 'function') window.showSectionLessons(secId);
+                else if (typeof showMainMenu === 'function') showMainMenu();
+              } catch (e) {}
+            }
+          }
+        } catch (e) {}
+      }
+      return r;
+    };
+  }
+} catch (e) {}
+</script>
+<!-- akasha-allfix-end -->
 </body>
 </html>
