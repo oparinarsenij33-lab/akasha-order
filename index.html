@@ -214,5 +214,51 @@
         else start();
     })();
     </script>
+    <!-- === ✍️ ФИКС: форматирование помнит выделение и НЕ уводит экран вниз === -->
+<script>
+window._akLastRange = null;
+document.addEventListener('selectionchange', function () {
+  try {
+    var ta = document.getElementById('custom-textarea');
+    var sel = window.getSelection();
+    if (!ta || !sel || !sel.rangeCount) return;
+    var r = sel.getRangeAt(0);
+    if (ta.contains(r.commonAncestorContainer)) window._akLastRange = r.cloneRange();
+  } catch (e) {}
+});
+function fmtApply(open, close) {
+  var ta = document.getElementById('custom-textarea');
+  var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
+  if (!ta) return;
+  var sy = window.scrollY || window.pageYOffset || 0;
+  var sel = window.getSelection();
+  var range = null;
+  if (window._akLastRange && ta.contains(window._akLastRange.commonAncestorContainer)) {
+    try { sel.removeAllRanges(); sel.addRange(window._akLastRange); range = window._akLastRange; } catch (e) {}
+  }
+  if (!range) range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
+  var inside = range && ta.contains(range.commonAncestorContainer);
+  try {
+    if (inside && range.toString().length > 0) {
+      var txt = range.toString(); range.deleteContents();
+      var node = document.createTextNode(open + txt + close); range.insertNode(node);
+      var r = document.createRange(); r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+      window._akLastRange = r.cloneRange();
+    } else if (inside) {
+      var n2 = document.createTextNode(open + close); range.insertNode(n2);
+      var r2 = document.createRange(); r2.setStart(n2, open.length); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
+      window._akLastRange = r2.cloneRange();
+    } else {
+      var end = document.createRange(); end.selectNodeContents(ta); end.collapse(false);
+      var n3 = document.createTextNode(open + close); end.insertNode(n3);
+      var r3 = document.createRange(); r3.setStart(n3, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3);
+      window._akLastRange = r3.cloneRange();
+    }
+  } catch (e) {}
+  try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+  window.scrollTo(0, sy);
+}
+</script>
+<!-- fmt-scroll-fix-end -->
 </body>
 </html>
