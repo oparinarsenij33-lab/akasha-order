@@ -3262,3 +3262,34 @@ function akInjectLessonNav(lessonId) {
   menuBtn.insertAdjacentHTML('beforebegin', nav);
 }
 // lesson-nav-end
+// === 🔍 ДИАГНОСТИКА УРОКОВ: напиши в чат слово diag — покажет ВСЕ уроки ПРЯМО с сервера ===
+(function () {
+  var _prevFA = window.findAnswer;
+  if (typeof _prevFA !== 'function') return;
+  window.findAnswer = async function (question) {
+    var q = (question || '').toLowerCase().trim();
+    if (q === 'diag' || q.indexOf('diag ') === 0 || q.indexOf('diag') === 0) {
+      try { await loadLessonsFromFirebase(); } catch (e) {}
+      var all = Object.values(lessonsById || {});
+      var secById = {}; (sectionsList || []).forEach(function (s) { secById[s.id] = s; });
+      var rows = '';
+      if (all.length === 0) { rows = '<p style="color:#6b5f4a;text-align:center;">В базе 0 уроков.</p>'; }
+      else {
+        all.forEach(function (l, i) {
+          var sec = l.sectionId ? secById[l.sectionId] : null;
+          var secLabel = sec ? (sec.name + '  ·  ранг раздела «' + sec.rank + '»  ·  ' + sec.year + ' год') : '⚠️ НЕТ раздела (урок старого формата)';
+          rows += '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px;margin:6px 0;border-left:3px solid #64ffda;">'
+            + '<div style="color:#64ffda;font-weight:700;">#' + (i + 1) + '. ' + (l.title || '(без названия)') + '</div>'
+            + '<div style="color:#a89b7e;font-size:0.85em;">category (ранг урока): <b style="color:#8bc34a;">' + (l.category || '—') + '</b></div>'
+            + '<div style="color:#a89b7e;font-size:0.85em;">раздел: <b style="color:#8bc34a;">' + secLabel + '</b></div>'
+            + '<div style="color:#a89b7e;font-size:0.85em;">глава: <b style="color:#8bc34a;">' + (l.chapterId || '—') + '</b> &nbsp;|&nbsp; id: ' + l.id + '</div>'
+            + '</div>';
+        });
+      }
+      addRawHTML('<div style="background:rgba(13,31,15,0.6);border:1px solid #64ffda;border-radius:12px;padding:15px;margin:15px 0;"><h3 style="color:#64ffda;text-align:center;font-family:\'Playfair Display\',serif;">🔍 Уроки в базе Firebase (' + all.length + ')</h3><p style="color:#a89b7e;font-size:0.85em;text-align:center;">Читаем ПРЯМО с сервера (не из памяти). Ищи «лишнего» — смотри его ранг и раздел.</p>' + rows + '</div>');
+      return '';
+    }
+    return _prevFA.apply(this, arguments);
+  };
+})();
+// diag-lessons-end
