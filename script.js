@@ -3293,3 +3293,74 @@ function akInjectLessonNav(lessonId) {
   };
 })();
 // diag-lessons-end
+// =========================================================
+// 🔍 DIAG v2: карточки уроков + кнопки «Удалить» и «В раздел» прямо из диагностики
+// (закрывает дыру: уроки-призраки без раздела теперь можно удалить/привязать без консоли)
+// =========================================================
+function akDiagSafe(t) { return String(t == null ? '' : t).replace(/</g, '&lt;'); }
+
+async function akDiagRender() {
+  try { await loadLessonsFromFirebase(); } catch (e) {}
+  var all = Object.values(lessonsById || {});
+  var secById = {}; (sectionsList || []).forEach(function (s) { secById[s.id] = s; });
+  var rows = '';
+  if (all.length === 0) {
+    rows = '<p style="color:#6b5f4a;text-align:center;">В базе 0 уроков.</p>';
+  } else {
+    all.forEach(function (l, i) {
+      var sec = l.sectionId ? secById[l.sectionId] : null;
+      var visible = !!sec;
+      var secLabel = sec ? (akDiagSafe(sec.name) + ' · ранг «' + akDiagSafe(sec.rank) + '» · ' + akDiagSafe(sec.year) + ' год') : '⚠️ НЕТ раздела (урок старого формата — НЕ виден ученикам в оглавлении!)';
+      var warn = visible ? '' : '<div style="color:#ff9800;font-size:0.85em;margin:4px 0;">👻 Этот урок — призрак: лежит в базе, но в новом оглавлении его никто не видит.</div>';
+      rows += '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px;margin:8px 0;border-left:3px solid ' + (visible ? '#64ffda' : '#ff9800') + ';">'
+        + '<div style="color:#64ffda;font-weight:700;">#' + (i + 1) + '. ' + akDiagSafe(l.title || '(без названия)') + '</div>'
+        + '<div style="color:#a89b7e;font-size:0.85em;">category (ранг урока): <b style="color:#8bc34a;">' + akDiagSafe(l.category || '—') + '</b></div>'
+        + '<div style="color:#a89b7e;font-size:0.85em;">раздел: <b style="color:#8bc34a;">' + secLabel + '</b></div>'
+        + '<div style="color:#a89b7e;font-size:0.85em;">глава: <b style="color:#8bc34a;">' + akDiagSafe(l.chapterId || '—') + '</b> &nbsp;|&nbsp; id: ' + akDiagSafe(l.id) + '</div>'
+        + warn
+        + '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">'
+        + '<button class="hw-btn" onclick="window.akDiagAttach(\'' + l.id + '\')" style="flex:1;min-width:130px;margin:0;padding:8px;background:rgba(139,195,74,0.25);color:#8bc34a;font-size:0.9em;">📦 В раздел</button>'
+        + '<button class="hw-btn" onclick="window.akDiagDelete(\'' + l.id + '\',\'' + akDiagSafe(l.title || '').replace(/'/g, '') + '\')" style="flex:1;min-width:130px;margin:0;padding:8px;background:rgba(255,80,80,0.2);color:#ff6b6b;font-size:0.9em;">🗑️ Удалить</button>'
+        + '</div></div>';
+    });
+  }
+  var box = '<div id="ak-diag-box" style="background:rgba(13,31,15,0.6);border:1px solid #64ffda;border-radius:12px;padding:15px;margin:15px 0;"><h3 style="color:#64ffda;text-align:center;font-family:\'Playfair Display\',serif;">🔍 Уроки в базе Firebase (' + all.length + ')</h3><p style="color:#a89b7e;font-size:0.85em;text-align:center;">Читаем ПРЯМО с сервера. У каждого урока кнопки: <b>📦 В раздел</b> (привязать) или <b>🗑️ Удалить</b>.</p>' + rows + '</div>';
+  var old = document.getElementById('ak-diag-box');
+  if (old) { var par = old.parentNode; if (par) par.innerHTML = box; }
+  else { addRawHTML(box); }
+}
+
+window.akDiagDelete = async function (id, title) {
+  var ok = await askConfirm('⚠️ Удалить урок?', 'Урок «' + (title || '') + '» будет удалён ИЗ БАЗЫ навсегда. Это действие нельзя отменить.');
+  if (!ok) return;
+  var done = await deleteLesson(id);
+  if (done) { try { showAlert('Успех', 'Урок удалён из базы.'); } catch (e) {} }
+  else { try { showAlert('Ошибка', 'Не удалось удалить.'); } catch (e) {} }
+  akDiagRender();
+};
+
+window.akDiagAttach = function (id) {
+  var secs = sectionsList || [];
+  if (secs.length === 0) { try { showAlert('Нет разделов', 'Сначала создайте раздел в оглавлении.'); } catch (e) {} return; }
+  var btns = secs.map(function (s) {
+    return { text: '📖 ' + s.name + ' (' + s.year + ', ' + s.rank + ')', class: 'hw-btn', style: 'background:rgba(139,195,74,0.2);color:#8bc34a;width:100%;margin:4px 0;', action: function () { window.akDiagDoAttach(id, s.id); } };
+  });
+  btns.push({ text: 'Отмена', class: 'hw-btn', action: function () {} });
+  showCustomModal('📦 Привязать урок к разделу', '<p>Выберите раздел. Урок попадёт туда в «Уроки без главы» — потом кнопкой 📦 в оглавлении закинете его в нужную главу.</p>', btns);
+};
+
+window.akDiagDoAttach = async function (id, secId) {
+  var done = await updateLessonInFirebase(id, { sectionId: secId, chapterId: '' });
+  if (done) { try { showAlert('Успех', 'Урок привязан к разделу! Теперь он виден в оглавлении (в «Уроках без главы» этого раздела).'); } catch (e) {} }
+  else { try { showAlert('Ошибка', 'Не удалось привязать.'); } catch (e) {} }
+  try { await loadLessonsFromFirebase(); } catch (e) {}
+  akDiagRender();
+};
+
+// перехват слова diag — рисуем новую диагностику с кнопками (цепочку обёрток не ломаем)
+var _prevDiagFA2 = window.findAnswer;
+window.findAnswer = async function (question) {
+  if ((question || '').trim().toLowerCase() === 'diag') { await akDiagRender(); return ''; }
+  return _prevDiagFA2.apply(this, arguments);
+};
+// diag-v2-end
