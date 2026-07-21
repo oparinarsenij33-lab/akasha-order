@@ -4,17 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Акаша — Хранительница Знаний Ордена</title>
-    
-    <!-- Шрифты -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
-    
-    <!-- Стили -->
     <link rel="stylesheet" href="style.css">
-    
-    <!-- ===== PWA ===== -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a3a1a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,29 +23,20 @@
             <p class="subtitle">Хранительница Знаний Ордена Вольных Джедаев</p>
             <div id="season-indicator" class="season-indicator"></div>
         </header>
-        
         <button class="logout-btn" onclick="handleLogout()" style="display:none;">🚪 Выйти</button>
-        
         <div id="chat-container" class="chat-container"></div>
-        
         <div class="input-wrapper" id="main-input-wrapper">
             <div id="custom-textarea" class="custom-textarea" contenteditable="true" placeholder="Задай вопрос Акаше..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-            
-            <!-- Кнопки управления -->
             <div class="toolbar" style="margin-bottom:5px;">
                 <button class="toolbar-btn" onclick="toggleKeyboardVisibility()" style="background:rgba(255,215,0,0.2); color:#ffd700; border-color:rgba(255,215,0,0.5); min-width:50px;" title="Скрыть/показать клавиатуру">⌨️</button>
                 <button class="toolbar-btn" onclick="toggleLargeText()" style="background:rgba(100,255,218,0.2); color:#64ffda; border-color:rgba(100,255,218,0.5); min-width:50px; margin-left:5px;" title="Увеличить шрифт">🔍</button>
-                <!-- ✍️ НОВАЯ КНОПКА ФОРМАТИРОВАНИЯ -->
                 <button class="toolbar-btn" onclick="openFmtModal()" style="background:rgba(139,195,74,0.2); color:#8bc34a; border-color:rgba(139,195,74,0.5); min-width:50px; margin-left:5px;" title="Форматирование текста">✍️</button>
                 <div style="flex:1;"></div>
                 <button class="toolbar-btn lang-btn" id="lang-toggle-btn" onclick="toggleLanguage()">RU</button>
                 <button class="toolbar-btn send-btn" onclick="handleSend()">Отправить</button>
             </div>
-            
             <div id="custom-keyboard" class="custom-keyboard"></div>
         </div>
-        
-        <!-- ===== ЧАТ С МАСТЕРОМ ===== -->
         <div class="master-chat-wrapper" id="master-chat-wrapper" style="display:none;">
             <div class="chat-header">💬 Личный чат с Мастером</div>
             <div id="master-chat-container" class="chat-messages"></div>
@@ -61,8 +46,6 @@
             </div>
             <button class="hw-btn" onclick="closeMasterChat()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в меню</button>
         </div>
-        
-        <!-- ===== ЧАТ С АРХИВАРИУСОМ ===== -->
         <div class="archivist-chat-wrapper" id="archivist-chat-wrapper" style="display:none;">
             <div class="chat-header">📚 Чат с Архивариусом</div>
             <div id="archivist-chat-container" class="chat-messages"></div>
@@ -73,7 +56,6 @@
             <button class="hw-btn" onclick="closeArchivistChat()" style="width:100%; margin-top:10px; padding:12px;">🔙 Вернуться в Библиотеку</button>
         </div>
     </div>
-    
     <div id="custom-modal" class="custom-modal" style="display:none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -84,21 +66,15 @@
             <div class="modal-footer" id="modal-footer"></div>
         </div>
     </div>
-    
     <div class="particles">
         <div class="particle"></div><div class="particle"></div><div class="particle"></div>
         <div class="particle"></div><div class="particle"></div><div class="particle"></div>
         <div class="particle"></div><div class="particle"></div><div class="particle"></div>
     </div>
-
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-    
-    <script src="script.js?v=7"></script>
-
-    <!-- Регистрация Service Worker (PWA) -->
+    <script src="script.js?v=8"></script>
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
@@ -110,11 +86,10 @@
     </script>
 
     <!-- =========================================================
-         ✍️ ФОРМАТИРОВАНИЕ ТЕКСТА (кнопка + окно + превращение маркеров)
-         Всё самодостаточно, script.js не трогаем
+         ✍️ ФОРМАТИРОВАНИЕ (ИСПРАВЛЕНО: без фокуса = без скачка вниз,
+         помнит выделение, возвращает прокрутку)
          ========================================================= -->
     <script>
-    // превращает маркеры [center] и т.д. в красивый HTML
     function formatLessonHTML(text) {
         if (!text) return text;
         var s = String(text);
@@ -132,32 +107,54 @@
         return s;
     }
 
-    // вставка пары маркеров в поле (в выделение / в курсор / в конец)
+    // запоминаем выделение в момент, когда ты его сделал (до тапа по ✍️)
+    window._akLastRange = null;
+    document.addEventListener('selectionchange', function () {
+        try {
+            var ta = document.getElementById('custom-textarea');
+            var sel = window.getSelection();
+            if (!ta || !sel || !sel.rangeCount) return;
+            var r = sel.getRangeAt(0);
+            if (ta.contains(r.commonAncestorContainer)) window._akLastRange = r.cloneRange();
+        } catch (e) {}
+    });
+
+    // вставка маркеров БЕЗ focus (экран не скачет) + возврат прокрутки
     function fmtApply(open, close) {
         var ta = document.getElementById('custom-textarea');
         var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
         if (!ta) return;
-        ta.focus();
+        var sy = window.scrollY || window.pageYOffset || 0;
         var sel = window.getSelection();
-        var range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
+        var range = null;
+        if (window._akLastRange && ta.contains(window._akLastRange.commonAncestorContainer)) {
+            try { sel.removeAllRanges(); sel.addRange(window._akLastRange); range = window._akLastRange; } catch (e) {}
+        }
+        if (!range) range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
         var inside = range && ta.contains(range.commonAncestorContainer);
         try {
             if (inside && range.toString().length > 0) {
                 var txt = range.toString(); range.deleteContents();
                 var node = document.createTextNode(open + txt + close); range.insertNode(node);
                 var r = document.createRange(); r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
+                window._akLastRange = r.cloneRange();
             } else if (inside) {
                 var n2 = document.createTextNode(open + close); range.insertNode(n2);
                 var r2 = document.createRange(); r2.setStart(n2, open.length); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
+                window._akLastRange = r2.cloneRange();
             } else {
-                ta.appendChild(document.createTextNode(open + close));
-                var last = ta.lastChild; try { var r3 = document.createRange(); r3.setStart(last, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3); } catch (e) {}
+                var end = document.createRange(); end.selectNodeContents(ta); end.collapse(false);
+                var n3 = document.createTextNode(open + close); end.insertNode(n3);
+                var r3 = document.createRange(); r3.setStart(n3, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3);
+                window._akLastRange = r3.cloneRange();
             }
-        } catch (e) { try { ta.appendChild(document.createTextNode(open + close)); } catch (e2) {} }
+        } catch (e) {}
         try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+        window.scrollTo(0, sy);
+        setTimeout(function () { window.scrollTo(0, sy); }, 0);
+        setTimeout(function () { window.scrollTo(0, sy); }, 60);
     }
 
-    // окно с инструментами
     function openFmtModal() {
         var old = document.getElementById('fmt-overlay'); if (old) old.remove();
         var tools = [['Жирный','**','**'],['Курсив','*','*'],['По центру','[center]','[/center]'],['Слева','[left]','[/left]'],['Справа','[right]','[/right]'],['По ширине','[justify]','[/justify]'],['Заголовок 1','[h1]','[/h1]'],['Заголовок 2','[h2]','[/h2]'],['Цитата','[quote]','[/quote]'],['Красная строка','[indent]','[/indent]']];
@@ -166,7 +163,7 @@
         var box = document.createElement('div');
         box.style.cssText = 'background:rgba(13,31,15,0.98);border:1px solid #64ffda;border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
         var h = document.createElement('div'); h.textContent = '✍️ Форматирование'; h.style.cssText = "color:#64ffda;font-family:'Playfair Display',serif;font-size:1.3em;text-align:center;margin-bottom:6px;";
-        var hint = document.createElement('div'); hint.innerHTML = 'Выдели текст пальцем — тапни инструмент (обернёт выделение).<br>Не выделял — тапни инструмент, потом печатай <b>между</b> скобок.'; hint.style.cssText = 'color:#a89b7e;font-size:0.85em;text-align:center;margin-bottom:12px;line-height:1.4;';
+        var hint = document.createElement('div'); hint.innerHTML = 'Выдели текст пальцем — тапни ✍️ — тапни инструмент (обернёт именно выделение).<br>Экран вниз больше не уезжает.'; hint.style.cssText = 'color:#a89b7e;font-size:0.85em;text-align:center;margin-bottom:12px;line-height:1.4;';
         var grid = document.createElement('div'); grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
         tools.forEach(function (t) {
             var b = document.createElement('button'); b.type = 'button'; b.textContent = t[0];
@@ -187,7 +184,7 @@
         document.body.appendChild(ov);
     }
 
-    // наблюдатель: как только на экране появляется текст с маркерами — превращает их в красоту
+    // наблюдатель: маркеры в тексте урока → красота при чтении
     (function () {
         function scan() {
             var container = document.getElementById('chat-container');
@@ -214,51 +211,6 @@
         else start();
     })();
     </script>
-    <!-- === ✍️ ФИКС: форматирование помнит выделение и НЕ уводит экран вниз === -->
-<script>
-window._akLastRange = null;
-document.addEventListener('selectionchange', function () {
-  try {
-    var ta = document.getElementById('custom-textarea');
-    var sel = window.getSelection();
-    if (!ta || !sel || !sel.rangeCount) return;
-    var r = sel.getRangeAt(0);
-    if (ta.contains(r.commonAncestorContainer)) window._akLastRange = r.cloneRange();
-  } catch (e) {}
-});
-function fmtApply(open, close) {
-  var ta = document.getElementById('custom-textarea');
-  var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
-  if (!ta) return;
-  var sy = window.scrollY || window.pageYOffset || 0;
-  var sel = window.getSelection();
-  var range = null;
-  if (window._akLastRange && ta.contains(window._akLastRange.commonAncestorContainer)) {
-    try { sel.removeAllRanges(); sel.addRange(window._akLastRange); range = window._akLastRange; } catch (e) {}
-  }
-  if (!range) range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
-  var inside = range && ta.contains(range.commonAncestorContainer);
-  try {
-    if (inside && range.toString().length > 0) {
-      var txt = range.toString(); range.deleteContents();
-      var node = document.createTextNode(open + txt + close); range.insertNode(node);
-      var r = document.createRange(); r.setStartAfter(node); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
-      window._akLastRange = r.cloneRange();
-    } else if (inside) {
-      var n2 = document.createTextNode(open + close); range.insertNode(n2);
-      var r2 = document.createRange(); r2.setStart(n2, open.length); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
-      window._akLastRange = r2.cloneRange();
-    } else {
-      var end = document.createRange(); end.selectNodeContents(ta); end.collapse(false);
-      var n3 = document.createTextNode(open + close); end.insertNode(n3);
-      var r3 = document.createRange(); r3.setStart(n3, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3);
-      window._akLastRange = r3.cloneRange();
-    }
-  } catch (e) {}
-  try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
-  window.scrollTo(0, sy);
-}
-</script>
-<!-- fmt-scroll-fix-end -->
+<!-- fmt-final-end -->
 </body>
 </html>
