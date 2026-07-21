@@ -2963,7 +2963,6 @@ function formatLessonHTML(text) {
 function akInsertWrap(openTag, closeTag) {
   var ta = document.getElementById('custom-textarea');
   if (!ta) return;
-  ta.focus();
   var sel = window.getSelection();
   if (!sel) return;
   var range = sel.rangeCount ? sel.getRangeAt(0) : null;
