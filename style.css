@@ -1112,3 +1112,22 @@ h1 {
   .progress-table{font-size:0.78em;}
   .progress-table th,.progress-table td{padding:6px 5px!important;}
 }
+/* === 🔠 ЧИТАЕМЫЙ ТЕКСТ: крупнее по умолчанию + лупа 🔍 = ещё крупнее === */
+.message { font-size: 1.06rem; }
+.message-content { font-size: 1.2rem !important; line-height: 1.75; }
+.message-content p,
+.message-content .ak-bl,
+.message-content blockquote { font-size: 1.2rem !important; line-height: 1.8; }
+.message-content h2 { font-size: 1.55rem !important; line-height: 1.3; }
+.message-content h3 { font-size: 1.4rem !important; line-height: 1.3; }
+.message-content h4 { font-size: 1.25rem !important; line-height: 1.3; }
+/* кнопка-лупа 🔍 в тулбаре = режим «совсем крупно» */
+body.keyboard-large-text .message { font-size: 1.15rem; }
+body.keyboard-large-text .message-content,
+body.keyboard-large-text .message-content p,
+body.keyboard-large-text .message-content .ak-bl,
+body.keyboard-large-text .message-content blockquote { font-size: 1.4rem !important; }
+body.keyboard-large-text .message-content h2 { font-size: 1.75rem !important; }
+body.keyboard-large-text .message-content h3 { font-size: 1.6rem !important; }
+body.keyboard-large-text .message-content h4 { font-size: 1.4rem !important; }
+/* ak-fmt-text-end */
