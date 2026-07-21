@@ -1986,10 +1986,9 @@ window.startVoiceRecording = async function() {
     audioChunks = [];
     mediaRecorder.ondataavailable = (ev) => { audioChunks.push(ev.data); };
     mediaRecorder.onstop = async () => {
-      const blob = new Blob(audioChunks, { type: 'audio/webm' });
-      if (!audioBlob || audioBlob.size === 0) { try { showAlert('Ошибка', '🎤 Микрофон ничего не записал. Попробуй ещё раз (говори чуть громче/дольше).'); } catch (e) {} return; }
-    await ref.put(audioBlob, { contentType: 'audio/webm' });
-    };
+const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+await sendVoiceMessage(audioBlob);
+};
     mediaRecorder.start();
     isRecording = true;
     updateVoiceBtn();
