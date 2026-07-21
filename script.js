@@ -3207,3 +3207,58 @@ window.findAnswer = async function (question) {
   return _prevFindAnswerDelete.call(this, question);
 };
 // akasha-live-del-end
+// =========================================================
+// 🧭 НАВИГАЦИЯ «НАЗАД» ВНУТРИ УРОКА (ступеньки: глава → раздел → год → оглавление)
+// Дописка в конец. Середину файла НЕ трогаем (там зона будущей чистки).
+// После отрисовки урока добавляет кнопки возврата по иерархии ПЕРЕД кнопкой «в меню».
+// =========================================================
+(function () {
+  var _origShowLesson = window.showLessonContent;
+  if (typeof _origShowLesson !== 'function') return;
+  window.showLessonContent = async function (lessonId) {
+    var r;
+    try { r = await _origShowLesson.apply(this, arguments); } catch (e) { r = undefined; }
+    setTimeout(function () { try { akInjectLessonNav(lessonId); } catch (e) {} }, 150);
+    return r;
+  };
+  window.showLessonContentWithReadButton = window.showLessonContent;
+  var _origMark = window.markLessonRead;
+  if (typeof _origMark === 'function') {
+    window.markLessonRead = async function (lessonId) {
+      var r = await _origMark.apply(this, arguments);
+      setTimeout(function () { try { akInjectLessonNav(lessonId); } catch (e) {} }, 150);
+      return r;
+    };
+  }
+})();
+
+function akInjectLessonNav(lessonId) {
+  var lesson = (typeof lessonsById !== 'undefined') ? lessonsById[lessonId] : null;
+  if (!lesson) return;
+  var container = document.getElementById('chat-container');
+  if (!container) return;
+  var btns = container.querySelectorAll('button');
+  var menuBtn = null;
+  for (var i = btns.length - 1; i >= 0; i--) {
+    if ((btns[i].textContent || '').indexOf('Вернуться в меню') !== -1) { menuBtn = btns[i]; break; }
+  }
+  if (!menuBtn || menuBtn.getAttribute('data-ak-nav')) return;
+  menuBtn.setAttribute('data-ak-nav', '1');
+  var sec = null;
+  if (lesson.sectionId && typeof sectionsList !== 'undefined') {
+    sec = sectionsList.find(function (s) { return s.id === lesson.sectionId; });
+  }
+  var nav = '';
+  if (lesson.chapterId && lesson.sectionId) {
+    nav += '<button class="hw-btn" onclick="window.showChapterLessons(\'' + lesson.chapterId + '\',\'' + lesson.sectionId + '\')" style="width:100%;margin-top:10px;padding:12px;background:rgba(139,195,74,0.25);color:#8bc34a;">↩️ Назад в главу</button>';
+  }
+  if (lesson.sectionId) {
+    nav += '<button class="hw-btn" onclick="window.showSectionLessons(\'' + lesson.sectionId + '\')" style="width:100%;margin-top:10px;padding:12px;background:rgba(139,195,74,0.2);color:#8bc34a;">↩️ Назад в раздел</button>';
+  }
+  if (sec && sec.year) {
+    nav += '<button class="hw-btn" onclick="window.showYearSections(' + sec.year + ')" style="width:100%;margin-top:10px;padding:12px;background:rgba(100,255,218,0.15);color:#64ffda;">📅 Назад к ' + sec.year + ' году</button>';
+  }
+  nav += '<button class="hw-btn" onclick="showTOC()" style="width:100%;margin-top:10px;padding:12px;background:rgba(100,255,218,0.15);color:#64ffda;">📚 В оглавление</button>';
+  menuBtn.insertAdjacentHTML('beforebegin', nav);
+}
+// lesson-nav-end
