@@ -1,7 +1,5 @@
 // =========================================================
-// ☠️ КАМИКАДЗЕ — самоликвидация старого воюющего SW (akasha-v2)
-// Этот файл больше НЕ рабочий SW: при обновлении он чистит свой кэш
-// и де-регистрирует себя, освобождая scope для единого /sw.js.
+// ☠️ КАМИКАДЗЕ — самоликвидация старого SW (akasha-v2)
 // =========================================================
 self.addEventListener('install', function () { self.skipWaiting(); });
 self.addEventListener('activate', function (ev) {
@@ -11,5 +9,5 @@ self.addEventListener('activate', function (ev) {
     }).then(function () { return self.registration.unregister(); })
   );
 });
-self.addEventListener('fetch', function () { /* ничего не перехватываем */ });
-// =========================================================
+self.addEventListener('fetch', function () {});
+// kamikaze-end
