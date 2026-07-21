@@ -3095,7 +3095,6 @@ window.fmtApply = function (open, close) {
   var ta = document.getElementById('custom-textarea');
   var ov = document.getElementById('fmt-overlay'); if (ov) ov.remove();
   if (!ta) return;
-  ta.focus();
   var sel = window.getSelection();
   var range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
   var inside = range && ta.contains(range.commonAncestorContainer);
