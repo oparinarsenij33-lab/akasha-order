@@ -3419,3 +3419,38 @@ window.findAnswer = async function (question) {
   setInterval(grab, 1500);
 })();
 // ak-linkify-end
+// =========================================================
+// 🔢 НУМЕРАЦИЯ УРОКОВ в оглавлении (поэкранно: внутри главы / в «уроках без главы»)
+// Обёртки над showSectionLessons и showChapterLessons — оригиналы НЕ трогаем.
+// После отрисовки ставит «№1, №2…» перед каждой карточкой урока (.toc-lesson-link).
+// Главы и кнопки НЕ нумеруются (у них нет класса toc-lesson-link).
+// =========================================================
+(function () {
+  function akNumberLessons() {
+    var c = document.getElementById('chat-container');
+    if (!c) return;
+    var cards = c.querySelectorAll('.toc-lesson-link');
+    for (var i = 0; i < cards.length; i++) {
+      var el = cards[i];
+      if (el.getAttribute('data-ak-num')) continue;
+      el.setAttribute('data-ak-num', '1');
+      var badge = document.createElement('span');
+      badge.style.cssText = 'display:inline-block;min-width:2.4em;color:#64ffda;font-weight:700;margin-right:4px;';
+      badge.textContent = '№' + (i + 1) + ' ';
+      el.insertBefore(badge, el.firstChild);
+    }
+  }
+  function wrapNum(fnName) {
+    var orig = window[fnName];
+    if (typeof orig !== 'function') return;
+    window[fnName] = async function () {
+      var r;
+      try { r = await orig.apply(this, arguments); } catch (e) { r = undefined; }
+      try { akNumberLessons(); } catch (e) {}
+      return r;
+    };
+  }
+  wrapNum('showSectionLessons');
+  wrapNum('showChapterLessons');
+})();
+// ak-lesson-num-end
