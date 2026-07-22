@@ -2637,6 +2637,7 @@ window.showChapterLessons = async function (chapterId, sectionId) {
   const section = sectionsList.find(function (s) { return s.id === sectionId; });
   if (!chapter) { addMessage('<p>❌ Глава не найдена.</p>'); return; }
   const chLessons = Object.values(lessonsById).filter(function (l) { return l.chapterId === chapterId; });
+  await akEnsureLessonOrder(chLessons);
   let html = '<div style="background:rgba(13,31,15,0.5);border:1px solid var(--border-color);border-radius:15px;padding:25px;margin:15px 0;">';
   html += '<h3 style="color:#64ffda;margin-bottom:8px;font-family:\'Playfair Display\',serif;text-align:center;font-size:1.7em;">📑 ' + chapter.name + '</h3>';
   if (section) html += '<p style="color:var(--text-secondary);text-align:center;font-style:italic;margin-bottom:20px;">' + section.name + ' (' + section.year + ')</p>';
@@ -2694,7 +2695,7 @@ window.showSectionLessons = async function (sectionId) {
   html += '<h4 style="color:#a89b7e;font-family:\'Playfair Display\',serif;margin:10px 0 12px 0;border-top:1px solid var(--border-color);padding-top:15px;">📄 Уроки без главы</h4>';
   if (noChapterLessons.length === 0) {
     html += '<p style="color:#6b5f4a;font-style:italic;margin:0 0 15px 0;">Все уроки распределены по главам. ✨</p>';
-  } else {
+  } else { await akEnsureLessonOrder(noChapterLessons);
     html += '<div style="margin-bottom:15px;">';
     noChapterLessons.forEach(function (lesson) {
       html += '<div style="display:flex;gap:8px;align-items:center;margin:5px 0;">';
@@ -3687,3 +3688,94 @@ window.moveBook = async function (id, dir) {
   setInterval(grab, 1500);
 })();
 // ak-book-arrows-end
+// =========================================================
+// 🔢️⬇️ СТРОГИЙ ПОРЯДОК УРОКОВ (в главах и «без главы») — наблюдатель в хвосте
+// akEnsureLessonOrder — сортирует массив по order + миграция старых уроков.
+// moveLesson — меняет урок местами с соседом (через updateLessonInFirebase).
+// Наблюдатель ставит ⬆️️ у .toc-lesson-link ТОЛЬКО когда в строке есть
+//   кнопка showChapterPicker (признак мастера) — ученику стрелок нет.
+// Стиль — уже живой класс .ak-move-btn (от книг), css НЕ трогаем.
+// =========================================================
+function akLessonCmp(a, b) {
+  var oa = (typeof a.order === 'number') ? a.order : 1e9;
+  var ob = (typeof b.order === 'number') ? b.order : 1e9;
+  if (oa !== ob) return oa - ob;
+  return String(a.id || '').localeCompare(String(b.id || ''));
+}
+async function akEnsureLessonOrder(arr) {
+  if (!arr || !arr.length) return;
+  arr.sort(akLessonCmp);
+  var needFix = arr.some(function (l) { return typeof l.order !== 'number'; });
+  if (needFix && typeof updateLessonInFirebase === 'function') {
+    var ps = [];
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].order !== i) { arr[i].order = i; ps.push(updateLessonInFirebase(arr[i].id, { order: i }).catch(function () {})); }
+    }
+    if (ps.length) { try { await Promise.all(ps); } catch (e) {} }
+  }
+}
+window.moveLesson = async function (id, dir) {
+  var l = (typeof lessonsById !== 'undefined' ? lessonsById : {})[id];
+  if (!l) return;
+  var arr;
+  if (l.chapterId) {
+    arr = Object.values(lessonsById).filter(function (x) { return x.chapterId === l.chapterId; });
+  } else {
+    arr = Object.values(lessonsById).filter(function (x) { return x.sectionId === l.sectionId && !x.chapterId; });
+  }
+  arr.sort(akLessonCmp);
+  var idx = -1;
+  for (var k = 0; k < arr.length; k++) { if (arr[k].id === id) { idx = k; break; } }
+  var j = idx + dir;
+  if (idx < 0 || j < 0 || j >= arr.length) return;
+  var tmp = arr[idx].order; arr[idx].order = arr[j].order; arr[j].order = tmp;
+  if (typeof updateLessonInFirebase === 'function') {
+    try { await updateLessonInFirebase(arr[idx].id, { order: arr[idx].order }); } catch (e) {}
+    try { await updateLessonInFirebase(arr[j].id, { order: arr[j].order }); } catch (e) {}
+  }
+  var secId = l.sectionId;
+  if (!secId && l.chapterId) {
+    var ch = (typeof chaptersList !== 'undefined' ? chaptersList : []).find(function (c) { return c.id === l.chapterId; });
+    if (ch) secId = ch.sectionId;
+  }
+  try {
+    if (l.chapterId) await window.showChapterLessons(l.chapterId, secId);
+    else if (secId) await window.showSectionLessons(secId);
+  } catch (e) {}
+};
+(function () {
+  function akInjectLessonMove(link) {
+    var wrap = link.parentNode;
+    if (!wrap || wrap.getAttribute('data-ak-lmove')) return;
+    var btns = wrap.querySelectorAll('button');
+    var picker = null;
+    for (var i = 0; i < btns.length; i++) {
+      if ((btns[i].getAttribute('onclick') || '').indexOf('showChapterPicker') !== -1) { picker = btns[i]; break; }
+    }
+    if (!picker) return;
+    var oc = link.getAttribute('onclick') || '';
+    var m = oc.match(/showLessonContent\('([^']+)'\)/);
+    if (!m) return;
+    var id = m[1];
+    wrap.setAttribute('data-ak-lmove', '1');
+    picker.insertAdjacentHTML('beforebegin',
+      '<button class="ak-move-btn" onclick="event.stopPropagation();window.moveLesson(\'' + id + '\',-1)">⬆️</button>' +
+      '<button class="ak-move-btn" onclick="event.stopPropagation();window.moveLesson(\'' + id + '\',1)">⬇️</button>');
+  }
+  function akScan(root) {
+    if (!root) return;
+    var ls = root.querySelectorAll('.toc-lesson-link');
+    for (var i = 0; i < ls.length; i++) akInjectLessonMove(ls[i]);
+  }
+  var pending = false;
+  function run() { pending = false; akScan(document.getElementById('chat-container')); }
+  var obs = new MutationObserver(function () { if (!pending) { pending = true; requestAnimationFrame(run); } });
+  function grab() {
+    var c = document.getElementById('chat-container');
+    if (c && !c.getAttribute('data-ak-lobserver')) { c.setAttribute('data-ak-lobserver', '1'); obs.observe(c, { childList: true, subtree: true }); }
+  }
+  function start() { grab(); run(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 1500);
+})();
+// ak-lesson-order-end
