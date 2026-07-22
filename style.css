@@ -1152,5 +1152,5 @@ body.keyboard-large-text .message-content h4 { font-size: 1.4rem !important; }
 .ak-move-btn { background:rgba(100,255,218,0.15); color:#64ffda; border:none; border-radius:6px; padding:4px 8px; margin-right:4px; cursor:pointer; font-size:0.9em; }
 /* ak-move-btn-css-end */
 /* === ✍️ УБИРАЕМ ДУБЛЬ КНОПКИ ФОРМАТИРОВАНИЯ: прячем только JS-дубль, html-кнопку не трогаем === */
-#ak-fmt-toggle { display: none !important; }
+[onclick*="openFmtModal"] { display: none !important; }
 /* ak-fmt-dup-end */
