@@ -1148,3 +1148,6 @@ body.keyboard-large-text .message-content h4 { font-size: 1.4rem !important; }
   .keyboard-large-text .keyboard-row .key { height: 44px !important; }
 }
 /* ak-phone-fix-end */
+/* === ⬆️️ КНОПКИ ПОРЯДКА КНИГ (стиль вынесен сюда, чтобы html-вставка была короткой) === */
+.ak-move-btn { background:rgba(100,255,218,0.15); color:#64ffda; border:none; border-radius:6px; padding:4px 8px; margin-right:4px; cursor:pointer; font-size:0.9em; }
+/* ak-move-btn-css-end */
