@@ -3648,3 +3648,42 @@ window.moveBook = async function (id, dir) {
   try { await window.showLibraryDepartment(b.departmentId); } catch (e) {}
 };
 // ak-book-order-end
+// =========================================================
+// ⬆️⬇️ СТРЕЛКИ ПОРЯДКА КНИГ — наблюдатель в хвосте (середину НЕ трогаем)
+// Ловит кнопку корзины deleteBook у каждой книги, достаёт id из её onclick
+// и ставит ⬆️⬇️ ПЕРЕД ней. Стиль — класс .ak-move-btn из style.css.
+// moveBook и сортировка уже живут в хвосте (ak-book-order-end) — не дублируем.
+// =========================================================
+(function () {
+  function akInjectMove(btn) {
+    var par = btn.parentNode;
+    if (!par || par.getAttribute('data-ak-move')) return;
+    var oc = btn.getAttribute('onclick') || '';
+    var m = oc.match(/deleteBook\('([^']+)'/);
+    if (!m) return;
+    var id = m[1];
+    par.setAttribute('data-ak-move', '1');
+    btn.insertAdjacentHTML('beforebegin',
+      '<button class="ak-move-btn" onclick="event.stopPropagation();window.moveBook(\'' + id + '\',-1)">⬆️</button>' +
+      '<button class="ak-move-btn" onclick="event.stopPropagation();window.moveBook(\'' + id + '\',1)">⬇️</button>');
+  }
+  function akScan(root) {
+    if (!root) return;
+    var bs = root.querySelectorAll('button');
+    for (var i = 0; i < bs.length; i++) {
+      var oc = bs[i].getAttribute('onclick') || '';
+      if (oc.indexOf('deleteBook(') !== -1 && oc.indexOf('deleteDepartment(') === -1) akInjectMove(bs[i]);
+    }
+  }
+  var pending = false;
+  function run() { pending = false; akScan(document.getElementById('chat-container')); }
+  var obs = new MutationObserver(function () { if (!pending) { pending = true; requestAnimationFrame(run); } });
+  function grab() {
+    var c = document.getElementById('chat-container');
+    if (c && !c.getAttribute('data-ak-moveobs')) { c.setAttribute('data-ak-moveobs', '1'); obs.observe(c, { childList: true, subtree: true }); }
+  }
+  function start() { grab(); run(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 1500);
+})();
+// ak-book-arrows-end
