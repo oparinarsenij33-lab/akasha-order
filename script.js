@@ -3779,3 +3779,115 @@ window.moveLesson = async function (id, dir) {
   setInterval(grab, 1500);
 })();
 // ak-lesson-order-end
+// =========================================================
+// ✍️ ПОЛНОЭКРАННЫЙ WYSIWYG-РЕДАКТОР ТЕКСТА УРОКА (как в Ворде)
+// openLessonFormatter(id) — текст на весь экран + кнопки форматирования
+//   через execCommand (Ж/К/Ц/заголовки/цитата) + Сохранить в базу как HTML.
+// Наблюдатель ставит кнопку ✍️ у .toc-lesson-link в оглавлении (мастер/архивариус/админ).
+// Старые уроки с маркерами [center] при открытии конвертируются в HTML для editing;
+//   сохраняем как HTML — при чтении они рисуются напрямую (совместимость сохранена).
+// =========================================================
+window.openLessonFormatter = function (lessonId) {
+  var lesson = (typeof lessonsById !== 'undefined' ? lessonsById : {})[lessonId];
+  if (!lesson) { try { showAlert('Ошибка', 'Урок не найден.'); } catch (e) {} return; }
+  var old = document.getElementById('ak-fmt-editor'); if (old) old.remove();
+  var raw = lesson.content || '';
+  var initialHtml = raw;
+  if (typeof formatLessonHTML === 'function' && /\[(center|left|right|justify|indent|noindent|h1|h2|h3|title|quote)\]/i.test(raw)) {
+    try { initialHtml = formatLessonHTML(raw); } catch (e) {}
+  }
+  var ov = document.createElement('div'); ov.id = 'ak-fmt-editor';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(10,20,12,0.98);z-index:999999;display:flex;flex-direction:column;padding:10px;';
+  var top = document.createElement('div');
+  top.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;';
+  var title = document.createElement('div');
+  title.textContent = '✍️ ' + (lesson.title || 'Форматирование');
+  title.style.cssText = "color:#64ffda;font-family:'Playfair Display',serif;font-size:1.05em;flex:1;min-width:140px;";
+  top.appendChild(title);
+  var tools = [
+    ['Ж', 'bold', null], ['К', 'italic', null],
+    ['Ц', 'justifyCenter', null], ['⬅', 'justifyLeft', null], ['➡', 'justifyRight', null], ['↔', 'justifyFull', null],
+    ['H1', 'formatBlock', '<h2>'], ['H2', 'formatBlock', '<h3>'], ['❝', 'formatBlock', '<blockquote>'], ['¶', 'indent', null]
+  ];
+  var ed = document.createElement('div');
+  ed.contentEditable = 'true';
+  ed.style.cssText = 'flex:1;overflow-y:auto;background:rgba(13,31,15,0.6);border:1px solid #64ffda;border-radius:10px;padding:14px;color:#e8f5e9;font-size:1.15em;line-height:1.7;outline:none;';
+  ed.innerHTML = initialHtml;
+  tools.forEach(function (t) {
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = t[0];
+    b.style.cssText = 'min-width:38px;padding:8px 6px;border-radius:8px;border:1px solid rgba(100,255,218,0.4);background:rgba(100,255,218,0.15);color:#64ffda;font-weight:700;cursor:pointer;';
+    var fire = function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } ed.focus(); try { document.execCommand(t[1], false, t[2]); } catch (e) {} };
+    b.addEventListener('touchstart', fire, { passive: false });
+    b.addEventListener('click', function (ev) { ev.preventDefault(); ed.focus(); try { document.execCommand(t[1], false, t[2]); } catch (e) {} });
+    top.appendChild(b);
+  });
+  ov.appendChild(top);
+  ov.appendChild(ed);
+  var bot = document.createElement('div');
+  bot.style.cssText = 'display:flex;gap:8px;margin-top:8px;';
+  var save = document.createElement('button'); save.type = 'button'; save.textContent = '💾 Сохранить';
+  save.style.cssText = 'flex:1;padding:12px;border-radius:9px;border:1px solid rgba(100,255,218,0.5);background:rgba(100,255,218,0.2);color:#64ffda;font-weight:700;cursor:pointer;';
+  var cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '✖ Отмена';
+  cancel.style.cssText = 'flex:1;padding:12px;border-radius:9px;border:1px solid rgba(255,80,80,0.4);background:rgba(255,80,80,0.2);color:#ff6b6b;font-weight:700;cursor:pointer;';
+  var doSave = async function (ev) {
+    if (ev) ev.preventDefault();
+    var html = ed.innerHTML;
+    try {
+      if (typeof updateLessonInFirebase === 'function') await updateLessonInFirebase(lessonId, { content: html });
+      else throw new Error('updateLessonInFirebase недоступна');
+      ov.remove();
+      try { addMessage('<p>✅ Текст урока отформатирован и сохранён!</p>'); } catch (e) {}
+      try { if (typeof loadLessonsFromFirebase === 'function') await loadLessonsFromFirebase(); } catch (e) {}
+    } catch (e) {
+      try { showAlert('Ошибка', 'Не удалось сохранить: ' + e.message); } catch (er) {}
+    }
+  };
+  var doCancel = function (ev) { if (ev) ev.preventDefault(); ov.remove(); };
+  save.addEventListener('touchstart', doSave, { passive: false });
+  save.addEventListener('click', doSave);
+  cancel.addEventListener('touchstart', doCancel, { passive: false });
+  cancel.addEventListener('click', doCancel);
+  bot.appendChild(save); bot.appendChild(cancel);
+  ov.appendChild(bot);
+  document.body.appendChild(ov);
+};
+(function () {
+  function akCanFmt() {
+    try {
+      return (typeof isMaster === 'function' && isMaster()) ||
+             (typeof isArchivist === 'function' && isArchivist()) ||
+             (typeof isAdmin === 'function' && isAdmin());
+    } catch (e) { return false; }
+  }
+  function akInjectFmtBtn(link) {
+    var wrap = link.parentNode;
+    if (!wrap || wrap.getAttribute('data-ak-fmtbtn')) return;
+    var oc = link.getAttribute('onclick') || '';
+    var m = oc.match(/showLessonContent\('([^']+)'\)/);
+    if (!m) return;
+    var id = m[1];
+    wrap.setAttribute('data-ak-fmtbtn', '1');
+    var btn = document.createElement('button');
+    btn.textContent = '✍️';
+    btn.title = 'Форматировать текст урока';
+    btn.style.cssText = 'background:rgba(139,195,74,0.2);color:#8bc34a;border:1px solid rgba(139,195,74,0.5);border-radius:6px;padding:4px 8px;cursor:pointer;';
+    btn.onclick = function (ev) { ev.stopPropagation(); window.openLessonFormatter(id); };
+    wrap.appendChild(btn);
+  }
+  function akScanFmt(root) {
+    if (!root || !akCanFmt()) return;
+    var ls = root.querySelectorAll('.toc-lesson-link');
+    for (var i = 0; i < ls.length; i++) akInjectFmtBtn(ls[i]);
+  }
+  var pending = false;
+  function run() { pending = false; akScanFmt(document.getElementById('chat-container')); }
+  var obs = new MutationObserver(function () { if (!pending) { pending = true; requestAnimationFrame(run); } });
+  function grab() {
+    var c = document.getElementById('chat-container');
+    if (c && !c.getAttribute('data-ak-fmtobs')) { c.setAttribute('data-ak-fmtobs', '1'); obs.observe(c, { childList: true, subtree: true }); }
+  }
+  function start() { grab(); run(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 1500);
+})();
+// ak-lesson-fmt-end
