@@ -2083,6 +2083,7 @@ async function rerenderMasterChatWithMedia() {
     const time = msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '';
     const bubble = document.createElement('div');
     bubble.className = 'chat-bubble ' + (isMine ? 'mine' : 'theirs');
+    bubble.setAttribute('data-msg-id', msg.id || '');
     bubble.innerHTML = renderBubbleInner(msg, time);
     container.appendChild(bubble);
   });
@@ -3556,3 +3557,55 @@ window.findAnswer = async function (question) {
   };
 })();
 // ak-edit-book-end
+// =========================================================
+// ✏️ РЕДАКТИРОВАНИЕ СВОИХ СООБЩЕНИЙ в чатах (Мастер / ученик / Архивариус)
+// Наблюдатель инжектит ✏️ в .chat-bubble.mine (читает id из data-msg-id).
+// Тап -> prompt с текущим текстом -> update в Firestore -> правка прямо в пузыре + «· изм.».
+// Чужие и медиа-пузыри НЕ трогаем. Оригинал рендеров НЕ меняем.
+// =========================================================
+(function () {
+  function akEditInject(bubble) {
+    if (bubble.getAttribute('data-ak-editbtn')) return;
+    if (!bubble.classList.contains('mine')) return;
+    var id = bubble.getAttribute('data-msg-id');
+    if (!id) return;
+    if (bubble.querySelector('img,video,audio')) return;
+    var bt = bubble.querySelector('.bubble-text');
+    var cur = bt ? (bt.textContent || '') : '';
+    if (!cur.trim()) return;
+    bubble.setAttribute('data-ak-editbtn', '1');
+    var btn = document.createElement('button');
+    btn.textContent = '✏️';
+    btn.setAttribute('data-ak-editbtn', '1');
+    btn.style.cssText = 'display:block;margin-left:auto;margin-top:4px;background:rgba(100,255,218,0.15);color:#64ffda;border:none;border-radius:6px;padding:2px 8px;font-size:0.8em;cursor:pointer;';
+    btn.onclick = function (ev) {
+      ev.stopPropagation();
+      var nv = window.prompt('✏️ Редактировать сообщение:', cur);
+      if (nv === null) return;
+      nv = nv.trim();
+      if (!nv || nv === cur) return;
+      if (!windowDb) { try { showAlert('Ошибка', 'Хранилище не готово.'); } catch (e) {} return; }
+      windowDb.collection('messages').doc(id).update({ text: nv, edited: true }).then(function () {
+        if (bt) bt.textContent = nv;
+        cur = nv;
+        var tm = bubble.querySelector('.bubble-time');
+        if (tm && (tm.textContent || '').indexOf('изм.') === -1) tm.textContent = (tm.textContent || '') + ' · изм.';
+      }).catch(function (e) { console.error('edit msg err', e); try { showAlert('Ошибка', 'Не удалось сохранить: ' + e.message); } catch (er) {} });
+    };
+    bubble.appendChild(btn);
+  }
+  function akEditScan(root) {
+    if (!root) return;
+    var bs = root.querySelectorAll('.chat-bubble.mine');
+    for (var i = 0; i < bs.length; i++) akEditInject(bs[i]);
+  }
+  var ids = ['chat-container', 'master-chat-container', 'archivist-chat-container'];
+  var pending = false;
+  function run() { pending = false; ids.forEach(function (id) { akEditScan(document.getElementById(id)); }); }
+  var obs = new MutationObserver(function () { if (!pending) { pending = true; requestAnimationFrame(run); } });
+  function grab() { ids.forEach(function (id) { var e = document.getElementById(id); if (e && !e.getAttribute('data-ak-editobs')) { e.setAttribute('data-ak-editobs', '1'); obs.observe(e, { childList: true, subtree: true }); } }); }
+  function start() { grab(); run(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 1500);
+})();
+// ak-edit-msg-end
