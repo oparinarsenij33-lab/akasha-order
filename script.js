@@ -3556,3 +3556,7 @@ window.findAnswer = async function (question) {
   };
 })();
 // ak-edit-book-end
+/* === ✍️ УБИРАЕМ ДУБЛЬ КНОПКИ ФОРМАТИРОВАНИЯ: прячем JS-панель, оставляем HTML-кнопку (модалка) === */
+#ak-fmt-toggle { display: none !important; }
+#ak-fmt-panel { display: none !important; }
+/* ak-fmt-dup-end */
