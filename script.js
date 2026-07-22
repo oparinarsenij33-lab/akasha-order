@@ -3343,3 +3343,79 @@ window.findAnswer = async function (question) {
   return _prevDiagFA2.apply(this, arguments);
 };
 // diag-v2-end
+// =========================================================
+// 🔗 КЛИКАБИЛЬНЫЕ ССЫЛКИ + ССЫЛКА-КАК-ФОТО/ВИДЕО в чатах и ответах Акаши
+// Наблюдатель ловит пузыри во всех чатах и превращает голые ссылки:
+//   .jpg/.png/.webp/.gif -> картинка,  .mp4/.webm/.ogg -> плеер,  остальное -> кликабельная ссылка.
+// Оригинальные функции чата НЕ трогаем. Печать в поле не тормозит (поле вне наблюдаемых контейнеров).
+// =========================================================
+(function () {
+  var URL_RE = /(https?:\/\/[^\s<>"']+)/g;
+  function nodeForUrl(u) {
+    var clean = u.split('?')[0].split('#')[0].toLowerCase();
+    if (/\.(jpg|jpeg|png|webp|gif)$/.test(clean)) {
+      var im = document.createElement('img');
+      im.src = u;
+      im.style.cssText = 'max-width:100%;border-radius:8px;cursor:pointer;display:block;margin:4px 0;';
+      im.onclick = function () { try { window.open(u, '_blank'); } catch (e) {} };
+      return im;
+    }
+    if (/\.(mp4|webm|ogg)$/.test(clean)) {
+      var v = document.createElement('video');
+      v.src = u; v.controls = true;
+      v.style.cssText = 'max-width:100%;border-radius:8px;display:block;margin:4px 0;';
+      return v;
+    }
+    var a = document.createElement('a');
+    a.href = u; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.style.cssText = 'color:#64ffda;text-decoration:underline;word-break:break-all;';
+    a.textContent = u;
+    return a;
+  }
+  function linkifyText(node) {
+    var val = node.nodeValue;
+    if (!val || val.indexOf('http') === -1) return;
+    URL_RE.lastIndex = 0;
+    var m, idx = 0, frag = document.createDocumentFragment(), found = false;
+    while ((m = URL_RE.exec(val)) !== null) {
+      found = true;
+      if (m.index > idx) frag.appendChild(document.createTextNode(val.slice(idx, m.index)));
+      frag.appendChild(nodeForUrl(m[0]));
+      idx = m.index + m[0].length;
+    }
+    if (!found) return;
+    if (idx < val.length) frag.appendChild(document.createTextNode(val.slice(idx)));
+    node.parentNode.replaceChild(frag, node);
+  }
+  function linkifyContainer(el) {
+    if (!el) return;
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) {
+        var p = n.parentNode;
+        while (p && p !== el) {
+          var t = p.nodeName;
+          if (t === 'A' || t === 'IMG' || t === 'VIDEO' || t === 'SCRIPT' || t === 'STYLE') return NodeFilter.FILTER_REJECT;
+          p = p.parentNode;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var nodes = [], cur;
+    while ((cur = walker.nextNode())) nodes.push(cur);
+    nodes.forEach(linkifyText);
+  }
+  var ids = ['chat-container', 'master-chat-container', 'archivist-chat-container'];
+  var targets = [], pending = false;
+  function run() { pending = false; targets.forEach(linkifyContainer); }
+  var obs = new MutationObserver(function () { if (!pending) { pending = true; requestAnimationFrame(run); } });
+  function grab() {
+    ids.forEach(function (id) {
+      var e = document.getElementById(id);
+      if (e && targets.indexOf(e) === -1) { targets.push(e); obs.observe(e, { childList: true, subtree: true }); }
+    });
+  }
+  function start() { grab(); targets.forEach(linkifyContainer); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 1500);
+})();
+// ak-linkify-end
