@@ -484,6 +484,7 @@ await loadLibraryFromFirebase();
 const dep = libraryDepartments.find(d => d.id === depId);
 if (!dep) { addMessage('<p>❌ Отдел не найден!</p>'); return; }
 const booksInDep = libraryBooks.filter(b => b.departmentId === depId);
+await akEnsureBookOrder(booksInDep);  
 let html = `<div style="background:rgba(13,31,15,0.5);border:1px solid var(--border-color);border-radius:15px;padding:25px;margin:15px 0;">`;
 html += `<h3 style="color:#64ffda;margin-bottom:10px;font-family:'Playfair Display',serif;text-align:center;font-size:1.8em;">📚 ${dep.name}</h3>`;
 if (dep.description) html += `<p style="color:var(--text-secondary);text-align:center;font-style:italic;margin-bottom:20px;">${dep.description}</p>`;
@@ -3609,3 +3610,44 @@ window.findAnswer = async function (question) {
   setInterval(grab, 1500);
 })();
 // ak-edit-msg-end
+// =========================================================
+// 📚 СТРОГИЙ ПОРЯДОК КНИГ в отделе: поле order + сортировка + стрелки ⬆️️
+// akEnsureBookOrder — сортирует массив отдела по order и один раз миграцией
+//   проставляет order старым книгам (по их позиции), чтобы порядок не плыл.
+// window.moveBook — меняет книгу местами с соседом и сохраняет в базу.
+// =========================================================
+function akBookCmp(a, b) {
+  var oa = (typeof a.order === 'number') ? a.order : 1e9;
+  var ob = (typeof b.order === 'number') ? b.order : 1e9;
+  if (oa !== ob) return oa - ob;
+  return String(a.id || '').localeCompare(String(b.id || ''));
+}
+async function akEnsureBookOrder(arr) {
+  if (!arr || !arr.length) return;
+  arr.sort(akBookCmp);
+  var needFix = arr.some(function (b) { return typeof b.order !== 'number'; });
+  if (needFix && windowDb) {
+    var ps = [];
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].order !== i) { arr[i].order = i; ps.push(windowDb.collection('library_books').doc(arr[i].id).update({ order: i }).catch(function () {})); }
+    }
+    if (ps.length) { try { await Promise.all(ps); } catch (e) {} }
+  }
+}
+window.moveBook = async function (id, dir) {
+  var b = (libraryBooks || []).find(function (x) { return x.id === id; });
+  if (!b) return;
+  var arr = (libraryBooks || []).filter(function (x) { return x.departmentId === b.departmentId; });
+  arr.sort(akBookCmp);
+  var idx = -1;
+  for (var k = 0; k < arr.length; k++) { if (arr[k].id === id) { idx = k; break; } }
+  var j = idx + dir;
+  if (idx < 0 || j < 0 || j >= arr.length) return;
+  var tmp = arr[idx].order; arr[idx].order = arr[j].order; arr[j].order = tmp;
+  if (windowDb) {
+    try { await windowDb.collection('library_books').doc(arr[idx].id).update({ order: arr[idx].order }); } catch (e) {}
+    try { await windowDb.collection('library_books').doc(arr[j].id).update({ order: arr[j].order }); } catch (e) {}
+  }
+  try { await window.showLibraryDepartment(b.departmentId); } catch (e) {}
+};
+// ak-book-order-end
