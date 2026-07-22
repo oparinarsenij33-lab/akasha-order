@@ -3454,3 +3454,105 @@ window.findAnswer = async function (question) {
   wrapNum('showChapterLessons');
 })();
 // ak-lesson-num-end
+// =========================================================
+// ✏️ РЕДАКТИРОВАНИЕ КНИГИ (5 шагов) — только для архивариуса/админа
+// Обёртки над showBookDetails (кнопка) и findAnswer (шаги edit_book_*).
+// Оригинал НЕ трогаем. Права: isArchivist() || isAdmin().
+// =========================================================
+(function () {
+  function akEscEdit(t) { return String(t == null ? '' : t).replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function akCanEditBook() { try { return (typeof isArchivist === 'function' && isArchivist()) || (typeof isAdmin === 'function' && isAdmin()); } catch (e) { return false; } }
+  async function akUpdateBook(id, updates) {
+    if (!windowDb || !id) return false;
+    try { await windowDb.collection('library_books').doc(id).update(updates); return true; }
+    catch (e) { console.error('edit book err', e); return false; }
+  }
+
+  window.startEditBook = function (id) {
+    if (!akCanEditBook()) { try { showAlert('Доступ запрещён', 'Редактировать книги могут только Архивариус и Магистры.'); } catch (e) {} return; }
+    var b = (typeof libraryBooks !== 'undefined' ? libraryBooks : []).find(function (x) { return x.id === id; });
+    if (!b) { try { showAlert('Ошибка', 'Книга не найдена.'); } catch (e) {} return; }
+    addLessonState = {
+      step: 'edit_book_cover', bookId: id,
+      orig: { coverUrl: b.coverUrl || '', title: b.title || '', author: b.author || '', description: b.description || '', fileUrl: b.fileUrl || '' }
+    };
+    addMessage('<p>✏️ <strong>Редактирование книги «' + akEscEdit(b.title) + '»</strong></p>'
+      + '<p><strong>Шаг 1/5 — Обложка.</strong> Текущая: <em>' + (b.coverUrl ? akEscEdit(b.coverUrl) : 'нет') + '</em></p>'
+      + '<p>Вставьте новую прямую ссылку на картинку, ИЛИ <em>"пропустить"</em>, ИЛИ <em>"нет"</em> (убрать обложку), ИЛИ <em>"отмена"</em>:</p>');
+  };
+
+  // ---- кнопка «Редактировать» поверх карточки книги ----
+  var _origShowBookDetails = window.showBookDetails;
+  if (typeof _origShowBookDetails === 'function') {
+    window.showBookDetails = function (id) {
+      var r;
+      try { r = _origShowBookDetails.apply(this, arguments); } catch (e) { r = undefined; }
+      setTimeout(function () {
+        try {
+          if (!akCanEditBook()) return;
+          var c = document.getElementById('chat-container');
+          if (!c) return;
+          var btns = c.querySelectorAll('button');
+          var backBtn = null;
+          for (var i = btns.length - 1; i >= 0; i--) {
+            if ((btns[i].textContent || '').indexOf('Назад к отделу') !== -1) { backBtn = btns[i]; break; }
+          }
+          if (!backBtn || backBtn.getAttribute('data-ak-editbook')) return;
+          backBtn.setAttribute('data-ak-editbook', '1');
+          backBtn.insertAdjacentHTML('beforebegin',
+            '<button class="hw-btn" onclick="window.startEditBook(\'' + id + '\')" style="width:100%;margin-top:10px;padding:12px;background:rgba(100,255,218,0.2);color:#64ffda;">✏️ Редактировать книгу</button>');
+        } catch (e) {}
+      }, 120);
+      return r;
+    };
+  }
+
+  // ---- шаги редактирования поверх цепочки findAnswer ----
+  var _prevFindAnswerEditBook = window.findAnswer;
+  window.findAnswer = async function (question) {
+    var st = addLessonState;
+    if (st && st.step && st.step.indexOf('edit_book_') === 0) {
+      var q = (question || '').trim();
+      var ql = q.toLowerCase();
+      var id = st.bookId, o = st.orig;
+      if (ql === 'отмена') { addLessonState = null; addMessage('<p>❌ Редактирование отменено.</p>'); try { window.showBookDetails(id); } catch (e) {} return ''; }
+
+      if (st.step === 'edit_book_cover') {
+        st.newCover = (ql === 'пропустить') ? o.coverUrl : (ql === 'нет' ? '' : question);
+        st.step = 'edit_book_title';
+        return '<p><strong>Шаг 2/5 — Название.</strong> Текущее: <em>' + akEscEdit(o.title) + '</em></p><p>Новое название, ИЛИ <em>"пропустить"</em>, ИЛИ <em>"отмена"</em>:</p>';
+      }
+      if (st.step === 'edit_book_title') {
+        st.newTitle = (ql === 'пропустить') ? o.title : question;
+        st.step = 'edit_book_author';
+        return '<p><strong>Шаг 3/5 — Автор.</strong> Текущий: <em>' + akEscEdit(o.author) + '</em></p><p>Новый автор, ИЛИ <em>"пропустить"</em>, ИЛИ <em>"отмена"</em>:</p>';
+      }
+      if (st.step === 'edit_book_author') {
+        st.newAuthor = (ql === 'пропустить') ? o.author : question;
+        st.step = 'edit_book_desc';
+        return '<p><strong>Шаг 4/5 — Аннотация.</strong> Текущая: <em>' + (o.description ? akEscEdit(o.description.substring(0, 80)) + (o.description.length > 80 ? '…' : '') : 'нет') + '</em></p><p>Новая аннотация, ИЛИ <em>"пропустить"</em>, ИЛИ <em>"нет"</em> (убрать), ИЛИ <em>"отмена"</em>:</p>';
+      }
+      if (st.step === 'edit_book_desc') {
+        st.newDesc = (ql === 'пропустить') ? o.description : (ql === 'нет' ? '' : question);
+        st.step = 'edit_book_file';
+        return '<p><strong>Шаг 5/5 — Файл книги.</strong> Текущий: <em>' + (o.fileUrl ? akEscEdit(o.fileUrl) : 'нет') + '</em></p><p>Новая прямая ссылка, ИЛИ <em>"пропустить"</em>, ИЛИ <em>"нет"</em> (убрать файл), ИЛИ <em>"отмена"</em>:</p>';
+      }
+      if (st.step === 'edit_book_file') {
+        var newFile = (ql === 'пропустить') ? o.fileUrl : (ql === 'нет' ? '' : question);
+        var updates = { coverUrl: st.newCover, title: st.newTitle, author: st.newAuthor, description: st.newDesc, fileUrl: newFile };
+        addLessonState = null;
+        var ok = await akUpdateBook(id, updates);
+        if (ok) {
+          addMessage('<p>✅ Книга обновлена!</p>');
+          try { await loadLibraryFromFirebase(); } catch (e) {}
+          try { window.showBookDetails(id); } catch (e) {}
+        } else {
+          addMessage('<p>❌ Не удалось сохранить изменения.</p>');
+        }
+        return '';
+      }
+    }
+    return _prevFindAnswerEditBook.apply(this, arguments);
+  };
+})();
+// ak-edit-book-end
