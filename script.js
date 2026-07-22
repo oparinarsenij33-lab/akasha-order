@@ -1605,7 +1605,6 @@ customTextarea.addEventListener('focus', () => { customTextarea.style.borderColo
 customTextarea.addEventListener('blur', () => { customTextarea.style.borderColor = 'var(--border-color)'; customTextarea.style.boxShadow = 'none'; });
 customTextarea.addEventListener('paste', (e) => { e.preventDefault(); insertTextAtCursor(e.clipboardData.getData('text')); });
 customTextarea.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); insertTextAtCursor('\n'); } else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } });
-customTextarea.addEventListener('input', () => { customTextarea.scrollTop = customTextarea.scrollHeight; });
 }
 function toggleKeyboardVisibility() {
 const keyboard = document.getElementById('custom-keyboard');
