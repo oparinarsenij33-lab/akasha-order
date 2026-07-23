@@ -4335,3 +4335,48 @@ window.openLessonFormatter = function (lessonId) {
   };
 })();
 // ak-headfix5-end
+// =========================================================
+// 🛠 H1/H2 ФИНАЛ: перехват САМИХ кнопок начисто (снимает старую обёртку,
+//   которая вкладывала заголовок в заголовок и раздувала текст).
+// Вложение запрещено: оборачивание ТОЛЬКО когда курсор не в заголовке и не
+//   охватывает его (coveredHeading); после операции курсор ВНУТРЬ результата,
+//   поэтому 2-е нажатие = распаковка, не вложение. H1 и H2 = два независимых
+//   обработчика. execCommand для h больше не зовётся (вся старая цепочка мимо).
+// =========================================================
+(function () {
+  function edEl() { return document.getElementById('ak-fmt-editor'); }
+  function findH(node, ed) { var n = node; if (n && n.nodeType === 3) n = n.parentNode; while (n && n !== ed) { if (/^H[2-4]$/i.test(n.nodeName || '')) return n; n = n.parentNode; } return null; }
+  function covered(range, ed) { var hs = ed.querySelectorAll('h2,h3,h4'); for (var i = 0; i < hs.length; i++) { try { var r2 = document.createRange(); r2.selectNode(hs[i]); if (range.compareBoundaryPoints(Range.START_TO_START, r2) <= 0 && range.compareBoundaryPoints(Range.END_TO_END, r2) >= 0) return hs[i]; } catch (e) {} } return null; }
+  function curRange(ed) { try { var s = window.getSelection(); if (s && s.rangeCount) { var r = s.getRangeAt(0); if (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer)) return r.cloneRange(); } } catch (e) {} var r2 = window._akEdRange; if (r2 && (ed === r2.commonAncestorContainer || ed.contains(r2.commonAncestorContainer))) return r2.cloneRange(); return null; }
+  function setInside(node) { try { var s = window.getSelection(); var rr = document.createRange(); rr.selectNodeContents(node); s.removeAllRanges(); s.addRange(rr); } catch (e) {} }
+  function unpack(h) { var par = h.parentNode; while (h.firstChild) par.insertBefore(h.firstChild, h); par.removeChild(h); try { var s = window.getSelection(); var rr = document.createRange(); rr.selectNodeContents(par); rr.collapse(false); s.removeAllRanges(); s.addRange(rr); } catch (e) {} }
+  function retag(h, tag) { var nb = document.createElement(tag); while (h.firstChild) nb.appendChild(h.firstChild); h.parentNode.replaceChild(nb, h); setInside(nb); }
+  function doToggle(tag) {
+    var ed = edEl(); if (!ed) return; var range = curRange(ed); if (!range) return;
+    try { var s = window.getSelection(); s.removeAllRanges(); s.addRange(range); } catch (e) {}
+    var h = findH(range.startContainer, ed) || findH(range.endContainer, ed) || findH(range.commonAncestorContainer, ed) || covered(range, ed);
+    if (h) { if ((h.nodeName || '').toLowerCase() === tag) unpack(h); else retag(h, tag); return; }
+    if (range.collapsed) return;
+    var el = document.createElement(tag);
+    try { range.surroundContents(el); } catch (e) { try { var f = range.extractContents(); el.appendChild(f); range.insertNode(el); } catch (e2) { return; } }
+    setInside(el);
+  }
+  function rewire6(ov) {
+    if (ov.getAttribute('data-ak-rewired6')) return; ov.setAttribute('data-ak-rewired6', '1');
+    var btns = ov.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || '').trim(); var tag = (t === 'H1') ? 'h2' : (t === 'H2') ? 'h3' : null; if (!tag) continue;
+      var clone = btns[i].cloneNode(true);
+      var fire = (function (tg) { return function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } try { doToggle(tg); } catch (e) {} }; })(tag);
+      clone.addEventListener('touchstart', fire, { passive: false });
+      clone.addEventListener('click', fire);
+      btns[i].parentNode.replaceChild(clone, btns[i]);
+    }
+  }
+  function grab6() { var ed = edEl(); if (ed) rewire6(ed); }
+  var obs6 = new MutationObserver(grab6);
+  function start6() { obs6.observe(document.body, { childList: true, subtree: true }); grab6(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start6); else start6();
+  setInterval(grab6, 800);
+})();
+// ak-headfix6-end
