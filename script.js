@@ -4094,3 +4094,106 @@ window.openLessonFormatter = function (lessonId) {
   };
 })();
 // ak-ed-sel-end
+// =========================================================
+// ✍️ ВОЗВРАТ К МАРКЕРАМ: полноэкранный редактор + кнопки-маркеры
+// Подменяет openLessonFormatter. Широкий экран остаётся, но кнопки
+//   больше НЕ создают теги (никакого execCommand) — они вставляют
+//   ТЕКСТ-маркеры (**, [h1], [quote]...) вокруг выделения, а красоту
+//   при чтении рисует formatLessonHTML. Раздувание/«всё сразу» невозможны.
+// Выделение на таче сохраняется в _akBigRange (страховка от слёта при тапе).
+// Сохраняем ed.innerText (текст с \n и маркерами как текст).
+// =========================================================
+(function () {
+  window._akBigRange = null;
+  document.addEventListener('selectionchange', function () {
+    try {
+      var ed = document.getElementById('ak-big-editor');
+      if (!ed) { window._akBigRange = null; return; }
+      var s = window.getSelection();
+      if (!s || !s.rangeCount) return;
+      var r = s.getRangeAt(0);
+      if (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer)) window._akBigRange = r.cloneRange();
+    } catch (e) {}
+  });
+  function bigWrap(open, close) {
+    var ed = document.getElementById('ak-big-editor');
+    if (!ed) return;
+    var s = window.getSelection();
+    var r = window._akBigRange;
+    if (r && (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer))) {
+      try { s.removeAllRanges(); s.addRange(r); } catch (e) {}
+    } else {
+      r = (s && s.rangeCount) ? s.getRangeAt(0) : null;
+      if (!r || !(ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer))) return;
+    }
+    try {
+      if (r.toString().length > 0) {
+        var txt = r.toString(); r.deleteContents();
+        var node = document.createTextNode(open + txt + close); r.insertNode(node);
+        var r2 = document.createRange(); r2.setStartAfter(node); r2.collapse(true); s.removeAllRanges(); s.addRange(r2); window._akBigRange = r2.cloneRange();
+      } else {
+        var n2 = document.createTextNode(open + close); r.insertNode(n2);
+        var r3 = document.createRange(); r3.setStart(n2, open.length); r3.collapse(true); s.removeAllRanges(); s.addRange(r3); window._akBigRange = r3.cloneRange();
+      }
+    } catch (e) {}
+  }
+  var BIG_TOOLS = [
+    ['Ж','**','**'], ['К','*','*'],
+    ['Ц','[center]','[/center]'], ['⬅','[left]','[/left]'], ['➡','[right]','[/right]'], ['↔','[justify]','[/justify]'],
+    ['H1','[h1]','[/h1]'], ['H2','[h2]','[/h2]'], ['❝','[quote]','[/quote]'], ['¶','[indent]','[/indent]']
+  ];
+  window.openLessonFormatter = function (lessonId) {
+    var lesson = (typeof lessonsById !== 'undefined' ? lessonsById : {})[lessonId];
+    if (!lesson) { try { showAlert('Ошибка', 'Урок не найден.'); } catch (e) {} return; }
+    var old = document.getElementById('ak-fmt-editor'); if (old) old.remove();
+    window._akBigRange = null;
+    var ov = document.createElement('div'); ov.id = 'ak-fmt-editor';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(10,20,12,0.98);z-index:999999;display:flex;flex-direction:column;padding:10px;';
+    var top = document.createElement('div');
+    top.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;';
+    var title = document.createElement('div');
+    title.textContent = '✍️ ' + (lesson.title || 'Редактор');
+    title.style.cssText = "color:#64ffda;font-family:'Playfair Display',serif;font-size:1.05em;flex:1;min-width:140px;";
+    top.appendChild(title);
+    BIG_TOOLS.forEach(function (t) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = t[0];
+      b.style.cssText = 'min-width:38px;padding:8px 6px;border-radius:8px;border:1px solid rgba(100,255,218,0.4);background:rgba(100,255,218,0.15);color:#64ffda;font-weight:700;cursor:pointer;';
+      var fire = function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } bigWrap(t[1], t[2]); };
+      b.addEventListener('touchstart', fire, { passive: false });
+      b.addEventListener('mousedown', fire);
+      top.appendChild(b);
+    });
+    ov.appendChild(top);
+    var hint = document.createElement('div');
+    hint.textContent = 'Выдели текст пальцем → тапни кнопку (обернёт маркерами). При чтении маркеры станут красотой. Текст показан «как есть».';
+    hint.style.cssText = 'color:#a89b7e;font-size:0.78em;text-align:center;margin-bottom:6px;line-height:1.3;';
+    ov.appendChild(hint);
+    var ed = document.createElement('div'); ed.id = 'ak-big-editor';
+    ed.contentEditable = 'true';
+    ed.style.cssText = 'flex:1;overflow-y:auto;background:rgba(13,31,15,0.6);border:1px solid #64ffda;border-radius:10px;padding:14px;color:#e8f5e9;font-size:1.1em;line-height:1.7;outline:none;white-space:pre-wrap;word-wrap:break-word;';
+    ed.textContent = lesson.content || '';
+    ov.appendChild(ed);
+    var bot = document.createElement('div'); bot.style.cssText = 'display:flex;gap:8px;margin-top:8px;';
+    var save = document.createElement('button'); save.type = 'button'; save.textContent = '💾 Сохранить';
+    save.style.cssText = 'flex:1;padding:12px;border-radius:9px;border:1px solid rgba(100,255,218,0.5);background:rgba(100,255,218,0.2);color:#64ffda;font-weight:700;cursor:pointer;';
+    var cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '✖ Отмена';
+    cancel.style.cssText = 'flex:1;padding:12px;border-radius:9px;border:1px solid rgba(255,80,80,0.4);background:rgba(255,80,80,0.2);color:#ff6b6b;font-weight:700;cursor:pointer;';
+    var doSave = async function (ev) {
+      if (ev) ev.preventDefault();
+      var txt = ed.innerText;
+      try {
+        if (typeof updateLessonInFirebase === 'function') await updateLessonInFirebase(lessonId, { content: txt });
+        else throw new Error('нет updateLessonInFirebase');
+        ov.remove();
+        try { addMessage('<p>✅ Сохранено! Маркеры станут красотой при чтении.</p>'); } catch (e) {}
+        try { if (typeof loadLessonsFromFirebase === 'function') await loadLessonsFromFirebase(); } catch (e) {}
+      } catch (e) { try { showAlert('Ошибка', 'Не удалось сохранить: ' + e.message); } catch (er) {} }
+    };
+    var doCancel = function (ev) { if (ev) ev.preventDefault(); ov.remove(); };
+    save.addEventListener('touchstart', doSave, { passive: false }); save.addEventListener('click', doSave);
+    cancel.addEventListener('touchstart', doCancel, { passive: false }); cancel.addEventListener('click', doCancel);
+    bot.appendChild(save); bot.appendChild(cancel); ov.appendChild(bot);
+    document.body.appendChild(ov);
+  };
+})();
+// ak-big-marker-end
