@@ -4054,3 +4054,43 @@ window.openLessonFormatter = function (lessonId) {
   };
 })();
 // ak-head-collapse-end
+// =========================================================
+// 🎯 СОХРАНЕНИЕ ВЫДЕЛЕНИЯ В РЕДАКТОРЕ на таче (корень проблем H1/H2/Ж/К)
+// На мобильном тап по кнопке + ed.focus() сбрасывают выделение в contenteditable,
+// поэтому formatBlock/жирный били «не туда» (H1 выглядел как H2, цвета не вставали).
+// Запоминаем выделение внутри #ak-fmt-editor на selectionchange и восстанавливаем
+// его в обёртке execCommand ПЕРЕД командой. Большой блок и css НЕ трогаем.
+// =========================================================
+(function () {
+  window._akEdRange = null;
+  document.addEventListener('selectionchange', function () {
+    try {
+      var ed = document.getElementById('ak-fmt-editor');
+      if (!ed) { window._akEdRange = null; return; }
+      var sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return;
+      var r = sel.getRangeAt(0);
+      if (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer)) {
+        window._akEdRange = r.cloneRange();
+      }
+    } catch (e) {}
+  });
+  var prev = document.execCommand;
+  if (typeof prev !== 'function') return;
+  document.execCommand = function (cmd, ui, val) {
+    try {
+      var ed = document.getElementById('ak-fmt-editor');
+      if (ed && window._akEdRange) {
+        var sel = window.getSelection();
+        var cur = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+        var curInEd = cur && (ed === cur.commonAncestorContainer || ed.contains(cur.commonAncestorContainer));
+        var collapsed = cur && cur.collapsed;
+        if (!curInEd || (collapsed && !window._akEdRange.collapsed)) {
+          try { sel.removeAllRanges(); sel.addRange(window._akEdRange.cloneRange()); } catch (e) {}
+        }
+      }
+    } catch (e) {}
+    return prev(cmd, ui, val);
+  };
+})();
+// ak-ed-sel-end
