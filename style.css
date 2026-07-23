@@ -1154,3 +1154,15 @@ body.keyboard-large-text .message-content h4 { font-size: 1.4rem !important; }
 /* === ✍️ УБИРАЕМ ДУБЛЬ КНОПКИ ФОРМАТИРОВАНИЯ: прячем только JS-дубль, html-кнопку не трогаем === */
 [onclick*="openFmtModal"] { display: none !important; }
 /* ak-fmt-dup-end */
+/* === 🎨 ЦВЕТНАЯ ПАЛИТРА ФОРМАТИРОВАНИЯ (и при чтении, и в редакторе) === */
+.message-content strong, .message-content b,
+#ak-fmt-editor strong, #ak-fmt-editor b { color:#ffd479 !important; }
+.message-content em, .message-content i,
+#ak-fmt-editor em, #ak-fmt-editor i { color:#9fe6c4 !important; }
+.message-content strong em, .message-content b i, .message-content em strong, .message-content i b,
+#ak-fmt-editor strong em, #ak-fmt-editor b i, #ak-fmt-editor em strong, #ak-fmt-editor i b { color:#64ffda !important; }
+.message-content h2, #ak-fmt-editor h2 { color:#64ffda !important; }
+.message-content h3, #ak-fmt-editor h3 { color:#8bc34a !important; }
+.message-content h4, #ak-fmt-editor h4 { color:#c9b27e !important; }
+.message-content blockquote { color:#cfe8d4; border-left:3px solid #64ffda; background:rgba(100,255,218,0.06); border-radius:0 8px 8px 0; padding:8px 14px; font-style:italic; }
+/* ak-fmt-colors-end */
