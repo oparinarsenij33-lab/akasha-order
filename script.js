@@ -4094,3 +4094,66 @@ window.openLessonFormatter = function (lessonId) {
   };
 })();
 // ak-ed-sel-end
+// =========================================================
+// 🛠 ПЕРЕВЕС КНОПОК РЕДАКТОРА НА РУЧНЫЕ ОПЕРАЦИИ (обход execCommand на таче)
+// execCommand('formatBlock') НЕ создаёт теги на этом устройстве — поэтому H1/H2
+//   молчали. Делаем всё руками по сохранённому курсору/выделению (_akEdRange):
+//   Ж/К = обёртка strong/em, выравнивание = textAlign блока, H1/H2 = замена блока
+//   строки на h2/h3 (выделять НЕ надо — достаточно курсора в строке).
+// Кнопки клонируются (cloneNode снимает старые слушатели), вешаем свои.
+// ❝ / Сохранить / Отмена НЕ трогаем. Большой блок и css НЕ трогаем.
+// =========================================================
+(function () {
+  function edEl() { return document.getElementById('ak-fmt-editor'); }
+  function savedRange(ed) {
+    var r = window._akEdRange;
+    if (r && ed && (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer))) return r.cloneRange();
+    try { var s = window.getSelection(); if (s && s.rangeCount) { var x = s.getRangeAt(0); if (ed === x.commonAncestorContainer || ed.contains(x.commonAncestorContainer)) return x.cloneRange(); } } catch (e) {}
+    return null;
+  }
+  function restore(ed, r) { try { var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {} }
+  function blockOf(ed, r) {
+    var n = r.startContainer; if (n && n.nodeType === 3) n = n.parentNode;
+    while (n && n !== ed && n.parentNode !== ed) n = n.parentNode;
+    return (n && n !== ed) ? n : null;
+  }
+  function wrapInline(tag) {
+    var ed = edEl(); if (!ed) return; var r = savedRange(ed); if (!r || r.collapsed) return;
+    restore(ed, r); var el = document.createElement(tag);
+    try { r.surroundContents(el); } catch (e) { try { var f = r.extractContents(); el.appendChild(f); r.insertNode(el); } catch (e2) {} }
+  }
+  function setAlign(a) {
+    var ed = edEl(); if (!ed) return; var r = savedRange(ed); if (!r) return; var b = blockOf(ed, r); if (!b) return;
+    b.style.textAlign = a;
+  }
+  function makeBlock(tag) {
+    var ed = edEl(); if (!ed) return; var r = savedRange(ed); if (!r) return; var b = blockOf(ed, r);
+    if (!b) { try { restore(ed, r); document.execCommand('formatBlock', false, tag); } catch (e) {} return; }
+    if ((b.nodeName || '').toLowerCase() === tag) return;
+    var nb = document.createElement(tag);
+    while (b.firstChild) nb.appendChild(b.firstChild);
+    b.parentNode.replaceChild(nb, b);
+    try { var s = window.getSelection(); var rr = document.createRange(); rr.selectNodeContents(nb); rr.collapse(false); s.removeAllRanges(); s.addRange(rr); window._akEdRange = rr.cloneRange(); } catch (e) {}
+  }
+  var MAP = { 'Ж': function () { wrapInline('strong'); }, 'К': function () { wrapInline('em'); },
+    'Ц': function () { setAlign('center'); }, '⬅': function () { setAlign('left'); }, '➡': function () { setAlign('right'); }, '↔': function () { setAlign('justify'); },
+    'H1': function () { makeBlock('h2'); }, 'H2': function () { makeBlock('h3'); } };
+  function rewire(ov) {
+    if (ov.getAttribute('data-ak-rewired')) return; ov.setAttribute('data-ak-rewired', '1');
+    var btns = ov.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || '').trim(); var fn = MAP[t]; if (!fn) continue;
+      var clone = btns[i].cloneNode(true);
+      var fire = (function (f) { return function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } try { f(); } catch (e) {} }; })(fn);
+      clone.addEventListener('touchstart', fire, { passive: false });
+      clone.addEventListener('click', fire);
+      btns[i].parentNode.replaceChild(clone, btns[i]);
+    }
+  }
+  function grab() { var ed = edEl(); if (ed) rewire(ed); }
+  var obs = new MutationObserver(grab);
+  function start() { obs.observe(document.body, { childList: true, subtree: true }); grab(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 800);
+})();
+// ak-headfix2-end
