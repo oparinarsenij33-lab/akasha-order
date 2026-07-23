@@ -4385,3 +4385,46 @@ window.openLessonFormatter = function (lessonId) {
   });
 })();
 // ak-mk-final-end
+// =========================================================
+// 🆕 КНОПКА H3 в маркерном редакторе (подпункты)
+// Ловит #ak-mk-editor, после кнопки H2 вставляет клон H3 ->
+//   оборачивает выделение в [h3]..[/h3] (по window._akMkRange).
+// Большой блок редактора НЕ трогаем. Размер H3 при чтении = css выше.
+// =========================================================
+(function () {
+  function mkWrapH3(open, close) {
+    var f = document.getElementById('ak-mk-field'); if (!f) return;
+    var sel = window.getSelection(); if (!sel) return;
+    var r = window._akMkRange;
+    if (r && (f === r.commonAncestorContainer || f.contains(r.commonAncestorContainer))) { try { sel.removeAllRanges(); sel.addRange(r); } catch (e) {} }
+    else { r = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null; if (!r || !(f === r.commonAncestorContainer || f.contains(r.commonAncestorContainer))) { r = document.createRange(); r.selectNodeContents(f); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); } }
+    try {
+      if (r.toString().length > 0) {
+        var txt = r.toString(); r.deleteContents();
+        var node = document.createTextNode(open + txt + close); r.insertNode(node);
+        var r2 = document.createRange(); r2.setStartAfter(node); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2); window._akMkRange = r2.cloneRange();
+      } else {
+        var n2 = document.createTextNode(open + close); r.insertNode(n2);
+        var r3 = document.createRange(); r3.setStart(n2, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3); window._akMkRange = r3.cloneRange();
+      }
+    } catch (e) {}
+  }
+  function injectH3(ed) {
+    if (!ed || ed.getAttribute('data-ak-h3')) return;
+    var btns = ed.querySelectorAll('button'); var h2 = null;
+    for (var i = 0; i < btns.length; i++) { if ((btns[i].textContent || '').trim() === 'H2') { h2 = btns[i]; break; } }
+    if (!h2) return;
+    ed.setAttribute('data-ak-h3', '1');
+    var clone = h2.cloneNode(true); clone.textContent = 'H3';
+    var fire = function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } mkWrapH3('[h3]', '[/h3]'); };
+    clone.addEventListener('touchstart', fire, { passive: false });
+    clone.addEventListener('mousedown', fire);
+    h2.parentNode.insertBefore(clone, h2.nextSibling);
+  }
+  function grabH3() { injectH3(document.getElementById('ak-mk-editor')); }
+  var obs = new MutationObserver(grabH3);
+  function start() { obs.observe(document.body, { childList: true, subtree: true }); grabH3(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grabH3, 800);
+})();
+// ak-h3-btn-end
