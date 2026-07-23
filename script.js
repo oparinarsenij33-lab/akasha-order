@@ -4210,3 +4210,81 @@ window.openLessonFormatter = function (lessonId) {
   setInterval(grab3, 800);
 })();
 // ak-headfix3-end
+// =========================================================
+// 🛠 ФИНАЛ ЗАГОЛОВКОВ: ПЕРЕКЛЮЧАТЕЛЬ без вложенности (затрает fix2/fix3)
+// Корень раздувания был: каждое нажатие вкладывало h2 в h2, а css em умножал
+//   размер экспоненциально. Теперь makeHeading = toggle: если выделение/курсор
+//   УЖЕ в заголовке того же уровня -> распаковать в обычный текст; другого
+//   уровня -> сменить тег БЕЗ вложения; нет заголовка -> обернуть выделение.
+//   Вложенность невозможна -> раздувания нет. Ж/К по выделению, выравнивание
+//   по строке курсора. ❝/Сохранить/Отмена НЕ трогаем. Большой блок/css НЕ трогаем.
+// =========================================================
+(function () {
+  function edEl() { return document.getElementById('ak-fmt-editor'); }
+  function savedRange(ed) {
+    var r = window._akEdRange;
+    if (r && ed && (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer))) return r.cloneRange();
+    try { var s = window.getSelection(); if (s && s.rangeCount) { var x = s.getRangeAt(0); if (ed === x.commonAncestorContainer || ed.contains(x.commonAncestorContainer)) return x.cloneRange(); } } catch (e) {}
+    return null;
+  }
+  function findHeading(ed, node) {
+    var n = node; if (n && n.nodeType === 3) n = n.parentNode;
+    while (n && n !== ed) { if (/^H[2-4]$/i.test(n.nodeName || '')) return n; n = n.parentNode; }
+    return null;
+  }
+  function wrapSel(tag) {
+    var ed = edEl(); if (!ed) return; var r = savedRange(ed); if (!r || r.collapsed) return;
+    try { var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+    var el = document.createElement(tag);
+    try { r.surroundContents(el); } catch (e) { try { var f = r.extractContents(); el.appendChild(f); r.insertNode(el); } catch (e2) {} }
+  }
+  function blockOf(ed, r) {
+    var n = r.startContainer; if (n && n.nodeType === 3) n = n.parentNode;
+    while (n && n !== ed && n.parentNode !== ed) n = n.parentNode;
+    return (n && n !== ed) ? n : null;
+  }
+  function setAlign(a) {
+    var ed = edEl(); if (!ed) return; var r = savedRange(ed); if (!r) return; var b = blockOf(ed, r); if (b) b.style.textAlign = a;
+  }
+  function makeHeading(tag) {
+    var ed = edEl(); if (!ed) return; var r = savedRange(ed); if (!r) return;
+    try { var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+    var heading = findHeading(ed, r.startContainer) || findHeading(ed, r.endContainer);
+    if (heading) {
+      if ((heading.nodeName || '').toLowerCase() === tag) {
+        var parent = heading.parentNode;
+        while (heading.firstChild) parent.insertBefore(heading.firstChild, heading);
+        parent.removeChild(heading);
+      } else {
+        var nb = document.createElement(tag);
+        while (heading.firstChild) nb.appendChild(heading.firstChild);
+        heading.parentNode.replaceChild(nb, heading);
+      }
+      return;
+    }
+    if (r.collapsed) return;
+    var el = document.createElement(tag);
+    try { r.surroundContents(el); } catch (e) { try { var f = r.extractContents(); el.appendChild(f); r.insertNode(el); } catch (e2) {} }
+  }
+  var MAP = { 'Ж': function () { wrapSel('strong'); }, 'К': function () { wrapSel('em'); },
+    'Ц': function () { setAlign('center'); }, '⬅': function () { setAlign('left'); }, '➡': function () { setAlign('right'); }, '↔': function () { setAlign('justify'); },
+    'H1': function () { makeHeading('h2'); }, 'H2': function () { makeHeading('h3'); } };
+  function rewire4(ov) {
+    if (ov.getAttribute('data-ak-rewired4')) return; ov.setAttribute('data-ak-rewired4', '1');
+    var btns = ov.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || '').trim(); var fn = MAP[t]; if (!fn) continue;
+      var clone = btns[i].cloneNode(true);
+      var fire = (function (f) { return function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } try { f(); } catch (e) {} }; })(fn);
+      clone.addEventListener('touchstart', fire, { passive: false });
+      clone.addEventListener('click', fire);
+      btns[i].parentNode.replaceChild(clone, btns[i]);
+    }
+  }
+  function grab4() { var ed = edEl(); if (ed) rewire4(ed); }
+  var obs4 = new MutationObserver(grab4);
+  function start4() { obs4.observe(document.body, { childList: true, subtree: true }); grab4(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start4); else start4();
+  setInterval(grab4, 800);
+})();
+// ak-headfix4-end
