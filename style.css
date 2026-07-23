@@ -1166,3 +1166,8 @@ body.keyboard-large-text .message-content h4 { font-size: 1.4rem !important; }
 .message-content h4, #ak-fmt-editor h4 { color:#c9b27e !important; }
 .message-content blockquote { color:#cfe8d4; border-left:3px solid #64ffda; background:rgba(100,255,218,0.06); border-radius:0 8px 8px 0; padding:8px 14px; font-style:italic; }
 /* ak-fmt-colors-end */
+/* === 📏 РАЗМЕРЫ ЗАГОЛОВКОВ В РЕДАКТОРЕ: явная лесенка H1 > H2 > H3 === */
+#ak-fmt-editor h2 { font-size:1.7em !important; font-weight:700 !important; margin:14px 0 8px !important; }
+#ak-fmt-editor h3 { font-size:1.35em !important; font-weight:700 !important; margin:12px 0 6px !important; }
+#ak-fmt-editor h4 { font-size:1.15em !important; font-weight:700 !important; margin:10px 0 4px !important; }
+/* ak-fmt-headsize-end */
