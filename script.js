@@ -3891,3 +3891,42 @@ window.openLessonFormatter = function (lessonId) {
   setInterval(grab, 1500);
 })();
 // ak-lesson-fmt-end
+// =========================================================
+// ❝ ФИКС ЦИТАТЫ в редакторе: рисуем [quote]-стиль прямо в WYSIWYG
+// Перехватывает ТОЛЬКО execCommand('formatBlock','<blockquote>') и только
+// когда выделение внутри #ak-fmt-editor — оборачивает в стилизованный blockquote
+// (зелёная полоска + курсив + фон, как маркер [quote] при чтении).
+// Ж/К/Ц/H1/H2 идут нативно без изменений.
+// =========================================================
+(function () {
+  var _origExec = document.execCommand ? document.execCommand.bind(document) : null;
+  if (!_origExec) return;
+  var QUOTE_STYLE = 'border-left:3px solid #64ffda;margin:14px 0;padding:8px 14px;color:#cfe8d4;font-style:italic;background:rgba(100,255,218,0.06);border-radius:0 8px 8px 0;';
+  document.execCommand = function (cmd, ui, val) {
+    try {
+      if (String(cmd || '').toLowerCase() === 'formatblock' && /blockquote/i.test(String(val || ''))) {
+        var ed = document.getElementById('ak-fmt-editor');
+        var sel = window.getSelection();
+        if (ed && sel && sel.rangeCount) {
+          var range = sel.getRangeAt(0);
+          var anc = range.commonAncestorContainer;
+          if (ed === anc || ed.contains(anc)) {
+            var bq = document.createElement('blockquote');
+            bq.style.cssText = QUOTE_STYLE;
+            if (!range.collapsed) {
+              try { range.surroundContents(bq); }
+              catch (e) { var f = range.extractContents(); bq.appendChild(f); range.insertNode(bq); }
+            } else {
+              bq.appendChild(document.createElement('br'));
+              range.insertNode(bq);
+            }
+            try { var r2 = document.createRange(); r2.selectNodeContents(bq); r2.collapse(false); sel.removeAllRanges(); sel.addRange(r2); } catch (e) {}
+            return true;
+          }
+        }
+      }
+    } catch (e) {}
+    return _origExec(cmd, ui, val);
+  };
+})();
+// ak-quote-fix-end
