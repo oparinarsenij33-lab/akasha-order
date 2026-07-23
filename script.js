@@ -4197,3 +4197,60 @@ window.openLessonFormatter = function (lessonId) {
   };
 })();
 // ak-big-marker-end
+// =========================================================
+// ✍️ ГИБРИД: Ж/К/Ц/стрелки/❝/¶ = кнопки (как раньше),
+//   а H1/H2 = МАРКЕРЫ [h1]..[/h1] / [h2]..[/h2] (текстом).
+// Заголовки больше НЕ идут через formatBlock -> нечему раздуваться
+//   и вкладываться. Красоту заголовков при чтении рисует formatLessonHTML.
+// Становимся ЕДИНСТВЕННЫМ хозяином кнопок: ставим флаги всех старых
+//   перевесов (чтобы не дрались) и клонируем кнопки со своими обработчиками.
+// Большой блок редактора и css НЕ трогаем.
+// =========================================================
+(function () {
+  function edEl() { return document.getElementById('ak-fmt-editor'); }
+  function execCmd(cmd, val) { var ed = edEl(); if (ed) ed.focus(); try { document.execCommand(cmd, false, val || null); } catch (e) {} }
+  function markerWrap(ed, open, close) {
+    var sel = window.getSelection(); if (!sel) return;
+    var range = sel.rangeCount ? sel.getRangeAt(0) : null;
+    if (!range || !(ed === range.commonAncestorContainer || ed.contains(range.commonAncestorContainer))) {
+      range = document.createRange(); range.selectNodeContents(ed); range.collapse(false); sel.removeAllRanges(); sel.addRange(range);
+    }
+    try {
+      if (range.toString().length > 0) {
+        var txt = range.toString(); range.deleteContents();
+        var node = document.createTextNode(open + txt + close); range.insertNode(node);
+        var r2 = document.createRange(); r2.setStartAfter(node); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2);
+      } else {
+        var n2 = document.createTextNode(open + close); range.insertNode(n2);
+        var r3 = document.createRange(); r3.setStart(n2, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3);
+      }
+    } catch (e) {}
+  }
+  var MAP = {
+    'Ж': function () { execCmd('bold'); }, 'К': function () { execCmd('italic'); },
+    'Ц': function () { execCmd('justifyCenter'); }, '⬅': function () { execCmd('justifyLeft'); }, '➡': function () { execCmd('justifyRight'); }, '↔': function () { execCmd('justifyFull'); },
+    '❝': function () { execCmd('formatBlock', '<blockquote>'); }, '¶': function () { execCmd('indent'); },
+    'H1': function () { var ed = edEl(); if (ed) markerWrap(ed, '[h1]', '[/h1]'); },
+    'H2': function () { var ed = edEl(); if (ed) markerWrap(ed, '[h2]', '[/h2]'); }
+  };
+  function own(ed) {
+    if (!ed || ed.getAttribute('data-ak-final2')) return;
+    ed.setAttribute('data-ak-final2', '1');
+    ['data-ak-rewired', 'data-ak-rewired3', 'data-ak-rewired4', 'data-ak-rewired6'].forEach(function (f) { ed.setAttribute(f, '1'); });
+    var btns = ed.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || '').trim(); var fn = MAP[t]; if (!fn) continue;
+      var clone = btns[i].cloneNode(true);
+      var fire = (function (f) { return function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } try { f(); } catch (e) {} }; })(fn);
+      clone.addEventListener('touchstart', fire, { passive: false });
+      clone.addEventListener('mousedown', fire);
+      btns[i].parentNode.replaceChild(clone, btns[i]);
+    }
+  }
+  function grab() { own(edEl()); }
+  var obs = new MutationObserver(grab);
+  function start() { obs.observe(document.body, { childList: true, subtree: true }); grab(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 300);
+})();
+// ak-final2-end
