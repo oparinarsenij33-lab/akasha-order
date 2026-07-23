@@ -1179,3 +1179,11 @@ body.keyboard-large-text .container .message-content h2 { font-size:2.0rem !impo
 body.keyboard-large-text .container .message-content h3 { font-size:1.55rem !important; }
 body.keyboard-large-text .container .message-content h4 { font-size:1.0rem !important; }
 /* ak-head-ladder-end */
+/* === 🎨 H3 (подпункты): янтарный цвет + крупнее; H2 чуть крупнее для зазора === */
+body .container .message-content h3 { font-size:1.45rem !important; }
+body .container .message-content h4 { color:#e8a85c !important; font-size:1.25rem !important; line-height:1.35 !important; font-weight:700 !important; letter-spacing:0.3px !important; }
+body.keyboard-large-text .container .message-content h3 { font-size:1.7rem !important; }
+body.keyboard-large-text .container .message-content h4 { font-size:1.45rem !important; }
+#ak-fmt-editor h3 { font-size:1.4em !important; }
+#ak-fmt-editor h4 { color:#e8a85c !important; font-size:1.2em !important; font-weight:700 !important; }
+/* ak-h3-recolor-end */
