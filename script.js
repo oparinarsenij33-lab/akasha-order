@@ -4446,3 +4446,72 @@ window.openLessonFormatter = function (lessonId) {
   setInterval(grab, 700);
 })();
 // ak-headclean-end
+// =========================================================
+// 🧹 ЕДИНСТВЕННЫЙ ВЛАДЕЛЕЦ ПАНЕЛИ РЕДАКТОРА (убирает лотерею из 5 блоков)
+// Ставит флаги ВСЕХ старых перевесов (rewired/3/4/6) -> они больше не вешают
+//   свои обработчики; клонирует кнопки ПОСЛЕДНИМ -> чужие слушатели сняты.
+// Каждая кнопка = ОДНО действие, execCommand НЕ зовём вообще (перехваты мимо).
+// H1/H2 меняют ТОЛЬКО тег (стиль/выравнивание сохраняются), выравнивание НЕ трогают.
+// =========================================================
+(function () {
+  function edEl() { return document.getElementById('ak-fmt-editor'); }
+  function curRange() {
+    var r = window._akEdRange, ed = edEl();
+    if (r && ed && (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer))) return r.cloneRange();
+    return null;
+  }
+  function blockOf(ed, node) { var n = node; if (n && n.nodeType === 3) n = n.parentNode; while (n && n !== ed && n.parentNode !== ed) n = n.parentNode; return (n && n !== ed) ? n : null; }
+  function curBlock(ed) { var r = curRange(); if (!r) return null; return blockOf(ed, r.startContainer); }
+  function setSelIn(node) { try { var s = window.getSelection(); var rr = document.createRange(); rr.selectNodeContents(node); rr.collapse(false); s.removeAllRanges(); s.addRange(rr); } catch (e) {} }
+  function wrapInline(tag) {
+    var ed = edEl(); if (!ed) return; var r = curRange(); if (!r || r.collapsed) return;
+    try { var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+    var el = document.createElement(tag);
+    try { r.surroundContents(el); } catch (e) { try { var f = r.extractContents(); el.appendChild(f); r.insertNode(el); } catch (e2) {} }
+  }
+  function setAlign(a) { var ed = edEl(); if (!ed) return; var b = curBlock(ed); if (b) b.style.textAlign = a; }
+  function toggleIndent() { var ed = edEl(); if (!ed) return; var b = curBlock(ed); if (!b) return; var c = b.style.textIndent; b.style.textIndent = (c && c !== '0px' && c !== '0') ? '0' : '1.5em'; }
+  function toggleHeading(tag) {
+    var ed = edEl(); if (!ed) return; var b = curBlock(ed); if (!b) return;
+    if ((b.nodeName || '').toLowerCase() === tag) {
+      var p = document.createElement('div'); p.style.cssText = b.style.cssText; while (b.firstChild) p.appendChild(b.firstChild); b.parentNode.replaceChild(p, b); setSelIn(p);
+    } else {
+      var h = document.createElement(tag); h.style.cssText = b.style.cssText; while (b.firstChild) h.appendChild(b.firstChild); b.parentNode.replaceChild(h, b); setSelIn(h);
+    }
+  }
+  var QSTYLE = 'border-left:3px solid #64ffda;margin:14px 0;padding:8px 14px;color:#cfe8d4;font-style:italic;background:rgba(100,255,218,0.06);border-radius:0 8px 8px 0;';
+  function toggleQuote() {
+    var ed = edEl(); if (!ed) return; var b = curBlock(ed); if (!b) return;
+    if ((b.nodeName || '').toLowerCase() === 'blockquote') {
+      var p = document.createElement('div'); p.style.cssText = ''; while (b.firstChild) p.appendChild(b.firstChild); b.parentNode.replaceChild(p, b); setSelIn(p);
+    } else {
+      var q = document.createElement('blockquote'); q.style.cssText = QSTYLE; while (b.firstChild) q.appendChild(b.firstChild); b.parentNode.replaceChild(q, b); setSelIn(q);
+    }
+  }
+  var MAP = {
+    'Ж': function () { wrapInline('strong'); }, 'К': function () { wrapInline('em'); },
+    'Ц': function () { setAlign('center'); }, '⬅': function () { setAlign('left'); }, '➡': function () { setAlign('right'); }, '↔': function () { setAlign('justify'); },
+    'H1': function () { toggleHeading('h2'); }, 'H2': function () { toggleHeading('h3'); },
+    '❝': function () { toggleQuote(); }, '¶': function () { toggleIndent(); }
+  };
+  function own(ed) {
+    if (ed.getAttribute('data-ak-finalowner')) return;
+    ed.setAttribute('data-ak-finalowner', '1');
+    ['data-ak-rewired', 'data-ak-rewired3', 'data-ak-rewired4', 'data-ak-rewired6'].forEach(function (f) { ed.setAttribute(f, '1'); });
+    var btns = ed.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || '').trim(); var fn = MAP[t]; if (!fn) continue;
+      var clone = btns[i].cloneNode(true);
+      var fire = (function (f) { return function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } try { f(); } catch (e) {} }; })(fn);
+      clone.addEventListener('touchstart', fire, { passive: false });
+      clone.addEventListener('click', fire);
+      btns[i].parentNode.replaceChild(clone, btns[i]);
+    }
+  }
+  function grab() { var ed = edEl(); if (ed) own(ed); }
+  var obs = new MutationObserver(grab);
+  function start() { obs.observe(document.body, { childList: true, subtree: true }); grab(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 600);
+})();
+// ak-fmt-finalowner-end
