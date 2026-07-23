@@ -1171,3 +1171,11 @@ body.keyboard-large-text .message-content h4 { font-size: 1.4rem !important; }
 #ak-fmt-editor h3 { font-size:1.35em !important; font-weight:700 !important; margin:12px 0 6px !important; }
 #ak-fmt-editor h4 { font-size:1.15em !important; font-weight:700 !important; margin:10px 0 4px !important; }
 /* ak-fmt-headsize-end */
+/* === 📐 ЛЕСЕНКА ЗАГОЛОВКОВ ПРИ ЧТЕНИИ: H1 крупный, H2 меньше, H3 = подпункт === */
+body .container .message-content h2 { font-size:1.7rem !important; line-height:1.25 !important; }
+body .container .message-content h3 { font-size:1.3rem !important; line-height:1.3 !important; }
+body .container .message-content h4 { font-size:0.85rem !important; line-height:1.4 !important; letter-spacing:0.3px !important; }
+body.keyboard-large-text .container .message-content h2 { font-size:2.0rem !important; }
+body.keyboard-large-text .container .message-content h3 { font-size:1.55rem !important; }
+body.keyboard-large-text .container .message-content h4 { font-size:1.0rem !important; }
+/* ak-head-ladder-end */
