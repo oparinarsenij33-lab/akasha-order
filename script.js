@@ -4428,3 +4428,29 @@ window.openLessonFormatter = function (lessonId) {
   setInterval(grabH3, 800);
 })();
 // ak-h3-btn-end
+// =========================================================
+// #️⃣ MARKDOWN-ЗАГОЛОВКИ -> маркеры (ДО основного превращателя)
+// Урок писался как ### / ## / # (markdown), а превращатель знает только
+//   [h3]/[h2]/[h1]. Обёртка на load конвертирует markdown в маркеры ПЕРЕД
+//   formatLessonHTML, поэтому ### оживает как H3 (и красится янтарным css).
+// Бьём по ИСХОДНОМУ тексту (до тегов) -> по готовому HTML не лезем, безопасно.
+// =========================================================
+(function () {
+  function mdToMarkers(text) {
+    if (!text) return text;
+    var s = String(text);
+    s = s.replace(/^###\s+(.+)$/gm, '[h3]$1[/h3]');
+    s = s.replace(/^##\s+(.+)$/gm, '[h2]$1[/h2]');
+    s = s.replace(/^#\s+(.+)$/gm, '[h1]$1[/h1]');
+    return s;
+  }
+  window.addEventListener('load', function () {
+    var prev = window.formatLessonHTML;
+    window.formatLessonHTML = function (text) {
+      var t = mdToMarkers(text);
+      if (typeof prev === 'function') { try { return prev(t); } catch (e) {} }
+      return t;
+    };
+  });
+})();
+// ak-md-headings-end
