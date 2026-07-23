@@ -4254,3 +4254,134 @@ window.openLessonFormatter = function (lessonId) {
   setInterval(grab, 300);
 })();
 // ak-final2-end
+// =========================================================
+// ✍️ ФИНАЛ: ВЕСЬ ТУЛБАР РЕДАКТОРА = МАРКЕРЫ (никакого execCommand)
+// Конфликт «теги vs маркеры в одном редакторе» убран начисто: редактор
+//   только вставляет текст-маркеры, сохраняет innerText (чистый текст),
+//   красоту при чтении рисует formatLessonHTML (переопределена на load,
+//   чтобы красить ещё и ** / * / ***). У редактора СВОЙ id (ak-mk-editor /
+//   ak-mk-field) -> вся старая куча перевесов кнопок (ищет ak-fmt-editor)
+//   его НЕ видит и не лезет со своим execCommand. Цитата сохраняется как
+//   [quote] и при чтении становится рамкой — больше не пропадает.
+// =========================================================
+(function () {
+  window._akMkRange = null;
+  document.addEventListener('selectionchange', function () {
+    try {
+      var f = document.getElementById('ak-mk-field');
+      if (!f) return;
+      var s = window.getSelection();
+      if (!s || !s.rangeCount) return;
+      var r = s.getRangeAt(0);
+      if (f === r.commonAncestorContainer || f.contains(r.commonAncestorContainer)) window._akMkRange = r.cloneRange();
+    } catch (e) {}
+  });
+  function mkWrap(open, close) {
+    var f = document.getElementById('ak-mk-field');
+    if (!f) return;
+    var sel = window.getSelection();
+    if (!sel) return;
+    var r = window._akMkRange;
+    if (r && (f === r.commonAncestorContainer || f.contains(r.commonAncestorContainer))) {
+      try { sel.removeAllRanges(); sel.addRange(r); } catch (e) {}
+    } else {
+      r = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
+      if (!r || !(f === r.commonAncestorContainer || f.contains(r.commonAncestorContainer))) {
+        r = document.createRange(); r.selectNodeContents(f); r.collapse(false); sel.removeAllRanges(); sel.addRange(r);
+      }
+    }
+    try {
+      if (r.toString().length > 0) {
+        var txt = r.toString(); r.deleteContents();
+        var node = document.createTextNode(open + txt + close); r.insertNode(node);
+        var r2 = document.createRange(); r2.setStartAfter(node); r2.collapse(true); sel.removeAllRanges(); sel.addRange(r2); window._akMkRange = r2.cloneRange();
+      } else {
+        var n2 = document.createTextNode(open + close); r.insertNode(n2);
+        var r3 = document.createRange(); r3.setStart(n2, open.length); r3.collapse(true); sel.removeAllRanges(); sel.addRange(r3); window._akMkRange = r3.cloneRange();
+      }
+    } catch (e) {}
+  }
+  var MK_TOOLS = [
+    ['Ж', '**', '**'], ['К', '*', '*'],
+    ['Ц', '[center]', '[/center]'], ['⬅', '[left]', '[/left]'], ['➡', '[right]', '[/right]'], ['↔', '[justify]', '[/justify]'],
+    ['H1', '[h1]', '[/h1]'], ['H2', '[h2]', '[/h2]'],
+    ['❝', '[quote]', '[/quote]'], ['¶', '[indent]', '[/indent]']
+  ];
+  window.openLessonFormatter = function (lessonId) {
+    var lesson = (typeof lessonsById !== 'undefined' ? lessonsById : {})[lessonId];
+    if (!lesson) { try { showAlert('Ошибка', 'Урок не найден.'); } catch (e) {} return; }
+    var old = document.getElementById('ak-mk-editor'); if (old) old.remove();
+    window._akMkRange = null;
+    var ov = document.createElement('div'); ov.id = 'ak-mk-editor';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(10,20,12,0.98);z-index:999999;display:flex;flex-direction:column;padding:10px;';
+    var top = document.createElement('div');
+    top.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;';
+    var title = document.createElement('div');
+    title.textContent = '✍️ ' + (lesson.title || 'Редактор');
+    title.style.cssText = "color:#64ffda;font-family:'Playfair Display',serif;font-size:1.05em;flex:1;min-width:140px;";
+    top.appendChild(title);
+    MK_TOOLS.forEach(function (t) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = t[0];
+      b.style.cssText = 'min-width:38px;padding:8px 6px;border-radius:8px;border:1px solid rgba(100,255,218,0.4);background:rgba(100,255,218,0.15);color:#64ffda;font-weight:700;cursor:pointer;';
+      var fire = function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } mkWrap(t[1], t[2]); };
+      b.addEventListener('touchstart', fire, { passive: false });
+      b.addEventListener('mousedown', fire);
+      top.appendChild(b);
+    });
+    ov.appendChild(top);
+    var hint = document.createElement('div');
+    hint.textContent = 'Выдели текст пальцем → тапни кнопку (обернёт маркерами). Текст виден «как есть». При чтении маркеры станут красотой — и цитата тоже.';
+    hint.style.cssText = 'color:#a89b7e;font-size:0.78em;text-align:center;margin-bottom:6px;line-height:1.3;';
+    ov.appendChild(hint);
+    var f = document.createElement('div'); f.id = 'ak-mk-field';
+    f.contentEditable = 'true';
+    f.style.cssText = 'flex:1;overflow-y:auto;background:rgba(13,31,15,0.6);border:1px solid #64ffda;border-radius:10px;padding:14px;color:#e8f5e9;font-size:1.1em;line-height:1.7;outline:none;white-space:pre-wrap;word-wrap:break-word;';
+    f.textContent = lesson.content || '';
+    ov.appendChild(f);
+    var bot = document.createElement('div'); bot.style.cssText = 'display:flex;gap:8px;margin-top:8px;';
+    var save = document.createElement('button'); save.type = 'button'; save.textContent = '💾 Сохранить';
+    save.style.cssText = 'flex:1;padding:12px;border-radius:9px;border:1px solid rgba(100,255,218,0.5);background:rgba(100,255,218,0.2);color:#64ffda;font-weight:700;cursor:pointer;';
+    var cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '✖ Отмена';
+    cancel.style.cssText = 'flex:1;padding:12px;border-radius:9px;border:1px solid rgba(255,80,80,0.4);background:rgba(255,80,80,0.2);color:#ff6b6b;font-weight:700;cursor:pointer;';
+    var doSave = async function (ev) {
+      if (ev) ev.preventDefault();
+      var txt = f.innerText;
+      try {
+        if (typeof updateLessonInFirebase === 'function') await updateLessonInFirebase(lessonId, { content: txt });
+        else throw new Error('нет updateLessonInFirebase');
+        ov.remove();
+        try { addMessage('<p>✅ Сохранено! При чтении все маркеры (и цитата) станут красотой.</p>'); } catch (e) {}
+        try { if (typeof loadLessonsFromFirebase === 'function') await loadLessonsFromFirebase(); } catch (e) {}
+      } catch (e) { try { showAlert('Ошибка', 'Не удалось сохранить: ' + e.message); } catch (er) {} }
+    };
+    var doCancel = function (ev) { if (ev) ev.preventDefault(); ov.remove(); };
+    save.addEventListener('touchstart', doSave, { passive: false }); save.addEventListener('click', doSave);
+    cancel.addEventListener('touchstart', doCancel, { passive: false }); cancel.addEventListener('click', doCancel);
+    bot.appendChild(save); bot.appendChild(cancel); ov.appendChild(bot);
+    document.body.appendChild(ov);
+  };
+  // превращатель маркеров на load (позже инлайн-версии) — красит ВСЁ, включая ** и *
+  window.addEventListener('load', function () {
+    window.formatLessonHTML = function (text) {
+      if (!text) return text;
+      var s = String(text);
+      s = s.replace(/\n/g, '<br>');
+      s = s.replace(/\[center\]([\s\S]*?)\[\/center\]/gi, function (_, x) { return '<div style="text-align:center;margin:14px 0;">' + x + '</div>'; });
+      s = s.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, function (_, x) { return '<div style="text-align:right;margin:14px 0;">' + x + '</div>'; });
+      s = s.replace(/\[left\]([\s\S]*?)\[\/left\]/gi, function (_, x) { return '<div style="text-align:left;margin:14px 0;">' + x + '</div>'; });
+      s = s.replace(/\[justify\]([\s\S]*?)\[\/justify\]/gi, function (_, x) { return '<div style="text-align:justify;margin:14px 0;">' + x + '</div>'; });
+      s = s.replace(/\[indent\]([\s\S]*?)\[\/indent\]/gi, function (_, x) { return '<div style="text-indent:1.5em;margin:10px 0;">' + x + '</div>'; });
+      s = s.replace(/\[noindent\]([\s\S]*?)\[\/noindent\]/gi, function (_, x) { return '<div style="text-indent:0;margin:10px 0;">' + x + '</div>'; });
+      s = s.replace(/\[title\]([\s\S]*?)\[\/title\]/gi, function (_, x) { return '<h3 style="color:#64ffda;font-family:\'Playfair Display\',serif;text-align:center;font-size:1.4em;margin:18px 0 12px 0;">' + x + '</h3>'; });
+      s = s.replace(/\[h1\]([\s\S]*?)\[\/h1\]/gi, function (_, x) { return '<h2 style="color:#64ffda;font-family:\'Playfair Display\',serif;text-align:center;margin:18px 0 10px 0;">' + x + '</h2>'; });
+      s = s.replace(/\[h2\]([\s\S]*?)\[\/h2\]/gi, function (_, x) { return '<h3 style="color:#8bc34a;font-family:\'Playfair Display\',serif;text-align:center;margin:16px 0 8px 0;">' + x + '</h3>'; });
+      s = s.replace(/\[h3\]([\s\S]*?)\[\/h3\]/gi, function (_, x) { return '<h4 style="color:#a89b7e;font-family:\'Playfair Display\',serif;margin:14px 0 6px 0;">' + x + '</h4>'; });
+      s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, function (_, x) { return '<blockquote style="border-left:3px solid #64ffda;margin:14px 0;padding:8px 14px;color:#cfe8d4;font-style:italic;background:rgba(100,255,218,0.06);border-radius:0 8px 8px 0;">' + x + '</blockquote>'; });
+      s = s.replace(/\*\*\*([\s\S]+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      s = s.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+      return s;
+    };
+  });
+})();
+// ak-mk-final-end
