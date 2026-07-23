@@ -4288,3 +4288,50 @@ window.openLessonFormatter = function (lessonId) {
   setInterval(grab4, 800);
 })();
 // ak-headfix4-end
+// =========================================================
+// 🛠 ЗАГОЛОВКИ H1/H2 — перехват НАВЕРХУ цепочки, как цитата ❝
+// Читает выделение НАПРЯМУЮ (getSelection), НЕ трогает _akEdRange и НЕ зовёт
+//   ни одну старую обёртку для formatBlock h2/h3/h4 — поэтому вредная цепочка,
+//   которая ломала выделение, для заголовков не выполняется вообще.
+// Переключатель без вложенности: обычный->заголовок, заголовок->обычный,
+//   смена уровня без вложения. Раздувание невозможно. Кнопки НЕ перевешиваем.
+// =========================================================
+(function () {
+  var prev = document.execCommand;
+  if (typeof prev !== 'function') return;
+  document.execCommand = function (cmd, ui, val) {
+    if (String(cmd || '').toLowerCase() === 'formatblock') {
+      var mm = String(val || '').match(/h([2-4])/i);
+      if (mm) {
+        var tag = 'h' + mm[1];
+        try {
+          var ed = document.getElementById('ak-fmt-editor');
+          var sel = window.getSelection();
+          if (ed && sel && sel.rangeCount) {
+            var range = sel.getRangeAt(0);
+            if (ed === range.commonAncestorContainer || ed.contains(range.commonAncestorContainer)) {
+              var findH = function (node) { var n = node; if (n && n.nodeType === 3) n = n.parentNode; while (n && n !== ed) { if (/^H[2-4]$/i.test(n.nodeName || '')) return n; n = n.parentNode; } return null; };
+              var heading = findH(range.startContainer) || findH(range.endContainer);
+              if (heading) {
+                if ((heading.nodeName || '').toLowerCase() === tag) {
+                  var par = heading.parentNode; while (heading.firstChild) par.insertBefore(heading.firstChild, heading); par.removeChild(heading);
+                } else {
+                  var nb = document.createElement(tag); while (heading.firstChild) nb.appendChild(heading.firstChild); heading.parentNode.replaceChild(nb, heading);
+                }
+                return true;
+              }
+              if (!range.collapsed) {
+                var el = document.createElement(tag);
+                try { range.surroundContents(el); } catch (e) { try { var f = range.extractContents(); el.appendChild(f); range.insertNode(el); } catch (e2) {} }
+              }
+              return true;
+            }
+          }
+        } catch (e) {}
+        return true;
+      }
+    }
+    return prev(cmd, ui, val);
+  };
+})();
+// ak-headfix5-end
