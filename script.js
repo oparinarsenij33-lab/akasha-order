@@ -4025,3 +4025,32 @@ window.openLessonFormatter = function (lessonId) {
   wrapDraft('showChapterLessons');
 })();
 // ak-lesson-draft-end
+// =========================================================
+// 📏 СНЯТИЕ ВЫДЕЛЕНИЯ после H1/H2/H3 в редакторе (цепочкой поверх ak-quote-fix)
+// Для formatBlock h2/h3/h4 после применения ставит курсор в конец заголовка
+// без выделения — удобно продолжать. Ж/К/Ц/цитата проходят без изменений.
+// =========================================================
+(function () {
+  var prev = document.execCommand;
+  if (typeof prev !== 'function') return;
+  document.execCommand = function (cmd, ui, val) {
+    var r = prev(cmd, ui, val);
+    try {
+      if (String(cmd || '').toLowerCase() === 'formatblock' && /h[2-4]/i.test(String(val || ''))) {
+        var ed = document.getElementById('ak-fmt-editor');
+        var sel = window.getSelection();
+        if (ed && sel && sel.rangeCount) {
+          var n = sel.getRangeAt(0).startContainer;
+          if (n && n.nodeType === 3) n = n.parentNode;
+          while (n && n !== ed && !/^H[2-4]$/i.test(n.nodeName || '')) n = n.parentNode;
+          if (n && n !== ed) {
+            var rr = document.createRange(); rr.selectNodeContents(n); rr.collapse(false);
+            sel.removeAllRanges(); sel.addRange(rr);
+          }
+        }
+      }
+    } catch (e) {}
+    return r;
+  };
+})();
+// ak-head-collapse-end
