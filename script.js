@@ -3930,3 +3930,98 @@ window.openLessonFormatter = function (lessonId) {
   };
 })();
 // ak-quote-fix-end
+// =========================================================
+// 📝 ЧЕРНОВИКИ УРОКОВ: новый урок = черновик, ученики не видят,
+//   мастер видит пометку + 🌐 Опубликовать. Середину НЕ трогаем.
+// 1) Обёртка addLessonToFirebase дописывает published:false при создании
+//    (временно подменяет collection, объект .add дополняется, поля не дублируем).
+// 2) Обёртки showSectionLessons/showChapterLessons: не-редакторам черновики
+//    удаляются из списка + перенумерация видимых; редакторам — пометка + 🌐.
+// Старые уроки без поля published НЕ считаются черновиками (видны всем как раньше).
+// =========================================================
+(function () {
+  function akIsEditor() {
+    try { return (typeof isMaster === 'function' && isMaster()) || (typeof isArchivist === 'function' && isArchivist()) || (typeof isAdmin === 'function' && isAdmin()); } catch (e) { return false; }
+  }
+  var _origAddLesson = window.addLessonToFirebase;
+  if (typeof _origAddLesson === 'function') {
+    window.addLessonToFirebase = async function () {
+      if (!windowDb) return _origAddLesson.apply(this, arguments);
+      var realColl = windowDb.collection.bind(windowDb);
+      windowDb.collection = function (name) {
+        var c = realColl(name);
+        try {
+          if (name === 'lessons' && c && typeof c.add === 'function' && !c._akDraftPatched) {
+            var realAdd = c.add.bind(c);
+            c.add = function (obj) { try { if (obj && typeof obj === 'object' && obj.published === undefined) obj.published = false; } catch (e) {} return realAdd(obj); };
+            c._akDraftPatched = true;
+          }
+        } catch (e) {}
+        return c;
+      };
+      try { return await _origAddLesson.apply(this, arguments); }
+      finally { try { windowDb.collection = realColl; } catch (e) {} }
+    };
+  }
+  window.publishLesson = async function (id) {
+    var l = (typeof lessonsById !== 'undefined' ? lessonsById : {})[id];
+    if (!l) return;
+    try {
+      if (typeof updateLessonInFirebase === 'function') await updateLessonInFirebase(id, { published: true });
+      l.published = true;
+      try { addMessage('<p>✅ Урок опубликован и теперь виден ученикам!</p>'); } catch (e) {}
+      var secId = l.sectionId;
+      if (!secId && l.chapterId) { var ch = (typeof chaptersList !== 'undefined' ? chaptersList : []).find(function (c) { return c.id === l.chapterId; }); if (ch) secId = ch.sectionId; }
+      try { if (l.chapterId) await window.showChapterLessons(l.chapterId, secId); else if (secId) await window.showSectionLessons(secId); } catch (e) {}
+    } catch (e) { try { showAlert('Ошибка', 'Не удалось опубликовать: ' + e.message); } catch (er) {} }
+  };
+  function akDraftPass() {
+    var c = document.getElementById('chat-container');
+    if (!c) return;
+    var editor = akIsEditor();
+    var links = c.querySelectorAll('.toc-lesson-link');
+    var visible = [];
+    for (var i = 0; i < links.length; i++) {
+      var lk = links[i];
+      var oc = lk.getAttribute('onclick') || '';
+      var m = oc.match(/showLessonContent\('([^']+)'\)/);
+      var id = m ? m[1] : null;
+      var l = id ? ((typeof lessonsById !== 'undefined' ? lessonsById : {})[id]) : null;
+      var isDraft = !!(l && l.published === false);
+      var wrap = lk.parentNode;
+      if (!editor && isDraft) { if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap); continue; }
+      if (editor && isDraft && wrap && !wrap.getAttribute('data-ak-draftmark')) {
+        wrap.setAttribute('data-ak-draftmark', '1');
+        var badge = document.createElement('span');
+        badge.textContent = '📝 черновик';
+        badge.style.cssText = 'color:#ffb74d;font-size:0.8em;font-weight:700;margin-left:8px;';
+        lk.appendChild(badge);
+        var pb = document.createElement('button');
+        pb.textContent = '🌐'; pb.title = 'Опубликовать урок';
+        pb.style.cssText = 'background:rgba(100,255,218,0.2);color:#64ffda;border:1px solid rgba(100,255,218,0.5);border-radius:6px;padding:4px 8px;margin-left:4px;cursor:pointer;';
+        pb.onclick = (function (iid) { return function (ev) { ev.stopPropagation(); window.publishLesson(iid); }; })(id);
+        wrap.appendChild(pb);
+      }
+      visible.push(lk);
+    }
+    if (!editor) {
+      for (var k = 0; k < visible.length; k++) {
+        var b = visible[k].firstElementChild;
+        if (b && /^№/.test(b.textContent || '')) b.textContent = '№' + (k + 1) + ' ';
+      }
+    }
+  }
+  function wrapDraft(fnName) {
+    var orig = window[fnName];
+    if (typeof orig !== 'function') return;
+    window[fnName] = async function () {
+      var r;
+      try { r = await orig.apply(this, arguments); } catch (e) { r = undefined; }
+      try { akDraftPass(); } catch (e) {}
+      return r;
+    };
+  }
+  wrapDraft('showSectionLessons');
+  wrapDraft('showChapterLessons');
+})();
+// ak-lesson-draft-end
