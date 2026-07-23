@@ -4157,3 +4157,56 @@ window.openLessonFormatter = function (lessonId) {
   setInterval(grab, 800);
 })();
 // ak-headfix2-end
+// =========================================================
+// 🛠 ФИНАЛЬНЫЙ ПЕРЕВЕС КНОПОК РЕДАКТОРА — всё ПО ВЫДЕЛЕНИЮ (как цитата ❝)
+// Затрает вредный ak-headfix2 (clone снимает его слушатели). Раздувания быть
+//   не может: оборачивается ТОЛЬКО выделение через surroundContents.
+// Ж/К = strong/em, выравнивание = textAlign блока курсора (размер не трогает),
+//   H1/H2 = обернуть выделение в h2/h3. Выделять текст ЗАГОЛОВКА пальцем.
+// ❝ / Сохранить / Отмена НЕ трогаем. Большой блок и css НЕ трогаем.
+// =========================================================
+(function () {
+  function edEl() { return document.getElementById('ak-fmt-editor'); }
+  function savedRange(ed) {
+    var r = window._akEdRange;
+    if (r && ed && (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer))) return r.cloneRange();
+    try { var s = window.getSelection(); if (s && s.rangeCount) { var x = s.getRangeAt(0); if (ed === x.commonAncestorContainer || ed.contains(x.commonAncestorContainer)) return x.cloneRange(); } } catch (e) {}
+    return null;
+  }
+  function wrapSel(tag) {
+    var ed = edEl(); if (!ed) return; var r = savedRange(ed); if (!r || r.collapsed) return;
+    try { var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+    var el = document.createElement(tag);
+    try { r.surroundContents(el); }
+    catch (e) { try { var f = r.extractContents(); el.appendChild(f); r.insertNode(el); } catch (e2) {} }
+  }
+  function blockOf(ed, r) {
+    var n = r.startContainer; if (n && n.nodeType === 3) n = n.parentNode;
+    while (n && n !== ed && n.parentNode !== ed) n = n.parentNode;
+    return (n && n !== ed) ? n : null;
+  }
+  function setAlign(a) {
+    var ed = edEl(); if (!ed) return; var r = savedRange(ed); if (!r) return; var b = blockOf(ed, r); if (b) b.style.textAlign = a;
+  }
+  var MAP = { 'Ж': function () { wrapSel('strong'); }, 'К': function () { wrapSel('em'); },
+    'Ц': function () { setAlign('center'); }, '⬅': function () { setAlign('left'); }, '➡': function () { setAlign('right'); }, '↔': function () { setAlign('justify'); },
+    'H1': function () { wrapSel('h2'); }, 'H2': function () { wrapSel('h3'); } };
+  function rewire3(ov) {
+    if (ov.getAttribute('data-ak-rewired3')) return; ov.setAttribute('data-ak-rewired3', '1');
+    var btns = ov.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || '').trim(); var fn = MAP[t]; if (!fn) continue;
+      var clone = btns[i].cloneNode(true);
+      var fire = (function (f) { return function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } try { f(); } catch (e) {} }; })(fn);
+      clone.addEventListener('touchstart', fire, { passive: false });
+      clone.addEventListener('click', fire);
+      btns[i].parentNode.replaceChild(clone, btns[i]);
+    }
+  }
+  function grab3() { var ed = edEl(); if (ed) rewire3(ed); }
+  var obs3 = new MutationObserver(grab3);
+  function start3() { obs3.observe(document.body, { childList: true, subtree: true }); grab3(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start3); else start3();
+  setInterval(grab3, 800);
+})();
+// ak-headfix3-end
