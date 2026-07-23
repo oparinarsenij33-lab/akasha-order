@@ -4380,3 +4380,69 @@ window.openLessonFormatter = function (lessonId) {
   setInterval(grab6, 800);
 })();
 // ak-headfix6-end
+// =========================================================
+// 🧹 ЧИСТЫЙ ПЕРЕВЕС H1/H2/Ж/К/Ц: гасит цепь старых fix-ов и
+//   делает заголовки ЗАМЕНОЙ блока (replaceChild), а НЕ оборачиванием
+//   выделения. Поэтому <h2> в <h2> невозможно -> раздувания нет НИКОГДА.
+//   H1/H2 = переключатель: 1 тап = заголовок, 2 тап = обычный абзац.
+//   Ж/К = оборачивают ТОЛЬКО в пределах одного абзаца (иначе не трогают).
+//   ❝ и ¶ НЕ трогаем (их цитата/отступ работают через старый перехват).
+// =========================================================
+(function () {
+  function edEl() { return document.getElementById('ak-fmt-editor'); }
+  function curRange(ed) {
+    try { var s = window.getSelection(); if (s && s.rangeCount) { var r = s.getRangeAt(0); if (ed === r.commonAncestorContainer || ed.contains(r.commonAncestorContainer)) return r.cloneRange(); } } catch (e) {}
+    var r2 = window._akEdRange; if (r2 && (ed === r2.commonAncestorContainer || ed.contains(r2.commonAncestorContainer))) return r2.cloneRange();
+    return null;
+  }
+  function blockOfNode(ed, node) {
+    var n = node; if (n && n.nodeType === 3) n = n.parentNode;
+    while (n && n !== ed && n.parentNode !== ed) n = n.parentNode;
+    return (n && n !== ed) ? n : null;
+  }
+  function setCursorIn(node) { try { var s = window.getSelection(); var rr = document.createRange(); rr.selectNodeContents(node); rr.collapse(false); s.removeAllRanges(); s.addRange(rr); } catch (e) {} }
+  function toggleBlock(tag) {
+    var ed = edEl(); if (!ed) return; var r = curRange(ed); if (!r) return;
+    var b = blockOfNode(ed, r.startContainer);
+    if (!b) return;
+    if ((b.nodeName || '').toLowerCase() === tag) {
+      var p = document.createElement('p'); while (b.firstChild) p.appendChild(b.firstChild); b.parentNode.replaceChild(p, b); setCursorIn(p);
+    } else {
+      var nb = document.createElement(tag); while (b.firstChild) nb.appendChild(b.firstChild); b.parentNode.replaceChild(nb, b); setCursorIn(nb);
+    }
+  }
+  function wrapSafe(tag) {
+    var ed = edEl(); if (!ed) return; var r = curRange(ed); if (!r || r.collapsed) return;
+    var bS = blockOfNode(ed, r.startContainer), bE = blockOfNode(ed, r.endContainer);
+    if (!bS || !bE || bS !== bE) return;
+    try { var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); var el = document.createElement(tag); r.surroundContents(el); } catch (e) {}
+  }
+  function align(a) { var ed = edEl(); if (!ed) return; var r = curRange(ed); if (!r) return; var b = blockOfNode(ed, r.startContainer); if (b) b.style.textAlign = a; }
+  var MAP = {
+    'Ж': function () { wrapSafe('strong'); }, 'К': function () { wrapSafe('em'); },
+    'Ц': function () { align('center'); }, '⬅': function () { align('left'); }, '➡': function () { align('right'); }, '↔': function () { align('justify'); },
+    'H1': function () { toggleBlock('h2'); }, 'H2': function () { toggleBlock('h3'); }
+  };
+  var CLEAN = 'data-ak-clean2';
+  var BLOCK = ['data-ak-rewired', 'data-ak-rewired3', 'data-ak-rewired4', 'data-ak-rewired6'];
+  function cleanEditor(ed) {
+    if (ed.getAttribute(CLEAN)) return;
+    ed.setAttribute(CLEAN, '1');
+    BLOCK.forEach(function (f) { ed.setAttribute(f, '1'); });
+    var btns = ed.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      var t = (btns[i].textContent || '').trim(); var fn = MAP[t]; if (!fn) continue;
+      var clone = btns[i].cloneNode(true);
+      var fire = (function (f) { return function (ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } try { f(); } catch (e) {} }; })(fn);
+      clone.addEventListener('touchstart', fire, { passive: false });
+      clone.addEventListener('click', fire);
+      btns[i].parentNode.replaceChild(clone, btns[i]);
+    }
+  }
+  function grab() { var ed = edEl(); if (ed) cleanEditor(ed); }
+  var obs = new MutationObserver(grab);
+  function start() { obs.observe(document.body, { childList: true, subtree: true }); grab(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  setInterval(grab, 700);
+})();
+// ak-headclean-end
